@@ -1,0 +1,14 @@
+/* Decimal point */
+.decimal {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 1vw;
+}
+
+.decimal .colon-dot {
+    margin-bottom: 0.5vw;
+}

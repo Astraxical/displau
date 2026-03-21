@@ -1,0 +1,16 @@
+.segment {
+    width: 8vw;
+    height: 14vw;
+    position: relative;
+}
+
+.segment-part {
+    position: absolute;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.segment-part.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}

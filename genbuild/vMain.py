@@ -379,12 +379,13 @@ def generate_selector(timers_list):
     # Process timers with status and progress
     timers_data = []
     now = datetime.now()
-    
+
     for timer in timers_list:
         config_id = timer.get('id', 'unknown')
         target_time = timer.get('target_time', 'Unknown')
         start_time = timer.get('start_time', 'Unknown')
-        
+        display_name = timer.get('display_name', config_id.replace('-', ' ').title())
+
         # Calculate status and progress
         try:
             start_dt = datetime.fromisoformat(start_time)
@@ -392,7 +393,7 @@ def generate_selector(timers_list):
             total_duration = (target_dt - start_dt).total_seconds()
             elapsed = (now - start_dt).total_seconds()
             progress = min(100, max(0, (elapsed / total_duration) * 100)) if total_duration > 0 else 0
-            
+
             if now > target_dt:
                 status = 'ended'
                 status_label = 'Ended'
@@ -406,14 +407,14 @@ def generate_selector(timers_list):
             progress = 0
             status = 'running'
             status_label = 'Running'
-        
+
         html_file = f'{config_id}.html'
         html_path = SCRIPT_DIR / OUTPUT_DIR / html_file
-        
+
         if html_path.exists():
             timers_data.append({
                 'id': config_id,
-                'name': config_id.replace('-', ' ').title(),
+                'name': display_name,
                 'target_time': target_time,
                 'start_time': start_time,
                 'progress': progress,

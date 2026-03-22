@@ -6,7 +6,6 @@ body {
     background: #1a1a2e;
     overflow: hidden;
     position: relative;
-    padding-bottom: 80px;
 }
 
 /* Control Buttons */
@@ -68,10 +67,6 @@ body {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-    body {
-        padding-bottom: 100px;
-    }
-
     .timer-controls {
         bottom: 1rem;
         gap: 0.5rem;

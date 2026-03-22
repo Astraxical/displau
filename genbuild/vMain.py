@@ -330,7 +330,8 @@ def clean_orphaned_outputs(timer_ids):
 
 def generate_selector(timers_list):
     """Generate an index.html selector page with links to all timers."""
-    output_path = SCRIPT_DIR / OUTPUT_DIR / 'index.html'
+    # Place index.html in the parent directory (genbuild/) for cleaner URL
+    output_path = SCRIPT_DIR / 'index.html'
 
     # Generate timer cards with embedded previews
     timer_cards = ''
@@ -344,17 +345,18 @@ def generate_selector(timers_list):
         html_path = SCRIPT_DIR / OUTPUT_DIR / html_file
         
         if html_path.exists():
+            # Link from genbuild/index.html to output/{id}.html
             timer_cards += f'''
             <div class="timer-card">
                 <h3>{config_id.replace('-', ' ').title()}</h3>
                 <div class="timer-preview">
-                    <iframe src="{html_file}" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                    <iframe src="output/{html_file}" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
                 </div>
                 <p class="time-info">
                     <span class="start">Start: {start_time}</span>
                     <span class="target">Target: {target_time}</span>
                 </p>
-                <a href="{html_file}" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="output/{html_file}" class="timer-link" target="_blank">Open Full Timer →</a>
             </div>'''
     
     html_content = f'''<!DOCTYPE html>

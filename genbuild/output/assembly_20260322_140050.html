@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/limerance-dead.json">
+<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/assembly.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -119,12 +119,12 @@ body {
         // ============ CONFIGURATION ============
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
-    target_time: '2026-03-24T00:00:00',
-    start_time: '2026-03-17T00:00:00',
+    target_time: '2026-03-24T05:30:00',
+    start_time: '2026-03-21T23:54:57',
     config_id: 'default'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 122538342;
-const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/limerance-dead.json'; // Injected by build script
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 142149789;
+const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/assembly.json'; // Injected by build script
 // =======================================
 
 // Cache configuration
@@ -163,7 +163,7 @@ async function loadConfig() {
     }
     
     // Try fetch from GitHub
-    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/limerance-dead.json') {
+    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/assembly.json') {
         try {
             console.log('[Config] Fetching config from:', CONFIG_URL);
             const response = await fetch(CONFIG_URL, {

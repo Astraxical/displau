@@ -257,7 +257,7 @@ def build_all_timers():
         )
 
 
-def build_timers_folder():
+def build_timers_folder(generate_selector_page=False):
     """Build all timers from the timers/ folder."""
     timers_dir = SCRIPT_DIR / 'timers'
 
@@ -272,6 +272,8 @@ def build_timers_folder():
         return
 
     print(f"Building {len(timer_files)} timer(s) from timers/ folder...")
+    
+    timers_list = []
 
     for i, timer_file in enumerate(timer_files, 1):
         with open(timer_file, 'r', encoding='utf-8') as f:
@@ -286,6 +288,162 @@ def build_timers_folder():
             config_id=config_id,
             auto_config=True  # Auto-generate config URL
         )
+        
+        timers_list.append(timer)
+    
+    if generate_selector_page:
+        generate_selector(timers_list)
+
+
+def generate_selector(timers_list):
+    """Generate an index.html selector page with links to all timers."""
+    output_path = SCRIPT_DIR / OUTPUT_DIR / 'index.html'
+    
+    # Generate timer links
+    timer_links = ''
+    for timer in timers_list:
+        config_id = timer.get('id', 'unknown')
+        target_time = timer.get('target_time', 'Unknown')
+        start_time = timer.get('start_time', 'Unknown')
+        
+        # Find the HTML file for this timer
+        html_files = sorted((SCRIPT_DIR / OUTPUT_DIR).glob(f'{config_id}_*.html'))
+        if html_files:
+            html_file = html_files[-1].name
+            timer_links += f'''
+            <div class="timer-card">
+                <h3>{config_id.replace('-', ' ').title()}</h3>
+                <p class="time-info">
+                    <span class="start">Start: {start_time}</span>
+                    <span class="target">Target: {target_time}</span>
+                </p>
+                <a href="{html_file}" class="timer-link">Open Timer →</a>
+            </div>'''
+    
+    html_content = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7 Segment Display - Timer Selector</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: #fff;
+        }}
+        
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+        }}
+        
+        h1 {{
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }}
+        
+        .subtitle {{
+            text-align: center;
+            color: #888;
+            margin-bottom: 3rem;
+        }}
+        
+        .timers-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }}
+        
+        .timer-card {{
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }}
+        
+        .timer-card:hover {{
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }}
+        
+        .timer-card h3 {{
+            color: #00ff88;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }}
+        
+        .time-info {{
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: #aaa;
+        }}
+        
+        .time-info span {{
+            display: flex;
+            justify-content: space-between;
+        }}
+        
+        .timer-link {{
+            display: inline-block;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #1a1a2e;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            transition: box-shadow 0.3s;
+        }}
+        
+        .timer-link:hover {{
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }}
+        
+        .footer {{
+            text-align: center;
+            margin-top: 3rem;
+            color: #666;
+            font-size: 0.9rem;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏱️ Timer Selector</h1>
+        <p class="subtitle">Select a countdown timer to view</p>
+        
+        <div class="timers-grid">
+            {timer_links}
+        </div>
+        
+        <div class="footer">
+            <p>7 Segment Display Timer System</p>
+        </div>
+    </div>
+</body>
+</html>'''
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    
+    print(f"Generated selector page: {output_path}")
 
 
 if __name__ == '__main__':
@@ -323,6 +481,11 @@ if __name__ == '__main__':
         action='store_true',
         help='Build all timers from the timers/ folder'
     )
+    parser.add_argument(
+        '--selector',
+        action='store_true',
+        help='Generate index.html selector page (use with --timers-dir)'
+    )
 
     args = parser.parse_args()
 
@@ -331,7 +494,7 @@ if __name__ == '__main__':
     elif args.all:
         build_all_timers()
     elif args.timers_dir:
-        build_timers_folder()
+        build_timers_folder(generate_selector_page=args.selector)
     else:
         build_html(
             target_time_str=args.target_time,

@@ -7,23 +7,49 @@ Features **GitHub-backed configuration** for runtime updates without rebuilding.
 ## Quick Start
 
 ```bash
-# Basic build with default config
-python vMain.py
+# Build single timer with auto-generated GitHub config URL
+python vMain.py --config-id assembly
 
 # Build with custom target time
-python vMain.py 2026-12-31T23:59:59
-
-# Build with GitHub config URL (recommended)
-python vMain.py --config-url "https://raw.githubusercontent.com/youruser/yourrepo/gh-pages/config.json" --config-id my-event
-
-# Build all timers from timers.json
-python vMain.py --all
+python vMain.py 2026-12-31T23:59:59 --config-id my-event
 
 # Build all timers from timers/ folder
 python vMain.py --timers-dir
+
+# Build all timers from timers.json
+python vMain.py --all
 ```
 
 ## Timers System
+
+### Using `timers/` Folder (Recommended)
+
+Create individual timer config files in the `timers/` folder:
+
+```
+timers/
+├── assembly.json
+├── graduation.json
+└── limerance-dead.json
+```
+
+Each file contains:
+```json
+{
+    "id": "assembly",
+    "target_time": "2026-03-24T05:30:00",
+    "start_time": "2026-03-21T23:54:57"
+}
+```
+
+**Config URL is auto-generated!** The build script creates the GitHub raw URL from:
+- Your GitHub repo (configured in `vMain.py`)
+- Timer ID → `{repo}/genbuild/timers/{id}.json`
+
+Build all timers:
+```bash
+python vMain.py --timers-dir
+```
 
 ### Using `timers.json`
 
@@ -33,19 +59,14 @@ Create a `timers.json` file with multiple timer configurations:
 {
     "timers": [
         {
-            "id": "default",
+            "id": "assembly",
+            "target_time": "2026-03-24T05:30:00",
+            "start_time": "2026-03-21T23:54:57"
+        },
+        {
+            "id": "graduation",
             "target_time": "2026-03-31T05:00:00",
-            "config_url": ""
-        },
-        {
-            "id": "newyear",
-            "target_time": "2027-01-01T00:00:00",
-            "config_url": ""
-        },
-        {
-            "id": "launch",
-            "target_time": "2026-06-15T10:00:00",
-            "config_url": "https://raw.githubusercontent.com/user/repo/gh-pages/configs/launch.json"
+            "start_time": "2026-03-21T23:55:38"
         }
     ]
 }
@@ -56,74 +77,58 @@ Build all timers:
 python vMain.py --all
 ```
 
-### Using `timers/` Folder
+## Timer Selector Page
 
-Create individual timer config files in the `timers/` folder:
+Generate an index.html selector page that lists all timers:
 
-```
-timers/
-├── default.json
-├── newyear.json
-└── launch.json
-```
-
-Each file contains:
-```json
-{
-    "id": "newyear",
-    "target_time": "2027-01-01T00:00:00",
-    "config_url": ""
-}
-```
-
-Build all timers from folder:
 ```bash
-python vMain.py --timers-dir
+python vMain.py --timers-dir --selector
 ```
+
+This creates `output/index.html` with links to all built timers.
 
 ## GitHub Configuration Setup
 
-### 1. Create a GitHub Repository
+### 1. Configure Repository in vMain.py
 
-```bash
-# Initialize git in your project (if not already)
-git init
-git remote add origin https://github.com/youruser/yourrepo.git
+Edit the top of `vMain.py`:
+```python
+GITHUB_REPO = 'Astraxical/displau'  # Your GitHub username/repo
+GITHUB_BRANCH = 'master'            # Your branch name
+TIMERS_PATH = 'genbuild/timers'     # Path to timers folder
 ```
 
-### 2. Create config.json
+### 2. Create Timer Configs
 
-Create a `config.json` file in your repository:
-
+Create timer JSON files in `timers/`:
 ```json
 {
-    "target_time": "2026-03-31T05:00:00",
-    "config_id": "default"
+    "id": "my-timer",
+    "target_time": "2026-12-31T23:59:59",
+    "start_time": "2026-01-01T00:00:00"
 }
 ```
 
-### 3. Enable GitHub Pages
-
-1. Go to repository **Settings** → **Pages**
-2. Source: Deploy from branch → `gh-pages` (or `main` if using `/docs` folder)
-3. Save
-
-### 4. Get Your Raw Config URL
-
-The raw URL format is:
-```
-https://raw.githubusercontent.com/youruser/yourrepo/gh-pages/config.json
-```
-
-### 5. Build HTML with Config URL
+### 3. Build and Push
 
 ```bash
-python vMain.py --config-url "https://raw.githubusercontent.com/youruser/yourrepo/gh-pages/config.json"
+# Build all timers
+python vMain.py --timers-dir
+
+# Commit and push
+git add . && git commit -m "Build timers" && git push
 ```
 
-### 6. Update Config on GitHub
+### 4. Enable GitHub Pages
 
-Edit `config.json` on GitHub (via UI or push changes) → HTML picks up changes on next load (cached for 5 minutes).
+1. Go to repository **Settings** → **Pages**
+2. Source: Deploy from branch → `master` (or `main`)
+3. Save
+
+### 5. Access Your Timers
+
+- **Selector Page**: `https://youruser.github.io/yourrepo/genbuild/output/`
+- **Individual Timer**: `https://youruser.github.io/yourrepo/genbuild/output/assembly_*.html`
 
 ## Runtime Behavior
 
@@ -133,6 +138,15 @@ When the HTML loads:
 2. **Fetch from GitHub** - Gets latest config from the raw URL
 3. **Fallback to defaults** - Uses hardcoded values if fetch fails
 
+## Sync Behavior
+
+| Action | Result |
+|--------|--------|
+| Edit timer JSON on GitHub | ✅ All HTMLs sync on next load |
+| Open downloaded HTML | ✅ Fetches latest from GitHub |
+| Offline (no internet) | ✅ Uses cached config |
+| After 5 minutes | ✅ Auto-refetches from GitHub |
+
 ## Batch Build (Multiple HTMLs)
 
 Create a batch config file `batch.json`:
@@ -141,19 +155,18 @@ Create a batch config file `batch.json`:
 [
     {
         "config_id": "newyear",
-        "config_url": "https://raw.githubusercontent.com/user/repo/gh-pages/configs/newyear.json",
-        "target_time": "2026-12-31T23:59:59"
+        "target_time": "2026-12-31T23:59:59",
+        "start_time": "2026-01-01T00:00:00"
     },
     {
         "config_id": "launch",
-        "config_url": "https://raw.githubusercontent.com/user/repo/gh-pages/configs/launch.json",
-        "target_time": "2026-06-15T10:00:00"
+        "target_time": "2026-06-15T10:00:00",
+        "start_time": "2026-03-01T00:00:00"
     }
 ]
 ```
 
 Build all:
-
 ```bash
 python vMain.py --batch batch.json
 ```
@@ -163,25 +176,37 @@ python vMain.py --batch batch.json
 | Option | Description |
 |--------|-------------|
 | `target_time` | Target time in ISO format (positional, optional) |
-| `--config-url` | GitHub raw URL for config.json |
-| `--config-id` | Identifier for output filename (default: `default`) |
+| `--config-url` | GitHub raw URL for config.json (manual override) |
+| `--config-id` | Timer identifier for output filename |
 | `--batch` | Build multiple HTMLs from a JSON batch file |
 | `--all` | Build all timers from `timers.json` |
 | `--timers-dir` | Build all timers from `timers/` folder |
+| `--selector` | Generate index.html selector page |
 
 ## Project Structure
 
 ```
 genbuild/
 ├── vMain.py              # Build script
-├── config.json           # Local config template
-├── timers.json           # Multiple timer configs
-├── timers/               # Individual timer configs (folder)
+├── README.md             # This file
+├── timers.json           # Multiple timer configs (optional)
+├── timers/               # Individual timer configs
+│   ├── assembly.json
+│   ├── graduation.json
+│   └── limerance-dead.json
 ├── components/
 │   ├── html/             # HTML fragments
 │   ├── styles/           # CSS files
 │   └── scripts/          # JavaScript files
-└── output/               # Generated HTML files
+├── output/               # Generated HTML files
+│   ├── index.html        # Timer selector (if generated)
+│   ├── assembly_*.html
+│   ├── graduation_*.html
+│   └── limerance-dead_*.html
+└── old-timers/           # Original HTMLs (reference)
+    ├── assembly.html
+    ├── graduation.html
+    └── limerance-dead.html
 ```
 
 ## Editing Components
@@ -191,9 +216,8 @@ genbuild/
 - **Scripts**: Modify files in `components/scripts/`
 
 Then rebuild:
-
 ```bash
-python vMain.py --config-url "your-github-config-url"
+python vMain.py --timers-dir
 ```
 
 ## Cache Configuration
@@ -202,7 +226,26 @@ Browser cache duration is set to **5 minutes** by default. To change:
 
 Edit `components/scripts/config.js`:
 ```javascript
-const CACHE_DURATION_MS = 5 * 60 * 1000; // Change this value
+const CACHE_DURATION_MS = 10 * 60 * 1000; // 10 minutes
+```
+
+## Config Schema
+
+Each timer JSON supports:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Timer identifier |
+| `target_time` | string | Yes | ISO 8601 datetime |
+| `start_time` | string | No | ISO 8601 datetime (defaults to build time) |
+
+Example:
+```json
+{
+    "id": "event",
+    "target_time": "2026-12-31T23:59:59",
+    "start_time": "2026-01-01T00:00:00"
+}
 ```
 
 ## License

@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7 Segment Display - Timer Selector (Preview)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+            min-width: 250px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        .control-btn {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        .control-btn.active {
+            background: rgba(0, 255, 136, 0.3);
+            border-color: #00ff88;
+        }
+
+        select.control-btn {
+            cursor: pointer;
+        }
+
+        /* Timers Grid */
+        .timers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .timers-grid.list-view {
+            grid-template-columns: 1fr;
+        }
+
+        .timer-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .timer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        .timer-card.hidden {
+            display: none;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-header h3 {
+            color: #00ff88;
+            font-size: 1.5rem;
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-running {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border: 1px solid #00ff88;
+        }
+
+        .status-upcoming {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid #ffc107;
+        }
+
+        .status-ended {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid #f44336;
+        }
+
+        /* Timer Preview */
+        .timer-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .timer-preview iframe {
+            width: 100%;
+            height: 120px;
+            border: none;
+            display: block;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            color: #00ff88;
+            font-weight: bold;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        /* Time Info */
+        .time-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .time-info span {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Card Actions */
+        .card-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .timer-link {
+            flex: 1;
+            display: inline-block;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #1a1a2e;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            transition: box-shadow 0.3s;
+        }
+
+        .timer-link:hover {
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .download-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .download-link:hover {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .stats-bar {
+                gap: 1rem;
+            }
+
+            .stat-item {
+                min-width: 80px;
+                padding: 0.75rem 1rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+
+            .timers-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Preview Banner */
+        .preview-banner {
+            background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%);
+            color: #1a1a2e;
+            text-align: center;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="preview-banner">
+            ⚠️ This is a preview template. Run <code>python vMain.py --deploy</code> to generate the live version.
+        </div>
+
+        <h1>⏱️ Timer Selector</h1>
+        <p class="subtitle">Select a countdown timer to view</p>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value">4</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #00ff88;">3</div>
+                <div class="stat-label">Running</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #ffc107;">1</div>
+                <div class="stat-label">Upcoming</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #f44336;">0</div>
+                <div class="stat-label">Ended</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search timers...">
+            <select class="control-btn" id="sortSelect">
+                <option value="status">Sort: Status</option>
+                <option value="name">Sort: Name</option>
+                <option value="progress">Sort: Progress</option>
+                <option value="target">Sort: Target Date</option>
+            </select>
+            <button class="control-btn active" id="gridBtn" title="Grid View">▦</button>
+            <button class="control-btn" id="listBtn" title="List View">☰</button>
+        </div>
+
+        <!-- Timers Grid -->
+        <div class="timers-grid" id="timersGrid">
+            <!-- Example Timer Card: Assembly (Running) -->
+            <div class="timer-card" data-status="running" data-name="assembly">
+                <div class="card-header">
+                    <h3>Assembly</h3>
+                    <span class="status-badge status-running">Running</span>
+                </div>
+                <div class="timer-preview">
+                    <iframe src="output/assembly.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 45.2%"></div>
+                    </div>
+                    <span class="progress-text">45.2%</span>
+                </div>
+                <p class="time-info">
+                    <span class="start">📅 Start: 2026-03-21T23:54:57</span>
+                    <span class="target">🎯 Target: 2026-03-24T05:30:00</span>
+                </p>
+                <div class="card-actions">
+                    <a href="output/assembly.html" class="timer-link" target="_blank">Open Full Timer →</a>
+                    <a href="output/assembly.html" class="download-link" download="assembly.html" title="Download">⬇️</a>
+                </div>
+            </div>
+
+            <!-- Example Timer Card: Birthday (Upcoming) -->
+            <div class="timer-card" data-status="upcoming" data-name="birthday">
+                <div class="card-header">
+                    <h3>Birthday</h3>
+                    <span class="status-badge status-upcoming">Upcoming</span>
+                </div>
+                <div class="timer-preview">
+                    <iframe src="output/birthday.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <span class="progress-text">0.0%</span>
+                </div>
+                <p class="time-info">
+                    <span class="start">📅 Start: 2026-05-01T00:00:00</span>
+                    <span class="target">🎯 Target: 2026-05-15T00:00:00</span>
+                </p>
+                <div class="card-actions">
+                    <a href="output/birthday.html" class="timer-link" target="_blank">Open Full Timer →</a>
+                    <a href="output/birthday.html" class="download-link" download="birthday.html" title="Download">⬇️</a>
+                </div>
+            </div>
+
+            <!-- Example Timer Card: Graduation (Running) -->
+            <div class="timer-card" data-status="running" data-name="graduation">
+                <div class="card-header">
+                    <h3>Graduation</h3>
+                    <span class="status-badge status-running">Running</span>
+                </div>
+                <div class="timer-preview">
+                    <iframe src="output/graduation.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 12.5%"></div>
+                    </div>
+                    <span class="progress-text">12.5%</span>
+                </div>
+                <p class="time-info">
+                    <span class="start">📅 Start: 2026-03-21T23:55:38</span>
+                    <span class="target">🎯 Target: 2026-03-31T05:00:00</span>
+                </p>
+                <div class="card-actions">
+                    <a href="output/graduation.html" class="timer-link" target="_blank">Open Full Timer →</a>
+                    <a href="output/graduation.html" class="download-link" download="graduation.html" title="Download">⬇️</a>
+                </div>
+            </div>
+
+            <!-- Example Timer Card: Limerance Dead (Running) -->
+            <div class="timer-card" data-status="running" data-name="limerance-dead">
+                <div class="card-header">
+                    <h3>Limerance Dead</h3>
+                    <span class="status-badge status-running">Running</span>
+                </div>
+                <div class="timer-preview">
+                    <iframe src="output/limerance-dead.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 78.3%"></div>
+                    </div>
+                    <span class="progress-text">78.3%</span>
+                </div>
+                <p class="time-info">
+                    <span class="start">📅 Start: 2026-03-17T00:00:00</span>
+                    <span class="target">🎯 Target: 2026-03-24T00:00:00</span>
+                </p>
+                <div class="card-actions">
+                    <a href="output/limerance-dead.html" class="timer-link" target="_blank">Open Full Timer →</a>
+                    <a href="output/limerance-dead.html" class="download-link" download="limerance-dead.html" title="Download">⬇️</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>7 Segment Display Timer System</p>
+        </div>
+    </div>
+
+    <script>
+        // Search functionality
+        const searchBox = document.getElementById('searchBox');
+        const timersGrid = document.getElementById('timersGrid');
+        const sortSelect = document.getElementById('sortSelect');
+        const gridBtn = document.getElementById('gridBtn');
+        const listBtn = document.getElementById('listBtn');
+
+        searchBox.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.timer-card').forEach(card => {
+                const name = card.dataset.name;
+                if (name.includes(query)) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        });
+
+        // Sort functionality
+        sortSelect.addEventListener('change', (e) => {
+            const cards = Array.from(timersGrid.querySelectorAll('.timer-card'));
+            const sortType = e.target.value;
+
+            cards.sort((a, b) => {
+                if (sortType === 'name') {
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                } else if (sortType === 'progress') {
+                    const aProgress = parseFloat(a.querySelector('.progress-text').textContent);
+                    const bProgress = parseFloat(b.querySelector('.progress-text').textContent);
+                    return bProgress - aProgress;
+                } else if (sortType === 'target') {
+                    const aTarget = a.querySelector('.target').textContent;
+                    const bTarget = b.querySelector('.target').textContent;
+                    return aTarget.localeCompare(bTarget);
+                }
+                // Default: status order
+                const statusOrder = {'running': 0, 'upcoming': 1, 'ended': 2};
+                return (statusOrder[a.dataset.status] || 3) - (statusOrder[b.dataset.status] || 3);
+            });
+
+            cards.forEach(card => timersGrid.appendChild(card));
+        });
+
+        // Grid/List toggle
+        gridBtn.addEventListener('click', () => {
+            timersGrid.classList.remove('list-view');
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        });
+
+        listBtn.addEventListener('click', () => {
+            timersGrid.classList.add('list-view');
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+        });
+    </script>
+</body>
+</html>

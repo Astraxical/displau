@@ -331,8 +331,8 @@ def generate_selector(timers_list):
     """Generate an index.html selector page with links to all timers."""
     output_path = SCRIPT_DIR / OUTPUT_DIR / 'index.html'
 
-    # Generate timer links
-    timer_links = ''
+    # Generate timer cards with embedded previews
+    timer_cards = ''
     for timer in timers_list:
         config_id = timer.get('id', 'unknown')
         target_time = timer.get('target_time', 'Unknown')
@@ -343,14 +343,17 @@ def generate_selector(timers_list):
         html_path = SCRIPT_DIR / OUTPUT_DIR / html_file
         
         if html_path.exists():
-            timer_links += f'''
+            timer_cards += f'''
             <div class="timer-card">
                 <h3>{config_id.replace('-', ' ').title()}</h3>
+                <div class="timer-preview">
+                    <iframe src="{html_file}" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
                 <p class="time-info">
                     <span class="start">Start: {start_time}</span>
                     <span class="target">Target: {target_time}</span>
                 </p>
-                <a href="{html_file}" class="timer-link">Open Timer →</a>
+                <a href="{html_file}" class="timer-link" target="_blank">Open Full Timer →</a>
             </div>'''
     
     html_content = f'''<!DOCTYPE html>
@@ -418,7 +421,22 @@ def generate_selector(timers_list):
             margin-bottom: 1rem;
             font-size: 1.5rem;
         }}
-        
+
+        .timer-preview {{
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }}
+
+        .timer-preview iframe {{
+            width: 100%;
+            height: 120px;
+            border: none;
+            display: block;
+        }}
+
         .time-info {{
             display: flex;
             flex-direction: column;
@@ -463,7 +481,7 @@ def generate_selector(timers_list):
         <p class="subtitle">Select a countdown timer to view</p>
         
         <div class="timers-grid">
-            {timer_links}
+            {timer_cards}
         </div>
         
         <div class="footer">

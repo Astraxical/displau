@@ -63,7 +63,22 @@
             margin-bottom: 1rem;
             font-size: 1.5rem;
         }
-        
+
+        .timer-preview {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .timer-preview iframe {
+            width: 100%;
+            height: 120px;
+            border: none;
+            display: block;
+        }
+
         .time-info {
             display: flex;
             flex-direction: column;
@@ -111,27 +126,36 @@
             
             <div class="timer-card">
                 <h3>Assembly</h3>
+                <div class="timer-preview">
+                    <iframe src="assembly.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
                 <p class="time-info">
                     <span class="start">Start: 2026-03-21T23:54:57</span>
                     <span class="target">Target: 2026-03-24T05:30:00</span>
                 </p>
-                <a href="assembly.html" class="timer-link">Open Timer →</a>
+                <a href="assembly.html" class="timer-link" target="_blank">Open Full Timer →</a>
             </div>
             <div class="timer-card">
                 <h3>Graduation</h3>
+                <div class="timer-preview">
+                    <iframe src="graduation.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
                 <p class="time-info">
                     <span class="start">Start: 2026-03-21T23:55:38</span>
                     <span class="target">Target: 2026-03-31T05:00:00</span>
                 </p>
-                <a href="graduation.html" class="timer-link">Open Timer →</a>
+                <a href="graduation.html" class="timer-link" target="_blank">Open Full Timer →</a>
             </div>
             <div class="timer-card">
                 <h3>Limerance Dead</h3>
+                <div class="timer-preview">
+                    <iframe src="limerance-dead.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
                 <p class="time-info">
                     <span class="start">Start: 2026-03-17T00:00:00</span>
                     <span class="target">Target: 2026-03-24T00:00:00</span>
                 </p>
-                <a href="limerance-dead.html" class="timer-link">Open Timer →</a>
+                <a href="limerance-dead.html" class="timer-link" target="_blank">Open Full Timer →</a>
             </div>
         </div>
         

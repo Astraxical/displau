@@ -12,6 +12,8 @@ import os
 import sys
 import json
 import argparse
+import shutil
+import subprocess
 from pathlib import Path
 from datetime import datetime
 from urllib.request import urlopen, Request
@@ -300,6 +302,47 @@ def build_timers_folder(generate_selector_page=False):
         generate_selector(timers_list)
 
 
+def deploy(generate_selector_page=True):
+    """Clean output folder, rebuild all timers, and push to GitHub."""
+    output_dir = SCRIPT_DIR / OUTPUT_DIR
+    
+    # Step 1: Delete output folder
+    if output_dir.exists():
+        print(f"Deleting {output_dir}...")
+        shutil.rmtree(output_dir)
+    
+    # Step 2: Rebuild all timers
+    print("\nRebuilding all timers...\n")
+    build_timers_folder(generate_selector_page=generate_selector_page)
+    
+    # Step 3: Git add, commit, and push
+    print("\n--- Pushing to GitHub ---")
+    
+    # Check if there are changes to commit
+    result = subprocess.run(
+        ['git', '-C', str(SCRIPT_DIR), 'status', '--porcelain'],
+        capture_output=True, text=True
+    )
+    
+    if result.stdout.strip():
+        # Add all changes
+        subprocess.run(['git', '-C', str(SCRIPT_DIR), 'add', '.'], check=True)
+        
+        # Commit
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        subprocess.run(
+            ['git', '-C', str(SCRIPT_DIR), 'commit', '-m', f'Auto-deploy: {timestamp}'],
+            check=True
+        )
+        
+        # Push
+        subprocess.run(['git', '-C', str(SCRIPT_DIR), 'push'], check=True)
+        
+        print("\n✅ Deployed successfully!")
+    else:
+        print("\nNo changes to commit.")
+
+
 def clean_orphaned_outputs(timer_ids):
     """Delete HTML files that don't have corresponding timer JSON configs."""
     output_dir = SCRIPT_DIR / OUTPUT_DIR
@@ -540,10 +583,17 @@ if __name__ == '__main__':
         action='store_true',
         help='Generate index.html selector page (use with --timers-dir)'
     )
+    parser.add_argument(
+        '--deploy',
+        action='store_true',
+        help='Clean output, rebuild all timers, and push to GitHub automatically'
+    )
 
     args = parser.parse_args()
 
-    if args.batch:
+    if args.deploy:
+        deploy(generate_selector_page=True)
+    elif args.batch:
         build_batch(args.batch)
     elif args.all:
         build_all_timers()

@@ -45,8 +45,8 @@ function updateCountdown() {
     
     // Exponential speed adjustment based on how far off we are
     const expectedRemaining = total - (realNow - start);
-    const diff = expectedRemaining - remaining;
-    
+    const diff = remaining - expectedRemaining;
+
     if (Math.abs(diff) > 100) { // Only adjust if off by more than 100ms
         // Exponential factor: larger diff = faster catchup
         const catchupFactor = Math.min(0.5, Math.abs(diff) / 10000); // Max 50% speed change

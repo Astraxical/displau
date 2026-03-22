@@ -21,19 +21,6 @@ body {
     position: relative;
 }
 
-/* Display wrapper for progress ring */
-.display-wrapper {
-    position: relative;
-    display: inline-block;
-    padding: 30px;
-}
-
-/* Display container for proper ring sizing */
-.display {
-    position: relative;
-    z-index: 100;
-}
-
 /* Display Name */
 .timer-display-name {
     position: fixed;
@@ -50,69 +37,6 @@ body {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
     border: 1px solid rgba(0, 255, 136, 0.2);
-}
-
-/* Progress Ring - Border around timer */
-.progress-ring-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-    z-index: 50;
-    width: calc(100% - 60px);
-    height: calc(100% - 60px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.progress-ring-wrapper {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.progress-ring {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    transform: rotate(-90deg);
-}
-
-.progress-ring-bg {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.1);
-    stroke-width: 2;
-}
-
-.progress-ring-fill {
-    fill: none;
-    stroke: #00ff88;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-dasharray: 660;
-    stroke-dashoffset: 660;
-    transition: stroke-dashoffset 0.5s ease;
-}
-
-.progress-percent {
-    position: absolute;
-    bottom: -25px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 0.85rem;
-    font-weight: bold;
-    color: #00ff88;
-    text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-    background: rgba(0, 0, 0, 0.5);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
 }
 
 /* Control Buttons */
@@ -166,10 +90,6 @@ body {
         overflow: auto;
     }
 
-    .display-wrapper {
-        padding: 20px;
-    }
-
     .display {
         gap: 0.5rem !important;
         flex-wrap: wrap;
@@ -198,18 +118,9 @@ body {
         top: 1rem;
         font-size: 1.2rem;
     }
-
-    .progress-ring-container {
-        width: calc(100% - 40px);
-        height: calc(100% - 40px);
-    }
 }
 
 @media (max-width: 480px) {
-    .display-wrapper {
-        padding: 15px;
-    }
-
     .segment {
         width: 20vw !important;
         height: 35vw !important;
@@ -234,15 +145,6 @@ body {
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-
-    .progress-ring-container {
-        width: calc(100% - 30px);
-        height: calc(100% - 30px);
-    }
-
-    .progress-percent {
-        font-size: 0.75rem;
-    }
 }
 
 /* Fullscreen styles */
@@ -252,11 +154,6 @@ body {
 
 :fullscreen .timer-controls {
     bottom: 3rem;
-}
-
-:fullscreen .progress-ring-container {
-    width: 120px;
-    height: 120px;
 }
 
 .display {
@@ -363,7 +260,7 @@ const DEFAULTS = {
     display_name: '',
     config_id: 'default'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 118182206;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 117746055;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/limerance-dead.json'; // Injected by build script
 // =======================================
 
@@ -759,8 +656,6 @@ let lastRealTime = Date.now();
 
 // Speed adjustment for sync
 let speedFactor = 1.0;
-const SYNC_THRESHOLD_MS = 1000; // Only adjust if off by more than 1 second
-const MAX_SPEED_ADJUSTMENT = 0.1; // Max 10% speed change
 
 // Check if embedded in iframe
 const isEmbedded = window.self !== window.top;
@@ -796,47 +691,20 @@ function updateCountdown() {
     const displayName = DISPLAY_NAME || '7 Segment Timer';
     document.title = `${timeStr.split('.')[0]} - ${displayName}`;
     
-    // Update progress ring
-    updateProgressRing(remaining, total);
+    // Exponential speed adjustment based on how far off we are
+    const expectedRemaining = total - (realNow - start);
+    const diff = expectedRemaining - remaining;
     
-    // Gradually adjust speed to sync (if not paused)
-    if (speedFactor !== 1.0) {
-        speedFactor = speedFactor * 0.995 + 1.0 * 0.005; // Gradually return to 1.0
+    if (Math.abs(diff) > 100) { // Only adjust if off by more than 100ms
+        // Exponential factor: larger diff = faster catchup
+        const catchupFactor = Math.min(0.5, Math.abs(diff) / 10000); // Max 50% speed change
+        speedFactor = 1.0 + Math.sign(diff) * catchupFactor;
+    } else {
+        // Gradually return to normal speed
+        speedFactor = speedFactor * 0.95 + 1.0 * 0.05;
         if (Math.abs(speedFactor - 1.0) < 0.0001) {
             speedFactor = 1.0;
         }
-    }
-}
-
-function adjustSpeedForSync(expectedRemaining, actualRemaining) {
-    const diff = expectedRemaining - actualRemaining;
-    
-    // Only adjust if difference is significant
-    if (Math.abs(diff) < SYNC_THRESHOLD_MS) return;
-    
-    // Calculate speed adjustment based on how far off we are
-    const adjustment = Math.sign(diff) * Math.min(MAX_SPEED_ADJUSTMENT, Math.abs(diff) / 30000);
-    speedFactor = Math.max(0.9, Math.min(1.1, speedFactor + adjustment));
-    
-    console.log(`[Sync] Speed adjusted to ${(speedFactor * 100).toFixed(2)}% (diff: ${diff}ms)`);
-}
-
-function updateProgressRing(remaining, total) {
-    const ring = document.getElementById('progressRing');
-    const ringText = document.getElementById('progressPercent');
-    
-    if (!ring) return;
-    
-    const progress = Math.max(0, Math.min(1, 1 - (remaining / total)));
-    
-    // Ellipse circumference: approximate for rx=145, ry=70
-    const circumference = 660;
-    const offset = circumference * (1 - progress);
-    
-    ring.style.strokeDashoffset = offset.toFixed(0);
-    
-    if (ringText) {
-        ringText.textContent = `${(progress * 100).toFixed(1)}%`;
     }
 }
 
@@ -854,8 +722,8 @@ function togglePause() {
         pauseOffset -= pauseDuration;
         pausedAt = null;
         
-        // Reset speed factor to catch up faster
-        speedFactor = 1.05; // Slightly speed up to catch up
+        // Set high speed factor for exponential catchup
+        speedFactor = 1.5; // Start at 50% faster
         
         pauseBtn.textContent = '⏸️ Pause';
         pauseBtn.title = 'Pause timer';
@@ -924,10 +792,9 @@ async function init() {
     colorInterval = setInterval(updateColorTransition, 30);
     lastRealTime = Date.now();
     
-    // Add control buttons and progress ring (only if not embedded)
+    // Add control buttons (only if not embedded)
     if (!isEmbedded) {
         addControlButtons();
-        addProgressRing();
         addDisplayName();
     }
 }
@@ -955,30 +822,6 @@ function addControlButtons() {
             toggleFullscreen();
         }
     });
-}
-
-function addProgressRing() {
-    const display = document.querySelector('.display');
-    if (!display) return;
-    
-    // Wrap display in wrapper for proper positioning
-    const wrapper = document.createElement('div');
-    wrapper.className = 'display-wrapper';
-    display.parentNode.insertBefore(wrapper, display);
-    wrapper.appendChild(display);
-    
-    const ringContainer = document.createElement('div');
-    ringContainer.className = 'progress-ring-container';
-    ringContainer.innerHTML = `
-        <div class="progress-ring-wrapper">
-            <svg class="progress-ring" viewBox="0 0 300 150" preserveAspectRatio="none">
-                <ellipse class="progress-ring-bg" cx="150" cy="75" rx="145" ry="70"></ellipse>
-                <ellipse id="progressRing" class="progress-ring-fill" cx="150" cy="75" rx="145" ry="70"></ellipse>
-            </svg>
-            <span id="progressPercent" class="progress-percent">0%</span>
-        </div>
-    `;
-    wrapper.appendChild(ringContainer);
 }
 
 function addDisplayName() {

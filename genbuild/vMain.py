@@ -4,17 +4,24 @@
 
 Generates a custom 7-segment countdown display HTML file from modular components.
 Configure the parameters below and run this script.
+
+Supports GitHub-backed config for runtime updates.
 """
 
 import os
 import sys
+import json
+import argparse
 from pathlib import Path
 from datetime import datetime
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
 
 # ============ CONFIGURATION ============
 DEFAULT_TARGET_TIME = '2026-03-31T05:00:00'
+DEFAULT_CONFIG_URL = ''  # e.g., 'https://raw.githubusercontent.com/user/repo/gh-pages/config.json'
 OUTPUT_DIR = 'output'
-OUTPUT_PATTERN = 'v1_{timestamp}.html'
+OUTPUT_PATTERN = '{config_id}_{timestamp}.html'
 
 # Components to include (set to False to exclude)
 INCLUDE_UNUSED_SCRIPTS = False
@@ -91,25 +98,47 @@ def load_script_components():
     return '\n'.join(combined_scripts)
 
 
-def replace_placeholders(content, target_time, days_at_full_brightness):
+def replace_placeholders(content, target_time, days_at_full_brightness, config_url):
     """Replace configuration placeholders in content."""
     return content.replace(
         '{{TARGET_TIME}}', target_time
     ).replace(
         '{{DAYS_AT_FULL_BRIGHTNESS}}', str(days_at_full_brightness)
+    ).replace(
+        '{{CONFIG_URL}}', config_url
     )
 
 
-def build_html():
+def fetch_config_from_url(config_url):
+    """Fetch config from a URL (GitHub raw URL, etc.)."""
+    try:
+        req = Request(config_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urlopen(req, timeout=10) as response:
+            data = response.read().decode('utf-8')
+            return json.loads(data)
+    except (URLError, HTTPError, json.JSONDecodeError) as e:
+        print(f"Warning: Could not fetch config from {config_url}: {e}")
+        return None
+
+
+def build_html(target_time_str=None, config_url='', config_id='default'):
     """Generate the HTML file from components."""
-    # Get target time from command line arg or use default
-    target_time_str = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_TARGET_TIME
+    # Get target time from arg or use default
+    if target_time_str is None:
+        target_time_str = DEFAULT_TARGET_TIME
     
+    # If config_url is provided, try to fetch target_time from it
+    if config_url:
+        config = fetch_config_from_url(config_url)
+        if config and 'target_time' in config:
+            target_time_str = config['target_time']
+            print(f"Fetched target_time from config: {target_time_str}")
+
     # Calculate milliseconds at full brightness based on time difference
     target_dt = datetime.fromisoformat(target_time_str)
     now = datetime.now()
     time_diff = target_dt - now
-    milliseconds_at_full_brightness = max(0, int(time_diff.total_seconds() * 1000))  # Convert to milliseconds
+    milliseconds_at_full_brightness = max(0, int(time_diff.total_seconds() * 1000))
 
     # Load all components
     html = load_html_components()
@@ -117,8 +146,11 @@ def build_html():
     scripts = load_script_components()
 
     # Replace placeholders in scripts
-    scripts = replace_placeholders(scripts, target_time_str, milliseconds_at_full_brightness)
-    
+    scripts = replace_placeholders(scripts, target_time_str, milliseconds_at_full_brightness, config_url)
+
+    # Also replace placeholder in html_open
+    html['html_open'] = html['html_open'].replace('{{CONFIG_URL}}', config_url)
+
     # Assemble the final HTML
     final_html = (
         html['doctype'] +
@@ -127,11 +159,14 @@ def build_html():
         html['body'].replace('/* CONFIG_INJECT */', '').replace('/* SCRIPTS_INJECT */', scripts) +
         html['closing']
     )
-    
+
     # Determine output path
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_filename = OUTPUT_PATTERN.format(timestamp=timestamp)
+    output_filename = OUTPUT_PATTERN.format(config_id=config_id, timestamp=timestamp)
     output_path = SCRIPT_DIR / OUTPUT_DIR / output_filename
+
+    # Ensure output directory exists
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Write the final HTML
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -140,8 +175,144 @@ def build_html():
     print(f"Generated {output_path} with:")
     print(f"  TARGET_TIME = {target_time_str}")
     print(f"  MILLISECONDS_AT_FULL_BRIGHTNESS = {milliseconds_at_full_brightness}")
-    print(f"  INCLUDE_UNUSED_SCRIPTS = {INCLUDE_UNUSED_SCRIPTS}")
+    print(f"  CONFIG_URL = {config_url}")
+
+
+def build_batch(batch_file):
+    """Build multiple HTML files from a batch configuration file."""
+    with open(batch_file, 'r', encoding='utf-8') as f:
+        batch_configs = json.load(f)
+
+    if not isinstance(batch_configs, list):
+        batch_configs = [batch_configs]
+
+    print(f"Building {len(batch_configs)} HTML file(s)...")
+
+    for i, cfg in enumerate(batch_configs, 1):
+        config_id = cfg.get('config_id', f'config_{i}')
+        config_url = cfg.get('config_url', '')
+        target_time = cfg.get('target_time', None)
+
+        print(f"\n[{i}/{len(batch_configs)}] Building {config_id}...")
+        build_html(
+            target_time_str=target_time,
+            config_url=config_url,
+            config_id=config_id
+        )
+
+
+def build_all_timers():
+    """Build all timers from timers.json file."""
+    timers_file = SCRIPT_DIR / 'timers.json'
+    
+    if not timers_file.exists():
+        print(f"Error: timers.json not found at {timers_file}")
+        return
+    
+    with open(timers_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    # Support both {timers: [...]} and direct array format
+    timers = data.get('timers', data if isinstance(data, list) else [])
+    
+    if not timers:
+        print("Error: No timers found in timers.json")
+        return
+    
+    print(f"Building {len(timers)} timer(s) from timers.json...")
+    
+    for i, timer in enumerate(timers, 1):
+        config_id = timer.get('id', f'timer_{i}')
+        config_url = timer.get('config_url', '')
+        target_time = timer.get('target_time', None)
+        
+        print(f"\n[{i}/{len(timers)}] Building {config_id}...")
+        build_html(
+            target_time_str=target_time,
+            config_url=config_url,
+            config_id=config_id
+        )
+
+
+def build_timers_folder():
+    """Build all timers from the timers/ folder."""
+    timers_dir = SCRIPT_DIR / 'timers'
+    
+    if not timers_dir.exists():
+        print(f"Error: timers/ folder not found at {timers_dir}")
+        return
+    
+    timer_files = sorted(timers_dir.glob('*.json'))
+    
+    if not timer_files:
+        print(f"Error: No .json files found in {timers_dir}")
+        return
+    
+    print(f"Building {len(timer_files)} timer(s) from timers/ folder...")
+    
+    for i, timer_file in enumerate(timer_files, 1):
+        with open(timer_file, 'r', encoding='utf-8') as f:
+            timer = json.load(f)
+        
+        config_id = timer.get('id', timer_file.stem)
+        config_url = timer.get('config_url', '')
+        target_time = timer.get('target_time', None)
+        
+        print(f"\n[{i}/{len(timer_files)}] Building {config_id}...")
+        build_html(
+            target_time_str=target_time,
+            config_url=config_url,
+            config_id=config_id
+        )
 
 
 if __name__ == '__main__':
-    build_html()
+    parser = argparse.ArgumentParser(
+        description='7 Segment Display HTML Builder - Generate countdown display with GitHub-backed config'
+    )
+    parser.add_argument(
+        'target_time',
+        nargs='?',
+        default=None,
+        help='Target time in ISO format (e.g., 2026-03-31T05:00:00). If omitted, uses default or fetches from config_url'
+    )
+    parser.add_argument(
+        '--config-url',
+        default='',
+        help='GitHub raw URL for config.json (e.g., https://raw.githubusercontent.com/user/repo/gh-pages/config.json)'
+    )
+    parser.add_argument(
+        '--config-id',
+        default='default',
+        help='Config identifier for output filename (default: default)'
+    )
+    parser.add_argument(
+        '--batch',
+        metavar='BATCH_FILE',
+        help='Build multiple HTMLs from a JSON batch file'
+    )
+    parser.add_argument(
+        '--all',
+        action='store_true',
+        help='Build all timers from timers.json'
+    )
+    parser.add_argument(
+        '--timers-dir',
+        action='store_true',
+        help='Build all timers from the timers/ folder'
+    )
+
+    args = parser.parse_args()
+
+    if args.batch:
+        build_batch(args.batch)
+    elif args.all:
+        build_all_timers()
+    elif args.timers_dir:
+        build_timers_folder()
+    else:
+        build_html(
+            target_time_str=args.target_time,
+            config_url=args.config_url,
+            config_id=args.config_id
+        )

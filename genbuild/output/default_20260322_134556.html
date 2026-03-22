@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/launch.json">
+<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/default.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -119,11 +119,11 @@ body {
         // ============ CONFIGURATION ============
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
-    target_time: '2026-06-15T10:00:00',
+    target_time: '2026-03-31T05:00:00',
     config_id: 'default'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 7330768519;
-const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/launch.json'; // Injected by build script
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 746043384;
+const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/default.json'; // Injected by build script
 // =======================================
 
 // Cache configuration
@@ -162,7 +162,7 @@ async function loadConfig() {
     }
     
     // Try fetch from GitHub
-    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/launch.json') {
+    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/default.json') {
         try {
             console.log('[Config] Fetching config from:', CONFIG_URL);
             const response = await fetch(CONFIG_URL, {

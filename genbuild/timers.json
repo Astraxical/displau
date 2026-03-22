@@ -3,17 +3,17 @@
         {
             "id": "default",
             "target_time": "2026-03-31T05:00:00",
-            "config_url": ""
+            "config_url": "https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/default.json"
         },
         {
             "id": "newyear",
             "target_time": "2027-01-01T00:00:00",
-            "config_url": ""
+            "config_url": "https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/newyear.json"
         },
         {
             "id": "launch",
             "target_time": "2026-06-15T10:00:00",
-            "config_url": ""
+            "config_url": "https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/launch.json"
         }
     ]
 }

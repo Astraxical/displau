@@ -131,7 +131,7 @@ def fetch_config_from_url(config_url):
         return None
 
 
-def build_html(target_time_str=None, config_url='', config_id='default', auto_config=True):
+def build_html(target_time_str=None, config_url='', config_id='default', auto_config=True, start_time_str=None):
     """Generate the HTML file from components."""
     # Get target time from arg or use default
     if target_time_str is None:
@@ -142,12 +142,16 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
         config_url = get_config_url(config_id)
         print(f"Auto-generated config URL: {config_url}")
 
-    # If config_url is provided, try to fetch target_time from it
+    # If config_url is provided, try to fetch config from it
     if config_url:
         config = fetch_config_from_url(config_url)
-        if config and 'target_time' in config:
-            target_time_str = config['target_time']
-            print(f"Fetched target_time from config: {target_time_str}")
+        if config:
+            if 'target_time' in config:
+                target_time_str = config['target_time']
+                print(f"Fetched target_time from config: {target_time_str}")
+            if 'start_time' in config:
+                start_time_str = config['start_time']
+                print(f"Fetched start_time from config: {start_time_str}")
 
     # Calculate milliseconds at full brightness based on time difference
     target_dt = datetime.fromisoformat(target_time_str)
@@ -155,8 +159,9 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
     time_diff = target_dt - now
     milliseconds_at_full_brightness = max(0, int(time_diff.total_seconds() * 1000))
     
-    # Create start time (when this HTML was built)
-    start_time_str = now.isoformat(timespec='seconds')
+    # Use provided start_time or default to now
+    if start_time_str is None:
+        start_time_str = now.isoformat(timespec='seconds')
 
     # Load all components
     html = load_html_components()

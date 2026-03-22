@@ -18,137 +18,40 @@ body {
     min-height: 100vh;
     background: #1a1a2e;
     overflow: hidden;
-    position: relative;
-}
-
-/* Display Name */
-.timer-display-name {
-    position: fixed;
-    top: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #00ff88;
-    text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
-    z-index: 1000;
-    text-align: center;
-    padding: 0.5rem 1rem;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    border: 1px solid rgba(0, 255, 136, 0.2);
-}
-
-/* Control Buttons */
-.timer-controls {
-    position: fixed;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 1rem;
-    z-index: 1000;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: opacity 0.3s;
-}
-
-.timer-controls:hover {
-    opacity: 1;
-}
-
-.control-btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 8px;
-    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 204, 106, 0.2) 100%);
-    color: #00ff88;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s;
-    border: 1px solid rgba(0, 255, 136, 0.3);
-}
-
-.control-btn:hover {
-    background: linear-gradient(135deg, rgba(0, 255, 136, 0.4) 0%, rgba(0, 204, 106, 0.4) 100%);
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
-    transform: translateY(-2px);
-}
-
-.control-btn:active {
-    transform: translateY(0);
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    body {
-        padding: 0.5rem;
-        overflow: auto;
-    }
-
-    .timer-controls {
-        bottom: 1rem;
-        gap: 0.5rem;
-        padding: 0.75rem;
-    }
-
-    .control-btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-    }
-
-    .timer-display-name {
-        top: 1rem;
-        font-size: 1.2rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .timer-controls {
-        left: 50%;
-        transform: translateX(-50%);
-        width: calc(100% - 2rem);
-        justify-content: center;
-    }
-
-    .control-btn {
-        flex: 1;
-        max-width: 120px;
-    }
-
-    .timer-display-name {
-        font-size: 1rem;
-        max-width: calc(100% - 2rem);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-}
-
-/* Fullscreen styles */
-:fullscreen body {
-    background: #0a0a15;
-}
-
-:fullscreen .timer-controls {
-    bottom: 3rem;
 }
 
 .display {
     display: flex;
-    gap: 0.5rem;
+    gap: 1vw;
     justify-content: center;
     align-items: center;
-    flex-wrap: wrap;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #1a1a2e;
+    overflow: hidden;
+}
+
+.display {
+    display: flex;
+    gap: 1vw;
+    justify-content: center;
+    align-items: center;
 }
 
 .segment {
-    width: 60px;
-    height: 100px;
+    width: 8vw;
+    height: 14vw;
     position: relative;
 }
 
@@ -163,19 +66,75 @@ body {
     box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
 }
 
-/* Responsive segments */
-@media (min-width: 768px) {
-    .segment {
-        width: 80px;
-        height: 133px;
-    }
+/* Horizontal segments (a, d, g) */
+.seg-a, .seg-d, .seg-g {
+    width: 5.5vw;
+    height: 1vw;
+    left: 1.25vw;
+    clip-path: polygon(0.6vw 0, 100% 0, 100% 100%, 0.6vw 100%, 0 50%);
 }
 
-@media (min-width: 1200px) {
-    .segment {
-        width: 100px;
-        height: 167px;
-    }
+.seg-a { top: 0; }
+.seg-d { bottom: 0; }
+.seg-g { top: 6.5vw; }
+
+/* Vertical segments (b, c, e, f) */
+.seg-b, .seg-c, .seg-e, .seg-f {
+    width: 1vw;
+    height: 5.5vw;
+    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+}
+
+.seg-b { top: 0.6vw; right: 0; }
+.seg-c { bottom: 0.6vw; right: 0; }
+.seg-e { bottom: 0.6vw; left: 0; }
+.seg-f { top: 0.6vw; left: 0; }
+
+/* Colon separator */
+.colon {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2vw;
+}
+
+.colon-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.colon-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+/* Decimal point */
+.decimal {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 2vw;
+}
+
+.decimal-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.decimal-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
 }
 
 /* Horizontal segments (a, d, g) */
@@ -258,7 +217,7 @@ const DEFAULTS = {
     display_name: '',
     config_id: 'default'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 137087810;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 136456224;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/assembly.json'; // Injected by build script
 // =======================================
 

@@ -1,6 +1,28 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #1a1a2e;
+    overflow: hidden;
+}
+
+.display {
+    display: flex;
+    gap: 1vw;
+    justify-content: center;
+    align-items: center;
+}
+
 .segment {
-    width: 60px;
-    height: 100px;
+    width: 8vw;
+    height: 14vw;
     position: relative;
 }
 
@@ -15,17 +37,73 @@
     box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
 }
 
-/* Responsive segments */
-@media (min-width: 768px) {
-    .segment {
-        width: 80px;
-        height: 133px;
-    }
+/* Horizontal segments (a, d, g) */
+.seg-a, .seg-d, .seg-g {
+    width: 5.5vw;
+    height: 1vw;
+    left: 1.25vw;
+    clip-path: polygon(0.6vw 0, 100% 0, 100% 100%, 0.6vw 100%, 0 50%);
 }
 
-@media (min-width: 1200px) {
-    .segment {
-        width: 100px;
-        height: 167px;
-    }
+.seg-a { top: 0; }
+.seg-d { bottom: 0; }
+.seg-g { top: 6.5vw; }
+
+/* Vertical segments (b, c, e, f) */
+.seg-b, .seg-c, .seg-e, .seg-f {
+    width: 1vw;
+    height: 5.5vw;
+    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+}
+
+.seg-b { top: 0.6vw; right: 0; }
+.seg-c { bottom: 0.6vw; right: 0; }
+.seg-e { bottom: 0.6vw; left: 0; }
+.seg-f { top: 0.6vw; left: 0; }
+
+/* Colon separator */
+.colon {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2vw;
+}
+
+.colon-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.colon-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+/* Decimal point */
+.decimal {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 2vw;
+}
+
+.decimal-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.decimal-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
 }

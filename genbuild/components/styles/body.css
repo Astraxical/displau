@@ -8,6 +8,67 @@ body {
     position: relative;
 }
 
+/* Display Name */
+.timer-display-name {
+    position: fixed;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #00ff88;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    z-index: 1000;
+    text-align: center;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+/* Progress Ring */
+.progress-ring-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 50;
+}
+
+.progress-ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.progress-ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 3;
+}
+
+.progress-ring-fill {
+    fill: none;
+    stroke: #00ff88;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 283; /* 2 * PI * 45 */
+    stroke-dashoffset: 283;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.progress-percent {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #00ff88;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
 /* Control Buttons */
 .timer-controls {
     position: fixed;
@@ -82,6 +143,16 @@ body {
         padding: 0.5rem 1rem;
         font-size: 0.9rem;
     }
+
+    .timer-display-name {
+        top: 1rem;
+        font-size: 1.2rem;
+    }
+
+    .progress-ring-container {
+        width: 80px;
+        height: 80px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -101,6 +172,23 @@ body {
         flex: 1;
         max-width: 120px;
     }
+
+    .timer-display-name {
+        font-size: 1rem;
+        max-width: calc(100% - 2rem);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .progress-ring-container {
+        width: 60px;
+        height: 60px;
+    }
+
+    .progress-percent {
+        font-size: 0.75rem;
+    }
 }
 
 /* Fullscreen styles */
@@ -110,4 +198,9 @@ body {
 
 :fullscreen .timer-controls {
     bottom: 3rem;
+}
+
+:fullscreen .progress-ring-container {
+    width: 120px;
+    height: 120px;
 }

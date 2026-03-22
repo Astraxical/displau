@@ -21,6 +21,67 @@ body {
     position: relative;
 }
 
+/* Display Name */
+.timer-display-name {
+    position: fixed;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #00ff88;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    z-index: 1000;
+    text-align: center;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+/* Progress Ring */
+.progress-ring-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 50;
+}
+
+.progress-ring {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.progress-ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 3;
+}
+
+.progress-ring-fill {
+    fill: none;
+    stroke: #00ff88;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 283; /* 2 * PI * 45 */
+    stroke-dashoffset: 283;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.progress-percent {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #00ff88;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+
 /* Control Buttons */
 .timer-controls {
     position: fixed;
@@ -95,6 +156,16 @@ body {
         padding: 0.5rem 1rem;
         font-size: 0.9rem;
     }
+
+    .timer-display-name {
+        top: 1rem;
+        font-size: 1.2rem;
+    }
+
+    .progress-ring-container {
+        width: 80px;
+        height: 80px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -114,6 +185,23 @@ body {
         flex: 1;
         max-width: 120px;
     }
+
+    .timer-display-name {
+        font-size: 1rem;
+        max-width: calc(100% - 2rem);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .progress-ring-container {
+        width: 60px;
+        height: 60px;
+    }
+
+    .progress-percent {
+        font-size: 0.75rem;
+    }
 }
 
 /* Fullscreen styles */
@@ -123,6 +211,11 @@ body {
 
 :fullscreen .timer-controls {
     bottom: 3rem;
+}
+
+:fullscreen .progress-ring-container {
+    width: 120px;
+    height: 120px;
 }
 
 .display {
@@ -226,9 +319,10 @@ body {
 const DEFAULTS = {
     target_time: '2026-03-24T00:00:00',
     start_time: '2026-03-17T00:00:00',
+    display_name: '',
     config_id: 'default'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 119047674;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 118933059;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/limerance-dead.json'; // Injected by build script
 // =======================================
 
@@ -244,6 +338,7 @@ let colorTransitionProgress = 1;
 // Runtime config (will be populated)
 let TARGET_TIME = DEFAULTS.target_time;
 let START_TIME = DEFAULTS.start_time;
+let DISPLAY_NAME = DEFAULTS.display_name;
 
 /**
  * Load config from GitHub with localStorage caching
@@ -306,6 +401,10 @@ function applyConfig(config) {
     // Use start_time from config if available, otherwise keep embedded default
     if (config.start_time) {
         START_TIME = config.start_time;
+    }
+    // Use display_name from config if available
+    if (config.display_name) {
+        DISPLAY_NAME = config.display_name;
     }
 }
 
@@ -616,8 +715,14 @@ let pauseOffset = 0;
 let updateInterval;
 let colorInterval;
 
+// Speed adjustment for sync
+let speedFactor = 1.0;
+const SYNC_THRESHOLD_MS = 1000; // Only adjust if off by more than 1 second
+const MAX_SPEED_ADJUSTMENT = 0.1; // Max 10% speed change
+
 function updateCountdown() {
     const target = new Date(TARGET_TIME).getTime();
+    const start = new Date(START_TIME).getTime();
     let now = Date.now();
     
     // Adjust for pause time
@@ -627,12 +732,58 @@ function updateCountdown() {
         now = now - pauseOffset;
     }
     
-    const remaining = target - now;
+    // Apply speed factor for sync adjustment
+    const elapsed = (now - start) * speedFactor;
+    const adjustedNow = start + elapsed;
+    
+    const remaining = target - adjustedNow;
     const timeStr = formatTime(Math.max(0, remaining));
     updateDisplay(timeStr);
     
     // Update document title
-    document.title = timeStr.split('.')[0] + ' - 7 Segment Timer';
+    const displayName = DISPLAY_NAME || '7 Segment Timer';
+    document.title = `${timeStr.split('.')[0]} - ${displayName}`;
+    
+    // Update progress ring
+    updateProgressRing(remaining, target - start);
+    
+    // Gradually adjust speed to sync (if not paused)
+    if (!isPaused && speedFactor !== 1.0) {
+        speedFactor = speedFactor * 0.999 + 1.0 * 0.001; // Gradually return to 1.0
+        if (Math.abs(speedFactor - 1.0) < 0.0001) {
+            speedFactor = 1.0;
+        }
+    }
+}
+
+function adjustSpeedForSync(expectedRemaining, actualRemaining) {
+    const diff = expectedRemaining - actualRemaining;
+    
+    // Only adjust if difference is significant
+    if (Math.abs(diff) < SYNC_THRESHOLD_MS) return;
+    
+    // Calculate speed adjustment
+    const adjustment = Math.sign(diff) * Math.min(MAX_SPEED_ADJUSTMENT, Math.abs(diff) / 60000);
+    speedFactor = Math.max(0.9, Math.min(1.1, speedFactor + adjustment));
+    
+    console.log(`[Sync] Speed adjusted to ${(speedFactor * 100).toFixed(2)}% (diff: ${diff}ms)`);
+}
+
+function updateProgressRing(remaining, total) {
+    const ring = document.getElementById('progressRing');
+    const ringText = document.getElementById('progressPercent');
+    
+    if (!ring) return;
+    
+    const progress = Math.max(0, Math.min(1, 1 - (remaining / total)));
+    const circumference = 2 * Math.PI * 45; // r=45
+    const offset = circumference * (1 - progress);
+    
+    ring.style.strokeDashoffset = offset;
+    
+    if (ringText) {
+        ringText.textContent = `${(progress * 100).toFixed(1)}%`;
+    }
 }
 
 function togglePause() {
@@ -711,8 +862,10 @@ async function init() {
     updateInterval = setInterval(updateCountdown, 10);
     colorInterval = setInterval(updateColorTransition, 30);
     
-    // Add control buttons to the page
+    // Add control buttons and progress ring
     addControlButtons();
+    addProgressRing();
+    addDisplayName();
 }
 
 function addControlButtons() {
@@ -738,6 +891,28 @@ function addControlButtons() {
             toggleFullscreen();
         }
     });
+}
+
+function addProgressRing() {
+    const ringContainer = document.createElement('div');
+    ringContainer.className = 'progress-ring-container';
+    ringContainer.innerHTML = `
+        <svg class="progress-ring" width="100" height="100" viewBox="0 0 100 100">
+            <circle class="progress-ring-bg" cx="50" cy="50" r="45"></circle>
+            <circle id="progressRing" class="progress-ring-fill" cx="50" cy="50" r="45"></circle>
+        </svg>
+        <span id="progressPercent" class="progress-percent">0%</span>
+    `;
+    document.body.appendChild(ringContainer);
+}
+
+function addDisplayName() {
+    if (!DISPLAY_NAME) return;
+    
+    const nameEl = document.createElement('div');
+    nameEl.className = 'timer-display-name';
+    nameEl.textContent = DISPLAY_NAME;
+    document.body.appendChild(nameEl);
 }
 
 // Start initialization

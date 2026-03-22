@@ -3,6 +3,7 @@
 const DEFAULTS = {
     target_time: '{{TARGET_TIME}}',
     start_time: '{{START_TIME}}',
+    display_name: '',
     config_id: 'default'
 };
 const MILLISECONDS_AT_FULL_BRIGHTNESS = {{DAYS_AT_FULL_BRIGHTNESS}};
@@ -21,6 +22,7 @@ let colorTransitionProgress = 1;
 // Runtime config (will be populated)
 let TARGET_TIME = DEFAULTS.target_time;
 let START_TIME = DEFAULTS.start_time;
+let DISPLAY_NAME = DEFAULTS.display_name;
 
 /**
  * Load config from GitHub with localStorage caching
@@ -83,6 +85,10 @@ function applyConfig(config) {
     // Use start_time from config if available, otherwise keep embedded default
     if (config.start_time) {
         START_TIME = config.start_time;
+    }
+    // Use display_name from config if available
+    if (config.display_name) {
+        DISPLAY_NAME = config.display_name;
     }
 }
 

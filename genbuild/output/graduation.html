@@ -123,7 +123,7 @@ const DEFAULTS = {
     start_time: '2026-03-21T23:55:38',
     config_id: 'default'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 744957031;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 744666008;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/graduation.json'; // Injected by build script
 // =======================================
 
@@ -512,14 +512,22 @@ function updateCountdown() {
     updateDisplay(timeStr);
 }
 
-// Initialize
-const remainingRatio = calculateRemainingRatio();
-currentColor = getColorForRemainingRatio(remainingRatio);
-targetColor = currentColor;
-applyColor(currentColor);
-updateCountdown();
-setInterval(updateCountdown, 10);
-setInterval(updateColorTransition, 30);
+// Initialize after config is loaded
+async function init() {
+    // Wait for config to load
+    await loadConfig();
+    
+    const remainingRatio = calculateRemainingRatio();
+    currentColor = getColorForRemainingRatio(remainingRatio);
+    targetColor = currentColor;
+    applyColor(currentColor);
+    updateCountdown();
+    setInterval(updateCountdown, 10);
+    setInterval(updateColorTransition, 30);
+}
+
+// Start initialization
+init();
 
     </script>
 </body>

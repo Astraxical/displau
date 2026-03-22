@@ -6,11 +6,19 @@ function updateCountdown() {
     updateDisplay(timeStr);
 }
 
-// Initialize
-const remainingRatio = calculateRemainingRatio();
-currentColor = getColorForRemainingRatio(remainingRatio);
-targetColor = currentColor;
-applyColor(currentColor);
-updateCountdown();
-setInterval(updateCountdown, 10);
-setInterval(updateColorTransition, 30);
+// Initialize after config is loaded
+async function init() {
+    // Wait for config to load
+    await loadConfig();
+    
+    const remainingRatio = calculateRemainingRatio();
+    currentColor = getColorForRemainingRatio(remainingRatio);
+    targetColor = currentColor;
+    applyColor(currentColor);
+    updateCountdown();
+    setInterval(updateCountdown, 10);
+    setInterval(updateColorTransition, 30);
+}
+
+// Start initialization
+init();

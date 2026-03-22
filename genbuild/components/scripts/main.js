@@ -207,6 +207,15 @@ function addControlButtons() {
 }
 
 function addProgressRing() {
+    const display = document.querySelector('.display');
+    if (!display) return;
+    
+    // Wrap display in wrapper for proper positioning
+    const wrapper = document.createElement('div');
+    wrapper.className = 'display-wrapper';
+    display.parentNode.insertBefore(wrapper, display);
+    wrapper.appendChild(display);
+    
     const ringContainer = document.createElement('div');
     ringContainer.className = 'progress-ring-container';
     ringContainer.innerHTML = `
@@ -218,7 +227,7 @@ function addProgressRing() {
             <span id="progressPercent" class="progress-percent">0%</span>
         </div>
     `;
-    document.querySelector('.display').appendChild(ringContainer);
+    wrapper.appendChild(ringContainer);
 }
 
 function addDisplayName() {

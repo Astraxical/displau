@@ -6,7 +6,19 @@ body {
     background: #1a1a2e;
     overflow: hidden;
     position: relative;
-    padding: 60px;
+}
+
+/* Display wrapper for progress ring */
+.display-wrapper {
+    position: relative;
+    display: inline-block;
+    padding: 30px;
+}
+
+/* Display container for proper ring sizing */
+.display {
+    position: relative;
+    z-index: 100;
 }
 
 /* Display Name */
@@ -35,8 +47,8 @@ body {
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 50;
-    width: calc(100% + 60px);
-    height: calc(100% + 60px);
+    width: calc(100% - 60px);
+    height: calc(100% - 60px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -90,12 +102,6 @@ body {
     border-radius: 4px;
 }
 
-/* Display container for proper ring sizing */
-.display {
-    position: relative;
-    z-index: 100;
-}
-
 /* Control Buttons */
 .timer-controls {
     position: fixed;
@@ -143,8 +149,12 @@ body {
 /* Mobile Responsive */
 @media (max-width: 768px) {
     body {
-        padding: 1rem;
+        padding: 0.5rem;
         overflow: auto;
+    }
+
+    .display-wrapper {
+        padding: 20px;
     }
 
     .display {
@@ -177,12 +187,16 @@ body {
     }
 
     .progress-ring-container {
-        width: calc(100% + 40px);
-        height: calc(100% + 40px);
+        width: calc(100% - 40px);
+        height: calc(100% - 40px);
     }
 }
 
 @media (max-width: 480px) {
+    .display-wrapper {
+        padding: 15px;
+    }
+
     .segment {
         width: 20vw !important;
         height: 35vw !important;
@@ -209,8 +223,8 @@ body {
     }
 
     .progress-ring-container {
-        width: calc(100% + 30px);
-        height: calc(100% + 30px);
+        width: calc(100% - 30px);
+        height: calc(100% - 30px);
     }
 
     .progress-percent {

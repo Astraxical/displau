@@ -330,18 +330,19 @@ def clean_orphaned_outputs(timer_ids):
 def generate_selector(timers_list):
     """Generate an index.html selector page with links to all timers."""
     output_path = SCRIPT_DIR / OUTPUT_DIR / 'index.html'
-    
+
     # Generate timer links
     timer_links = ''
     for timer in timers_list:
         config_id = timer.get('id', 'unknown')
         target_time = timer.get('target_time', 'Unknown')
         start_time = timer.get('start_time', 'Unknown')
+
+        # Find the HTML file for this timer (now named {config_id}.html)
+        html_file = f'{config_id}.html'
+        html_path = SCRIPT_DIR / OUTPUT_DIR / html_file
         
-        # Find the HTML file for this timer
-        html_files = sorted((SCRIPT_DIR / OUTPUT_DIR).glob(f'{config_id}_*.html'))
-        if html_files:
-            html_file = html_files[-1].name
+        if html_path.exists():
             timer_links += f'''
             <div class="timer-card">
                 <h3>{config_id.replace('-', ' ').title()}</h3>

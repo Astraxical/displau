@@ -113,8 +113,209 @@
             border-color: #00ff88;
         }
 
+        /* Create Timer Button */
+        .create-btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%) !important;
+            color: #1a1a2e !important;
+            font-weight: bold;
+        }
+
         select.control-btn {
             cursor: pointer;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 900px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            color: #00ff88;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 2rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .close-btn:hover {
+            opacity: 1;
+        }
+
+        .modal-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .modal-body {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #00ff88;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .submit-btn {
+            flex: 1;
+            padding: 1rem;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #1a1a2e;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: box-shadow 0.3s;
+        }
+
+        .submit-btn:hover {
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        /* Preview Styles */
+        .preview-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .preview-container h3 {
+            color: #00ff88;
+            margin-bottom: 1rem;
+        }
+
+        .preview-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .preview-timer {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .preview-timer .display {
+            display: inline-flex;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .preview-segment {
+            width: 40px;
+            height: 70px;
+            background: #331;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .preview-segment.on {
+            background: #00ff88;
+            box-shadow: 0 0 15px #00ff88;
+        }
+
+        .preview-time {
+            font-family: 'Courier New', monospace;
+            font-size: 2rem;
+            color: #00ff88;
+            margin-top: 1rem;
+        }
+
+        .preview-info {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .preview-info p {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin: 0.5rem 0;
+        }
+
+        .json-output {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #00ff88;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
 
         /* Timers Grid */
@@ -324,6 +525,10 @@
             .timers-grid {
                 grid-template-columns: 1fr;
             }
+
+            .form-actions {
+                flex-direction: column;
+            }
         }
 
         /* Preview Banner */
@@ -376,6 +581,7 @@
                 <option value="progress">Sort: Progress</option>
                 <option value="target">Sort: Target Date</option>
             </select>
+            <button class="control-btn create-btn" id="createBtn">+ Create Timer</button>
             <button class="control-btn active" id="gridBtn" title="Grid View">▦</button>
             <button class="control-btn" id="listBtn" title="List View">☰</button>
         </div>
@@ -488,6 +694,70 @@
         </div>
     </div>
 
+    <!-- Create Timer Modal -->
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🛠️ Create New Timer</h2>
+                <button class="close-btn" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="timerId">Timer ID (e.g., my-event)</label>
+                        <input type="text" id="timerId" placeholder="my-event" pattern="[a-z0-9-]+">
+                    </div>
+                    <div class="form-group">
+                        <label for="targetTime">Target Time</label>
+                        <input type="datetime-local" id="targetTime">
+                    </div>
+                    <div class="form-group">
+                        <label for="startTime">Start Time (optional)</label>
+                        <input type="datetime-local" id="startTime">
+                    </div>
+                    <div class="form-actions">
+                        <button class="submit-btn" id="generateBtn">Generate Timer</button>
+                    </div>
+                    <div class="form-actions">
+                        <a href="#" class="timer-link" id="downloadJsonBtn" style="display: none;">⬇️ Download JSON</a>
+                        <a href="#" class="timer-link" id="copyInstructionsBtn" style="display: none;">📋 Copy Instructions</a>
+                    </div>
+                </div>
+                <div class="preview-container">
+                    <h3>👁️ Live Preview</h3>
+                    <div class="preview-card">
+                        <div class="card-header">
+                            <h3 id="previewName">My Event</h3>
+                            <span class="status-badge status-upcoming">Upcoming</span>
+                        </div>
+                        <div class="preview-timer">
+                            <div class="display">
+                                <span class="preview-segment on"></span>
+                                <span class="preview-segment"></span>
+                                <span class="preview-segment on"></span>
+                                <span class="preview-segment on"></span>
+                                <span class="preview-segment"></span>
+                                <span class="preview-segment on"></span>
+                            </div>
+                            <div class="preview-time" id="previewTime">00:00:00:00</div>
+                        </div>
+                        <div class="preview-info">
+                            <p>📅 Start: <span id="previewStart">-</span></p>
+                            <p>🎯 Target: <span id="previewTarget">-</span></p>
+                        </div>
+                        <div class="json-output" id="jsonOutput">
+// Timer config will appear here...
+{
+    "id": "my-event",
+    "target_time": "2026-12-31T23:59:59",
+    "start_time": "2026-01-01T00:00:00"
+}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Search functionality
         const searchBox = document.getElementById('searchBox');
@@ -495,7 +765,26 @@
         const sortSelect = document.getElementById('sortSelect');
         const gridBtn = document.getElementById('gridBtn');
         const listBtn = document.getElementById('listBtn');
+        
+        // Modal elements
+        const createBtn = document.getElementById('createBtn');
+        const createModal = document.getElementById('createModal');
+        const closeModal = document.getElementById('closeModal');
+        const timerIdInput = document.getElementById('timerId');
+        const targetTimeInput = document.getElementById('targetTime');
+        const startTimeInput = document.getElementById('startTime');
+        const generateBtn = document.getElementById('generateBtn');
+        const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+        const copyInstructionsBtn = document.getElementById('copyInstructionsBtn');
+        
+        // Preview elements
+        const previewName = document.getElementById('previewName');
+        const previewTime = document.getElementById('previewTime');
+        const previewStart = document.getElementById('previewStart');
+        const previewTarget = document.getElementById('previewTarget');
+        const jsonOutput = document.getElementById('jsonOutput');
 
+        // Search
         searchBox.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase();
             document.querySelectorAll('.timer-card').forEach(card => {
@@ -508,7 +797,7 @@
             });
         });
 
-        // Sort functionality
+        // Sort
         sortSelect.addEventListener('change', (e) => {
             const cards = Array.from(timersGrid.querySelectorAll('.timer-card'));
             const sortType = e.target.value;
@@ -525,7 +814,6 @@
                     const bTarget = b.querySelector('.target').textContent;
                     return aTarget.localeCompare(bTarget);
                 }
-                // Default: status order
                 const statusOrder = {'running': 0, 'upcoming': 1, 'ended': 2};
                 return (statusOrder[a.dataset.status] || 3) - (statusOrder[b.dataset.status] || 3);
             });
@@ -544,6 +832,121 @@
             timersGrid.classList.add('list-view');
             listBtn.classList.add('active');
             gridBtn.classList.remove('active');
+        });
+
+        // Modal controls
+        createBtn.addEventListener('click', () => {
+            createModal.classList.add('active');
+            // Set default times
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            startTimeInput.value = now.toISOString().slice(0, 16);
+            targetTimeInput.value = tomorrow.toISOString().slice(0, 16);
+            updatePreview();
+        });
+
+        closeModal.addEventListener('click', () => {
+            createModal.classList.remove('active');
+        });
+
+        createModal.addEventListener('click', (e) => {
+            if (e.target === createModal) {
+                createModal.classList.remove('active');
+            }
+        });
+
+        // Live preview update
+        [timerIdInput, targetTimeInput, startTimeInput].forEach(input => {
+            input.addEventListener('input', updatePreview);
+        });
+
+        function updatePreview() {
+            const id = timerIdInput.value || 'my-event';
+            const target = targetTimeInput.value;
+            const start = startTimeInput.value;
+
+            // Update preview name
+            previewName.textContent = id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+            // Format dates for display
+            const targetFmt = target ? new Date(target).toLocaleString() : '-';
+            const startFmt = start ? new Date(start).toLocaleString() : '-';
+            previewTarget.textContent = targetFmt;
+            previewStart.textContent = startFmt;
+
+            // Update JSON output
+            const config = {
+                id: id,
+                target_time: target ? new Date(target).toISOString().slice(0, 19) : '2026-12-31T23:59:59',
+                start_time: start ? new Date(start).toISOString().slice(0, 19) : new Date().toISOString().slice(0, 19)
+            };
+            jsonOutput.textContent = JSON.stringify(config, null, 4);
+
+            // Update download link
+            const blob = new Blob([JSON.stringify(config, null, 4)], { type: 'application/json' });
+            downloadJsonBtn.href = URL.createObjectURL(blob);
+            downloadJsonBtn.download = config.id + '.json';
+            downloadJsonBtn.style.display = 'inline-block';
+            copyInstructionsBtn.style.display = 'inline-block';
+        }
+
+        // Generate timer
+        generateBtn.addEventListener('click', () => {
+            const id = timerIdInput.value || 'my-event';
+            const target = targetTimeInput.value;
+            const start = startTimeInput.value;
+
+            if (!target) {
+                alert('Please select a target time!');
+                return;
+            }
+
+            const config = {
+                id: id,
+                target_time: new Date(target).toISOString().slice(0, 19),
+                start_time: start ? new Date(start).toISOString().slice(0, 19) : new Date().toISOString().slice(0, 19)
+            };
+
+            // Show instructions
+            const instructions = `To add this timer:
+
+1. Save this JSON as genbuild/timers/${id}.json:
+
+${JSON.stringify(config, null, 4)}
+
+2. Run: python vMain.py --deploy
+
+3. Your timer will be live at: output/${id}.html`;
+
+            alert(instructions);
+        });
+
+        // Copy instructions
+        copyInstructionsBtn.addEventListener('click', () => {
+            const id = timerIdInput.value || 'my-event';
+            const target = targetTimeInput.value;
+            const start = startTimeInput.value;
+
+            const config = {
+                id: id,
+                target_time: new Date(target).toISOString().slice(0, 19),
+                start_time: start ? new Date(start).toISOString().slice(0, 19) : new Date().toISOString().slice(0, 19)
+            };
+
+            const instructions = `To add this timer:
+
+1. Save this JSON as genbuild/timers/${id}.json:
+
+${JSON.stringify(config, null, 4)}
+
+2. Run: python vMain.py --deploy
+
+3. Your timer will be live at: output/${id}.html`;
+
+            navigator.clipboard.writeText(instructions).then(() => {
+                alert('Instructions copied to clipboard!');
+            });
         });
     </script>
 </body>

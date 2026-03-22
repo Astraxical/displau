@@ -376,32 +376,90 @@ def generate_selector(timers_list):
     # Place index.html in the parent directory (genbuild/) for cleaner URL
     output_path = SCRIPT_DIR / 'index.html'
 
-    # Generate timer cards with embedded previews
-    timer_cards = ''
+    # Process timers with status and progress
+    timers_data = []
+    now = datetime.now()
+    
     for timer in timers_list:
         config_id = timer.get('id', 'unknown')
         target_time = timer.get('target_time', 'Unknown')
         start_time = timer.get('start_time', 'Unknown')
-
-        # Find the HTML file for this timer (now named {config_id}.html)
+        
+        # Calculate status and progress
+        try:
+            start_dt = datetime.fromisoformat(start_time)
+            target_dt = datetime.fromisoformat(target_time)
+            total_duration = (target_dt - start_dt).total_seconds()
+            elapsed = (now - start_dt).total_seconds()
+            progress = min(100, max(0, (elapsed / total_duration) * 100)) if total_duration > 0 else 0
+            
+            if now > target_dt:
+                status = 'ended'
+                status_label = 'Ended'
+            elif now < start_dt:
+                status = 'upcoming'
+                status_label = 'Upcoming'
+            else:
+                status = 'running'
+                status_label = 'Running'
+        except:
+            progress = 0
+            status = 'running'
+            status_label = 'Running'
+        
         html_file = f'{config_id}.html'
         html_path = SCRIPT_DIR / OUTPUT_DIR / html_file
         
         if html_path.exists():
-            # Link from genbuild/index.html to output/{id}.html
-            timer_cards += f'''
-            <div class="timer-card">
-                <h3>{config_id.replace('-', ' ').title()}</h3>
-                <div class="timer-preview">
-                    <iframe src="output/{html_file}" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
-                </div>
-                <p class="time-info">
-                    <span class="start">Start: {start_time}</span>
-                    <span class="target">Target: {target_time}</span>
-                </p>
-                <a href="output/{html_file}" class="timer-link" target="_blank">Open Full Timer →</a>
-            </div>'''
+            timers_data.append({
+                'id': config_id,
+                'name': config_id.replace('-', ' ').title(),
+                'target_time': target_time,
+                'start_time': start_time,
+                'progress': progress,
+                'status': status,
+                'status_label': status_label,
+                'html_file': html_file
+            })
     
+    # Sort timers: running first, then upcoming, then ended
+    status_order = {'running': 0, 'upcoming': 1, 'ended': 2}
+    timers_data.sort(key=lambda x: (status_order.get(x['status'], 3), -x['progress'], x['name']))
+    
+    # Calculate stats
+    total_timers = len(timers_data)
+    running_count = sum(1 for t in timers_data if t['status'] == 'running')
+    upcoming_count = sum(1 for t in timers_data if t['status'] == 'upcoming')
+    ended_count = sum(1 for t in timers_data if t['status'] == 'ended')
+    
+    # Generate timer cards
+    timer_cards = ''
+    for timer in timers_data:
+        timer_cards += f'''
+        <div class="timer-card" data-status="{timer['status']}" data-name="{timer['id']}">
+            <div class="card-header">
+                <h3>{timer['name']}</h3>
+                <span class="status-badge status-{timer['status']}">{timer['status_label']}</span>
+            </div>
+            <div class="timer-preview">
+                <iframe src="output/{timer['html_file']}" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {timer['progress']:.1f}%"></div>
+                </div>
+                <span class="progress-text">{timer['progress']:.1f}%</span>
+            </div>
+            <p class="time-info">
+                <span class="start">📅 Start: {timer['start_time']}</span>
+                <span class="target">🎯 Target: {timer['target_time']}</span>
+            </p>
+            <div class="card-actions">
+                <a href="output/{timer['html_file']}" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="output/{timer['html_file']}" class="download-link" download="{timer['html_file']}" title="Download">⬇️</a>
+            </div>
+        </div>'''
+
     html_content = f'''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -414,7 +472,7 @@ def generate_selector(timers_list):
             padding: 0;
             box-sizing: border-box;
         }}
-        
+
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -422,12 +480,12 @@ def generate_selector(timers_list):
             padding: 2rem;
             color: #fff;
         }}
-        
+
         .container {{
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }}
-        
+
         h1 {{
             text-align: center;
             margin-bottom: 0.5rem;
@@ -435,19 +493,103 @@ def generate_selector(timers_list):
             color: #00ff88;
             text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
         }}
-        
+
         .subtitle {{
             text-align: center;
             color: #888;
-            margin-bottom: 3rem;
+            margin-bottom: 2rem;
         }}
-        
+
+        /* Stats Bar */
+        .stats-bar {{
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }}
+
+        .stat-item {{
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            text-align: center;
+            min-width: 120px;
+        }}
+
+        .stat-value {{
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00ff88;
+        }}
+
+        .stat-label {{
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }}
+
+        /* Controls */
+        .controls {{
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }}
+
+        .search-box {{
+            padding: 0.75rem 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+            min-width: 250px;
+        }}
+
+        .search-box:focus {{
+            outline: none;
+            border-color: #00ff88;
+        }}
+
+        .control-btn {{
+            padding: 0.75rem 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }}
+
+        .control-btn:hover {{
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }}
+
+        .control-btn.active {{
+            background: rgba(0, 255, 136, 0.3);
+            border-color: #00ff88;
+        }}
+
+        select.control-btn {{
+            cursor: pointer;
+        }}
+
+        /* Timers Grid */
         .timers-grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 1.5rem;
         }}
-        
+
+        .timers-grid.list-view {{
+            grid-template-columns: 1fr;
+        }}
+
         .timer-card {{
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -455,19 +597,57 @@ def generate_selector(timers_list):
             padding: 1.5rem;
             transition: transform 0.3s, box-shadow 0.3s;
         }}
-        
+
         .timer-card:hover {{
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(0, 255, 136, 0.2);
             border-color: #00ff88;
         }}
-        
-        .timer-card h3 {{
-            color: #00ff88;
+
+        .timer-card.hidden {{
+            display: none;
+        }}
+
+        .card-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 1rem;
+        }}
+
+        .card-header h3 {{
+            color: #00ff88;
             font-size: 1.5rem;
         }}
 
+        /* Status Badges */
+        .status-badge {{
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+
+        .status-running {{
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border: 1px solid #00ff88;
+        }}
+
+        .status-upcoming {{
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid #ffc107;
+        }}
+
+        .status-ended {{
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid #f44336;
+        }}
+
+        /* Timer Preview */
         .timer-preview {{
             background: rgba(0, 0, 0, 0.3);
             border-radius: 8px;
@@ -483,6 +663,37 @@ def generate_selector(timers_list):
             display: block;
         }}
 
+        /* Progress Bar */
+        .progress-container {{
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }}
+
+        .progress-bar {{
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }}
+
+        .progress-fill {{
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }}
+
+        .progress-text {{
+            color: #00ff88;
+            font-weight: bold;
+            min-width: 50px;
+            text-align: right;
+        }}
+
+        /* Time Info */
         .time-info {{
             display: flex;
             flex-direction: column;
@@ -491,13 +702,21 @@ def generate_selector(timers_list):
             font-size: 0.9rem;
             color: #aaa;
         }}
-        
+
         .time-info span {{
             display: flex;
             justify-content: space-between;
         }}
-        
+
+        /* Card Actions */
+        .card-actions {{
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }}
+
         .timer-link {{
+            flex: 1;
             display: inline-block;
             background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
             color: #1a1a2e;
@@ -508,16 +727,65 @@ def generate_selector(timers_list):
             text-align: center;
             transition: box-shadow 0.3s;
         }}
-        
+
         .timer-link:hover {{
             box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
         }}
-        
+
+        .download-link {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }}
+
+        .download-link:hover {{
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+        }}
+
+        /* Footer */
         .footer {{
             text-align: center;
             margin-top: 3rem;
             color: #666;
             font-size: 0.9rem;
+        }}
+
+        /* Responsive */
+        @media (max-width: 768px) {{
+            body {{
+                padding: 1rem;
+            }}
+
+            .stats-bar {{
+                gap: 1rem;
+            }}
+
+            .stat-item {{
+                min-width: 80px;
+                padding: 0.75rem 1rem;
+            }}
+
+            .controls {{
+                flex-direction: column;
+                align-items: stretch;
+            }}
+
+            .search-box {{
+                min-width: 100%;
+            }}
+
+            .timers-grid {{
+                grid-template-columns: 1fr;
+            }}
         }}
     </style>
 </head>
@@ -525,15 +793,108 @@ def generate_selector(timers_list):
     <div class="container">
         <h1>⏱️ Timer Selector</h1>
         <p class="subtitle">Select a countdown timer to view</p>
-        
-        <div class="timers-grid">
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value">{total_timers}</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #00ff88;">{running_count}</div>
+                <div class="stat-label">Running</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #ffc107;">{upcoming_count}</div>
+                <div class="stat-label">Upcoming</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #f44336;">{ended_count}</div>
+                <div class="stat-label">Ended</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search timers...">
+            <select class="control-btn" id="sortSelect">
+                <option value="status">Sort: Status</option>
+                <option value="name">Sort: Name</option>
+                <option value="progress">Sort: Progress</option>
+                <option value="target">Sort: Target Date</option>
+            </select>
+            <button class="control-btn active" id="gridBtn" title="Grid View">▦</button>
+            <button class="control-btn" id="listBtn" title="List View">☰</button>
+        </div>
+
+        <!-- Timers Grid -->
+        <div class="timers-grid" id="timersGrid">
             {timer_cards}
         </div>
-        
+
         <div class="footer">
             <p>7 Segment Display Timer System</p>
         </div>
     </div>
+
+    <script>
+        // Search functionality
+        const searchBox = document.getElementById('searchBox');
+        const timersGrid = document.getElementById('timersGrid');
+        const sortSelect = document.getElementById('sortSelect');
+        const gridBtn = document.getElementById('gridBtn');
+        const listBtn = document.getElementById('listBtn');
+
+        searchBox.addEventListener('input', (e) => {{
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.timer-card').forEach(card => {{
+                const name = card.dataset.name;
+                if (name.includes(query)) {{
+                    card.classList.remove('hidden');
+                }} else {{
+                    card.classList.add('hidden');
+                }}
+            }});
+        }});
+
+        // Sort functionality
+        sortSelect.addEventListener('change', (e) => {{
+            const cards = Array.from(timersGrid.querySelectorAll('.timer-card'));
+            const sortType = e.target.value;
+
+            cards.sort((a, b) => {{
+                if (sortType === 'name') {{
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                }} else if (sortType === 'progress') {{
+                    const aProgress = parseFloat(a.querySelector('.progress-text').textContent);
+                    const bProgress = parseFloat(b.querySelector('.progress-text').textContent);
+                    return bProgress - aProgress;
+                }} else if (sortType === 'target') {{
+                    const aTarget = a.querySelector('.target').textContent;
+                    const bTarget = b.querySelector('.target').textContent;
+                    return aTarget.localeCompare(bTarget);
+                }}
+                // Default: status order
+                const statusOrder = {{'running': 0, 'upcoming': 1, 'ended': 2}};
+                return (statusOrder[a.dataset.status] || 3) - (statusOrder[b.dataset.status] || 3);
+            }});
+
+            cards.forEach(card => timersGrid.appendChild(card));
+        }});
+
+        // Grid/List toggle
+        gridBtn.addEventListener('click', () => {{
+            timersGrid.classList.remove('list-view');
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        }});
+
+        listBtn.addEventListener('click', () => {{
+            timersGrid.classList.add('list-view');
+            listBtn.classList.add('active');
+            gridBtn.classList.remove('active');
+        }});
+    </script>
 </body>
 </html>'''
     

@@ -10,6 +10,9 @@ let speedFactor = 1.0;
 const SYNC_THRESHOLD_MS = 1000; // Only adjust if off by more than 1 second
 const MAX_SPEED_ADJUSTMENT = 0.1; // Max 10% speed change
 
+// Check if embedded in iframe
+const isEmbedded = window.self !== window.top;
+
 function updateCountdown() {
     const target = new Date(TARGET_TIME).getTime();
     const start = new Date(START_TIME).getTime();
@@ -152,10 +155,12 @@ async function init() {
     updateInterval = setInterval(updateCountdown, 10);
     colorInterval = setInterval(updateColorTransition, 30);
     
-    // Add control buttons and progress ring
-    addControlButtons();
-    addProgressRing();
-    addDisplayName();
+    // Add control buttons and progress ring (only if not embedded)
+    if (!isEmbedded) {
+        addControlButtons();
+        addProgressRing();
+        addDisplayName();
+    }
 }
 
 function addControlButtons() {

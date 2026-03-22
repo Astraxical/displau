@@ -18,10 +18,15 @@ Copy this file and rename it to create a new timer.
    }
    ```
 
-3. **Build:**
+3. **Build and deploy:**
    ```bash
-   python vMain.py --timers-dir --selector
+   python vMain.py --deploy
    ```
+   This will:
+   - Delete the `output/` folder
+   - Rebuild all timers
+   - Generate the selector page
+   - Git add, commit, and push automatically!
 
 4. **Commit and push:**
    ```bash

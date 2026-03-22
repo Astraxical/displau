@@ -18,6 +18,9 @@ python vMain.py --timers-dir
 
 # Build all timers from timers.json
 python vMain.py --all
+
+# 🚀 Auto-deploy: Clean, rebuild, and push to GitHub
+python vMain.py --deploy
 ```
 
 ## Timers System
@@ -182,6 +185,7 @@ python vMain.py --batch batch.json
 | `--all` | Build all timers from `timers.json` |
 | `--timers-dir` | Build all timers from `timers/` folder |
 | `--selector` | Generate index.html selector page |
+| `--deploy` | 🚀 Clean output, rebuild all, and push to GitHub |
 
 ## Project Structure
 

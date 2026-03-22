@@ -4,6 +4,7 @@ let pausedAt = null;
 let pauseOffset = 0;
 let updateInterval;
 let colorInterval;
+let lastRealTime = Date.now();
 
 // Speed adjustment for sync
 let speedFactor = 1.0;
@@ -16,20 +17,27 @@ const isEmbedded = window.self !== window.top;
 function updateCountdown() {
     const target = new Date(TARGET_TIME).getTime();
     const start = new Date(START_TIME).getTime();
-    let now = Date.now();
+    const realNow = Date.now();
     
-    // Adjust for pause time
-    if (isPaused && pausedAt) {
-        now = pausedAt;
-    } else if (pauseOffset > 0) {
-        now = now - pauseOffset;
+    // Calculate actual elapsed time since last update
+    const deltaTime = realNow - lastRealTime;
+    lastRealTime = realNow;
+    
+    // If paused, don't accumulate time
+    if (isPaused) {
+        pausedAt = realNow;
+        return;
     }
     
-    // Apply speed factor for sync adjustment
-    const elapsed = (now - start) * speedFactor;
-    const adjustedNow = start + elapsed;
+    // Apply speed factor to elapsed time
+    const adjustedDelta = deltaTime * speedFactor;
+    pauseOffset += adjustedDelta - deltaTime;
     
-    const remaining = target - adjustedNow;
+    // Calculate current time with offset
+    let now = realNow + pauseOffset;
+    
+    const remaining = target - now;
+    const total = target - start;
     const timeStr = formatTime(Math.max(0, remaining));
     updateDisplay(timeStr);
     
@@ -38,11 +46,11 @@ function updateCountdown() {
     document.title = `${timeStr.split('.')[0]} - ${displayName}`;
     
     // Update progress ring
-    updateProgressRing(remaining, target - start);
+    updateProgressRing(remaining, total);
     
     // Gradually adjust speed to sync (if not paused)
-    if (!isPaused && speedFactor !== 1.0) {
-        speedFactor = speedFactor * 0.999 + 1.0 * 0.001; // Gradually return to 1.0
+    if (speedFactor !== 1.0) {
+        speedFactor = speedFactor * 0.995 + 1.0 * 0.005; // Gradually return to 1.0
         if (Math.abs(speedFactor - 1.0) < 0.0001) {
             speedFactor = 1.0;
         }
@@ -55,8 +63,8 @@ function adjustSpeedForSync(expectedRemaining, actualRemaining) {
     // Only adjust if difference is significant
     if (Math.abs(diff) < SYNC_THRESHOLD_MS) return;
     
-    // Calculate speed adjustment
-    const adjustment = Math.sign(diff) * Math.min(MAX_SPEED_ADJUSTMENT, Math.abs(diff) / 60000);
+    // Calculate speed adjustment based on how far off we are
+    const adjustment = Math.sign(diff) * Math.min(MAX_SPEED_ADJUSTMENT, Math.abs(diff) / 30000);
     speedFactor = Math.max(0.9, Math.min(1.1, speedFactor + adjustment));
     
     console.log(`[Sync] Speed adjusted to ${(speedFactor * 100).toFixed(2)}% (diff: ${diff}ms)`);
@@ -69,10 +77,12 @@ function updateProgressRing(remaining, total) {
     if (!ring) return;
     
     const progress = Math.max(0, Math.min(1, 1 - (remaining / total)));
-    const circumference = 2 * Math.PI * 45; // r=45
+    
+    // Ellipse circumference: approximate for rx=145, ry=70
+    const circumference = 660;
     const offset = circumference * (1 - progress);
     
-    ring.style.strokeDashoffset = offset;
+    ring.style.strokeDashoffset = offset.toFixed(0);
     
     if (ringText) {
         ringText.textContent = `${(progress * 100).toFixed(1)}%`;
@@ -84,11 +94,17 @@ function togglePause() {
     if (!pauseBtn) return;
     
     if (isPaused) {
-        // Resume
+        // Resume - calculate how much time we missed
         isPaused = false;
         const resumeTime = Date.now();
-        pauseOffset += resumeTime - pausedAt;
+        const pauseDuration = resumeTime - pausedAt;
+        
+        // Add the paused duration to offset so we don't lose time
+        pauseOffset -= pauseDuration;
         pausedAt = null;
+        
+        // Reset speed factor to catch up faster
+        speedFactor = 1.05; // Slightly speed up to catch up
         
         pauseBtn.textContent = '⏸️ Pause';
         pauseBtn.title = 'Pause timer';
@@ -96,6 +112,7 @@ function togglePause() {
         // Restart intervals
         updateInterval = setInterval(updateCountdown, 10);
         colorInterval = setInterval(updateColorTransition, 30);
+        lastRealTime = Date.now();
     } else {
         // Pause
         isPaused = true;
@@ -154,6 +171,7 @@ async function init() {
     // Start intervals
     updateInterval = setInterval(updateCountdown, 10);
     colorInterval = setInterval(updateColorTransition, 30);
+    lastRealTime = Date.now();
     
     // Add control buttons and progress ring (only if not embedded)
     if (!isEmbedded) {
@@ -192,13 +210,15 @@ function addProgressRing() {
     const ringContainer = document.createElement('div');
     ringContainer.className = 'progress-ring-container';
     ringContainer.innerHTML = `
-        <svg class="progress-ring" width="100" height="100" viewBox="0 0 100 100">
-            <circle class="progress-ring-bg" cx="50" cy="50" r="45"></circle>
-            <circle id="progressRing" class="progress-ring-fill" cx="50" cy="50" r="45"></circle>
-        </svg>
-        <span id="progressPercent" class="progress-percent">0%</span>
+        <div class="progress-ring-wrapper">
+            <svg class="progress-ring" viewBox="0 0 300 150" preserveAspectRatio="none">
+                <ellipse class="progress-ring-bg" cx="150" cy="75" rx="145" ry="70"></ellipse>
+                <ellipse id="progressRing" class="progress-ring-fill" cx="150" cy="75" rx="145" ry="70"></ellipse>
+            </svg>
+            <span id="progressPercent" class="progress-percent">0%</span>
+        </div>
     `;
-    document.body.appendChild(ringContainer);
+    document.querySelector('.display').appendChild(ringContainer);
 }
 
 function addDisplayName() {

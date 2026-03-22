@@ -2,6 +2,10 @@
     width: 8vw;
     height: 14vw;
     position: relative;
+    min-width: 50px;
+    min-height: 87px;
+    max-width: 120px;
+    max-height: 210px;
 }
 
 .segment-part {

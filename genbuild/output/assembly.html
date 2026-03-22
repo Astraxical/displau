@@ -97,10 +97,12 @@ body {
     }
 
     .segment {
-        width: 15vw !important;
-        height: 25vw !important;
-        max-width: 60px;
-        max-height: 100px;
+        width: 12vw !important;
+        height: 20vw !important;
+        min-width: 40px !important;
+        min-height: 67px !important;
+        max-width: 80px !important;
+        max-height: 133px !important;
     }
 
     .timer-controls {
@@ -122,8 +124,12 @@ body {
 
 @media (max-width: 480px) {
     .segment {
-        width: 20vw !important;
-        height: 35vw !important;
+        width: 15vw !important;
+        height: 26vw !important;
+        min-width: 35px !important;
+        min-height: 60px !important;
+        max-width: 60px !important;
+        max-height: 104px !important;
     }
 
     .timer-controls {
@@ -156,17 +162,43 @@ body {
     bottom: 3rem;
 }
 
+/* Embedded iframe sizing */
+@media (max-width: 400px) and (max-height: 200px) {
+    body {
+        padding: 0 !important;
+    }
+    
+    .segment {
+        width: 10vw !important;
+        height: 17vw !important;
+        min-width: 25px !important;
+        min-height: 43px !important;
+        max-width: 50px !important;
+        max-height: 85px !important;
+    }
+    
+    .display {
+        gap: 0.25rem !important;
+    }
+}
+
 .display {
     display: flex;
     gap: 1vw;
     justify-content: center;
     align-items: center;
+    min-gap: 0.5rem;
+    max-gap: 2rem;
 }
 
 .segment {
     width: 8vw;
     height: 14vw;
     position: relative;
+    min-width: 50px;
+    min-height: 87px;
+    max-width: 120px;
+    max-height: 210px;
 }
 
 .segment-part {
@@ -260,7 +292,7 @@ const DEFAULTS = {
     display_name: '',
     config_id: 'default'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 137546978;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 137470508;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/assembly.json'; // Injected by build script
 // =======================================
 

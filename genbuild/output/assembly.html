@@ -18,6 +18,111 @@ body {
     min-height: 100vh;
     background: #1a1a2e;
     overflow: hidden;
+    position: relative;
+}
+
+/* Control Buttons */
+.timer-controls {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    z-index: 1000;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: opacity 0.3s;
+}
+
+.timer-controls:hover {
+    opacity: 1;
+}
+
+.control-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 204, 106, 0.2) 100%);
+    color: #00ff88;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.control-btn:hover {
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.4) 0%, rgba(0, 204, 106, 0.4) 100%);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+    transform: translateY(-2px);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem;
+        overflow: auto;
+    }
+
+    .display {
+        gap: 0.5rem !important;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .segment {
+        width: 15vw !important;
+        height: 25vw !important;
+        max-width: 60px;
+        max-height: 100px;
+    }
+
+    .timer-controls {
+        bottom: 1rem;
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    .control-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .segment {
+        width: 20vw !important;
+        height: 35vw !important;
+    }
+
+    .timer-controls {
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 2rem);
+        justify-content: center;
+    }
+
+    .control-btn {
+        flex: 1;
+        max-width: 120px;
+    }
+}
+
+/* Fullscreen styles */
+:fullscreen body {
+    background: #0a0a15;
+}
+
+:fullscreen .timer-controls {
+    bottom: 3rem;
 }
 
 .display {
@@ -123,7 +228,7 @@ const DEFAULTS = {
     start_time: '2026-03-21T23:54:57',
     config_id: 'default'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 139654849;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 138848638;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/assembly.json'; // Injected by build script
 // =======================================
 
@@ -504,26 +609,135 @@ function updateColorTransition() {
     }
 }
 
+// Timer state
+let isPaused = false;
+let pausedAt = null;
+let pauseOffset = 0;
+let updateInterval;
+let colorInterval;
+
 function updateCountdown() {
     const target = new Date(TARGET_TIME).getTime();
-    const now = Date.now();
+    let now = Date.now();
+    
+    // Adjust for pause time
+    if (isPaused && pausedAt) {
+        now = pausedAt;
+    } else if (pauseOffset > 0) {
+        now = now - pauseOffset;
+    }
+    
     const remaining = target - now;
-    const timeStr = formatTime(remaining);
+    const timeStr = formatTime(Math.max(0, remaining));
     updateDisplay(timeStr);
+    
+    // Update document title
+    document.title = timeStr.split('.')[0] + ' - 7 Segment Timer';
 }
+
+function togglePause() {
+    const pauseBtn = document.getElementById('pauseBtn');
+    if (!pauseBtn) return;
+    
+    if (isPaused) {
+        // Resume
+        isPaused = false;
+        const resumeTime = Date.now();
+        pauseOffset += resumeTime - pausedAt;
+        pausedAt = null;
+        
+        pauseBtn.textContent = '⏸️ Pause';
+        pauseBtn.title = 'Pause timer';
+        
+        // Restart intervals
+        updateInterval = setInterval(updateCountdown, 10);
+        colorInterval = setInterval(updateColorTransition, 30);
+    } else {
+        // Pause
+        isPaused = true;
+        pausedAt = Date.now();
+        
+        pauseBtn.textContent = '▶️ Resume';
+        pauseBtn.title = 'Resume timer';
+        
+        // Clear intervals
+        if (updateInterval) clearInterval(updateInterval);
+        if (colorInterval) clearInterval(colorInterval);
+    }
+}
+
+function toggleFullscreen() {
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log('Fullscreen error:', err);
+        });
+        if (fullscreenBtn) {
+            fullscreenBtn.textContent = '⛶ Exit Fullscreen';
+            fullscreenBtn.title = 'Exit fullscreen';
+        }
+    } else {
+        document.exitFullscreen();
+        if (fullscreenBtn) {
+            fullscreenBtn.textContent = '⛶ Fullscreen';
+            fullscreenBtn.title = 'Enter fullscreen';
+        }
+    }
+}
+
+// Listen for fullscreen changes
+document.addEventListener('fullscreenchange', () => {
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    if (!document.fullscreenElement) {
+        if (fullscreenBtn) {
+            fullscreenBtn.textContent = '⛶ Fullscreen';
+            fullscreenBtn.title = 'Enter fullscreen';
+        }
+    }
+});
 
 // Initialize after config is loaded
 async function init() {
     // Wait for config to load
     await loadConfig();
-    
+
     const remainingRatio = calculateRemainingRatio();
     currentColor = getColorForRemainingRatio(remainingRatio);
     targetColor = currentColor;
     applyColor(currentColor);
     updateCountdown();
-    setInterval(updateCountdown, 10);
-    setInterval(updateColorTransition, 30);
+    
+    // Start intervals
+    updateInterval = setInterval(updateCountdown, 10);
+    colorInterval = setInterval(updateColorTransition, 30);
+    
+    // Add control buttons to the page
+    addControlButtons();
+}
+
+function addControlButtons() {
+    const controls = document.createElement('div');
+    controls.className = 'timer-controls';
+    controls.innerHTML = `
+        <button id="pauseBtn" class="control-btn" title="Pause timer">⏸️ Pause</button>
+        <button id="fullscreenBtn" class="control-btn" title="Enter fullscreen">⛶ Fullscreen</button>
+    `;
+    document.body.appendChild(controls);
+    
+    // Add event listeners
+    document.getElementById('pauseBtn').addEventListener('click', togglePause);
+    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && e.target === document.body) {
+            e.preventDefault();
+            togglePause();
+        }
+        if (e.code === 'KeyF') {
+            toggleFullscreen();
+        }
+    });
 }
 
 // Start initialization

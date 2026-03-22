@@ -264,7 +264,8 @@ def build_timers_folder(generate_selector_page=False):
         print(f"Error: timers/ folder not found at {timers_dir}")
         return
 
-    timer_files = sorted(timers_dir.glob('*.json'))
+    # Exclude TEMPLATE.json and README.md
+    timer_files = sorted([f for f in timers_dir.glob('*.json') if not f.name.startswith('TEMPLATE') and f.name != 'README.md'])
 
     if not timer_files:
         print(f"Error: No .json files found in {timers_dir}")

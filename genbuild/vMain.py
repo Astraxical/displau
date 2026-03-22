@@ -20,6 +20,9 @@ from urllib.error import URLError, HTTPError
 # ============ CONFIGURATION ============
 DEFAULT_TARGET_TIME = '2026-03-31T05:00:00'
 DEFAULT_CONFIG_URL = ''  # e.g., 'https://raw.githubusercontent.com/user/repo/gh-pages/config.json'
+GITHUB_REPO = 'Astraxical/displau'  # Your GitHub username/repo
+GITHUB_BRANCH = 'master'  # Your branch name
+TIMERS_PATH = 'genbuild/timers'  # Path to timers folder in repo
 OUTPUT_DIR = 'output'
 OUTPUT_PATTERN = '{config_id}_{timestamp}.html'
 
@@ -109,6 +112,11 @@ def replace_placeholders(content, target_time, days_at_full_brightness, config_u
     )
 
 
+def get_config_url(config_id):
+    """Generate GitHub raw URL for a config file."""
+    return f"https://raw.githubusercontent.com/{GITHUB_REPO}/refs/heads/{GITHUB_BRANCH}/{TIMERS_PATH}/{config_id}.json"
+
+
 def fetch_config_from_url(config_url):
     """Fetch config from a URL (GitHub raw URL, etc.)."""
     try:
@@ -121,12 +129,17 @@ def fetch_config_from_url(config_url):
         return None
 
 
-def build_html(target_time_str=None, config_url='', config_id='default'):
+def build_html(target_time_str=None, config_url='', config_id='default', auto_config=True):
     """Generate the HTML file from components."""
     # Get target time from arg or use default
     if target_time_str is None:
         target_time_str = DEFAULT_TARGET_TIME
     
+    # Auto-generate config URL if enabled and not provided
+    if auto_config and not config_url:
+        config_url = get_config_url(config_id)
+        print(f"Auto-generated config URL: {config_url}")
+
     # If config_url is provided, try to fetch target_time from it
     if config_url:
         config = fetch_config_from_url(config_url)
@@ -204,65 +217,63 @@ def build_batch(batch_file):
 def build_all_timers():
     """Build all timers from timers.json file."""
     timers_file = SCRIPT_DIR / 'timers.json'
-    
+
     if not timers_file.exists():
         print(f"Error: timers.json not found at {timers_file}")
         return
-    
+
     with open(timers_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    
+
     # Support both {timers: [...]} and direct array format
     timers = data.get('timers', data if isinstance(data, list) else [])
-    
+
     if not timers:
         print("Error: No timers found in timers.json")
         return
-    
+
     print(f"Building {len(timers)} timer(s) from timers.json...")
-    
+
     for i, timer in enumerate(timers, 1):
         config_id = timer.get('id', f'timer_{i}')
-        config_url = timer.get('config_url', '')
         target_time = timer.get('target_time', None)
-        
+
         print(f"\n[{i}/{len(timers)}] Building {config_id}...")
         build_html(
             target_time_str=target_time,
-            config_url=config_url,
-            config_id=config_id
+            config_id=config_id,
+            auto_config=True  # Auto-generate config URL
         )
 
 
 def build_timers_folder():
     """Build all timers from the timers/ folder."""
     timers_dir = SCRIPT_DIR / 'timers'
-    
+
     if not timers_dir.exists():
         print(f"Error: timers/ folder not found at {timers_dir}")
         return
-    
+
     timer_files = sorted(timers_dir.glob('*.json'))
-    
+
     if not timer_files:
         print(f"Error: No .json files found in {timers_dir}")
         return
-    
+
     print(f"Building {len(timer_files)} timer(s) from timers/ folder...")
-    
+
     for i, timer_file in enumerate(timer_files, 1):
         with open(timer_file, 'r', encoding='utf-8') as f:
             timer = json.load(f)
-        
+
         config_id = timer.get('id', timer_file.stem)
-        config_url = timer.get('config_url', '')
         target_time = timer.get('target_time', None)
-        
+
         print(f"\n[{i}/{len(timer_files)}] Building {config_id}...")
         build_html(
             target_time_str=target_time,
-            config_url=config_url,
-            config_id=config_id
+            config_id=config_id,
+            auto_config=True  # Auto-generate config URL
         )
 
 

@@ -24,7 +24,7 @@ GITHUB_REPO = 'Astraxical/displau'  # Your GitHub username/repo
 GITHUB_BRANCH = 'master'  # Your branch name
 TIMERS_PATH = 'genbuild/timers'  # Path to timers folder in repo
 OUTPUT_DIR = 'output'
-OUTPUT_PATTERN = '{config_id}_{timestamp}.html'
+OUTPUT_PATTERN = '{config_id}.html'  # Output filename pattern (no timestamp)
 
 # Components to include (set to False to exclude)
 INCLUDE_UNUSED_SCRIPTS = False
@@ -184,8 +184,7 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
     )
 
     # Determine output path
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    output_filename = OUTPUT_PATTERN.format(config_id=config_id, timestamp=timestamp)
+    output_filename = OUTPUT_PATTERN.format(config_id=config_id)
     output_path = SCRIPT_DIR / OUTPUT_DIR / output_filename
 
     # Ensure output directory exists
@@ -274,6 +273,7 @@ def build_timers_folder(generate_selector_page=False):
     print(f"Building {len(timer_files)} timer(s) from timers/ folder...")
     
     timers_list = []
+    timer_ids = set()
 
     for i, timer_file in enumerate(timer_files, 1):
         with open(timer_file, 'r', encoding='utf-8') as f:
@@ -281,6 +281,7 @@ def build_timers_folder(generate_selector_page=False):
 
         config_id = timer.get('id', timer_file.stem)
         target_time = timer.get('target_time', None)
+        timer_ids.add(config_id)
 
         print(f"\n[{i}/{len(timer_files)}] Building {config_id}...")
         build_html(
@@ -291,8 +292,39 @@ def build_timers_folder(generate_selector_page=False):
         
         timers_list.append(timer)
     
+    # Clean up orphaned HTML files
+    clean_orphaned_outputs(timer_ids)
+    
     if generate_selector_page:
         generate_selector(timers_list)
+
+
+def clean_orphaned_outputs(timer_ids):
+    """Delete HTML files that don't have corresponding timer JSON configs."""
+    output_dir = SCRIPT_DIR / OUTPUT_DIR
+    if not output_dir.exists():
+        return
+    
+    # Get all timer HTML files
+    html_files = list(output_dir.glob('*.html'))
+    
+    deleted_count = 0
+    for html_file in html_files:
+        # Extract config_id from filename (e.g., "assembly.html" -> "assembly")
+        config_id = html_file.stem
+        
+        # Skip index.html (selector page)
+        if config_id == 'index':
+            continue
+        
+        # If this config_id is not in the current timers list, delete the HTML
+        if config_id not in timer_ids:
+            html_file.unlink()
+            print(f"Deleted orphaned HTML: {html_file.name}")
+            deleted_count += 1
+    
+    if deleted_count > 0:
+        print(f"Cleaned {deleted_count} orphaned HTML file(s)")
 
 
 def generate_selector(timers_list):

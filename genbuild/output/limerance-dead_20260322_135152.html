@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/launch.json">
+<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/limerance-dead.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -119,11 +119,12 @@ body {
         // ============ CONFIGURATION ============
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
-    target_time: '2026-06-15T10:00:00',
+    target_time: '2026-03-24T00:00:00',
+    start_time: '2026-03-22T13:51:52',
     config_id: 'default'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 7330328255;
-const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/launch.json'; // Injected by build script
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 122887020;
+const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/limerance-dead.json'; // Injected by build script
 // =======================================
 
 // Cache configuration
@@ -137,7 +138,7 @@ let colorTransitionProgress = 1;
 
 // Runtime config (will be populated)
 let TARGET_TIME = DEFAULTS.target_time;
-let START_TIME;
+let START_TIME = DEFAULTS.start_time;
 
 /**
  * Load config from GitHub with localStorage caching
@@ -162,7 +163,7 @@ async function loadConfig() {
     }
     
     // Try fetch from GitHub
-    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/launch.json') {
+    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/limerance-dead.json') {
         try {
             console.log('[Config] Fetching config from:', CONFIG_URL);
             const response = await fetch(CONFIG_URL, {
@@ -197,10 +198,10 @@ function applyConfig(config) {
     if (config.target_time) {
         TARGET_TIME = config.target_time;
     }
-    // Calculate START_TIME
-    const targetDate = new Date(TARGET_TIME);
-    const startDate = new Date(targetDate.getTime() - MILLISECONDS_AT_FULL_BRIGHTNESS);
-    START_TIME = startDate.toISOString().slice(0, 19);
+    // Use start_time from config if available, otherwise keep embedded default
+    if (config.start_time) {
+        START_TIME = config.start_time;
+    }
 }
 
 // Initialize config on script load

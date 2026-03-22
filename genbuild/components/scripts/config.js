@@ -2,6 +2,7 @@
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
     target_time: '{{TARGET_TIME}}',
+    start_time: '{{START_TIME}}',
     config_id: 'default'
 };
 const MILLISECONDS_AT_FULL_BRIGHTNESS = {{DAYS_AT_FULL_BRIGHTNESS}};
@@ -19,7 +20,7 @@ let colorTransitionProgress = 1;
 
 // Runtime config (will be populated)
 let TARGET_TIME = DEFAULTS.target_time;
-let START_TIME;
+let START_TIME = DEFAULTS.start_time;
 
 /**
  * Load config from GitHub with localStorage caching
@@ -79,10 +80,10 @@ function applyConfig(config) {
     if (config.target_time) {
         TARGET_TIME = config.target_time;
     }
-    // Calculate START_TIME
-    const targetDate = new Date(TARGET_TIME);
-    const startDate = new Date(targetDate.getTime() - MILLISECONDS_AT_FULL_BRIGHTNESS);
-    START_TIME = startDate.toISOString().slice(0, 19);
+    // Use start_time from config if available, otherwise keep embedded default
+    if (config.start_time) {
+        START_TIME = config.start_time;
+    }
 }
 
 // Initialize config on script load

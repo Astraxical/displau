@@ -101,7 +101,7 @@ def load_script_components():
     return '\n'.join(combined_scripts)
 
 
-def replace_placeholders(content, target_time, days_at_full_brightness, config_url):
+def replace_placeholders(content, target_time, days_at_full_brightness, config_url, start_time):
     """Replace configuration placeholders in content."""
     return content.replace(
         '{{TARGET_TIME}}', target_time
@@ -109,6 +109,8 @@ def replace_placeholders(content, target_time, days_at_full_brightness, config_u
         '{{DAYS_AT_FULL_BRIGHTNESS}}', str(days_at_full_brightness)
     ).replace(
         '{{CONFIG_URL}}', config_url
+    ).replace(
+        '{{START_TIME}}', start_time
     )
 
 
@@ -152,6 +154,9 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
     now = datetime.now()
     time_diff = target_dt - now
     milliseconds_at_full_brightness = max(0, int(time_diff.total_seconds() * 1000))
+    
+    # Create start time (when this HTML was built)
+    start_time_str = now.isoformat(timespec='seconds')
 
     # Load all components
     html = load_html_components()
@@ -159,7 +164,7 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
     scripts = load_script_components()
 
     # Replace placeholders in scripts
-    scripts = replace_placeholders(scripts, target_time_str, milliseconds_at_full_brightness, config_url)
+    scripts = replace_placeholders(scripts, target_time_str, milliseconds_at_full_brightness, config_url, start_time_str)
 
     # Also replace placeholder in html_open
     html['html_open'] = html['html_open'].replace('{{CONFIG_URL}}', config_url)
@@ -187,6 +192,7 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
 
     print(f"Generated {output_path} with:")
     print(f"  TARGET_TIME = {target_time_str}")
+    print(f"  START_TIME = {start_time_str}")
     print(f"  MILLISECONDS_AT_FULL_BRIGHTNESS = {milliseconds_at_full_brightness}")
     print(f"  CONFIG_URL = {config_url}")
 

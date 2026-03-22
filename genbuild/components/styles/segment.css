@@ -1,11 +1,7 @@
 .segment {
-    width: 8vw;
-    height: 14vw;
+    width: 60px;
+    height: 100px;
     position: relative;
-    min-width: 50px;
-    min-height: 87px;
-    max-width: 120px;
-    max-height: 210px;
 }
 
 .segment-part {
@@ -17,4 +13,19 @@
 .segment-part.on {
     background: #00ff00;
     box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+/* Responsive segments */
+@media (min-width: 768px) {
+    .segment {
+        width: 80px;
+        height: 133px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .segment {
+        width: 100px;
+        height: 167px;
+    }
 }

@@ -90,21 +90,6 @@ body {
         overflow: auto;
     }
 
-    .display {
-        gap: 0.5rem !important;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .segment {
-        width: 12vw !important;
-        height: 20vw !important;
-        min-width: 40px !important;
-        min-height: 67px !important;
-        max-width: 80px !important;
-        max-height: 133px !important;
-    }
-
     .timer-controls {
         bottom: 1rem;
         gap: 0.5rem;
@@ -123,15 +108,6 @@ body {
 }
 
 @media (max-width: 480px) {
-    .segment {
-        width: 15vw !important;
-        height: 26vw !important;
-        min-width: 35px !important;
-        min-height: 60px !important;
-        max-width: 60px !important;
-        max-height: 104px !important;
-    }
-
     .timer-controls {
         left: 50%;
         transform: translateX(-50%);
@@ -162,43 +138,18 @@ body {
     bottom: 3rem;
 }
 
-/* Embedded iframe sizing */
-@media (max-width: 400px) and (max-height: 200px) {
-    body {
-        padding: 0 !important;
-    }
-    
-    .segment {
-        width: 10vw !important;
-        height: 17vw !important;
-        min-width: 25px !important;
-        min-height: 43px !important;
-        max-width: 50px !important;
-        max-height: 85px !important;
-    }
-    
-    .display {
-        gap: 0.25rem !important;
-    }
-}
-
 .display {
     display: flex;
-    gap: 1vw;
+    gap: 0.5rem;
     justify-content: center;
     align-items: center;
-    min-gap: 0.5rem;
-    max-gap: 2rem;
+    flex-wrap: wrap;
 }
 
 .segment {
-    width: 8vw;
-    height: 14vw;
+    width: 60px;
+    height: 100px;
     position: relative;
-    min-width: 50px;
-    min-height: 87px;
-    max-width: 120px;
-    max-height: 210px;
 }
 
 .segment-part {
@@ -210,6 +161,21 @@ body {
 .segment-part.on {
     background: #00ff00;
     box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+/* Responsive segments */
+@media (min-width: 768px) {
+    .segment {
+        width: 80px;
+        height: 133px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .segment {
+        width: 100px;
+        height: 167px;
+    }
 }
 
 /* Horizontal segments (a, d, g) */
@@ -292,7 +258,7 @@ const DEFAULTS = {
     display_name: '',
     config_id: 'default'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 117670447;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 117286918;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/limerance-dead.json'; // Injected by build script
 // =======================================
 

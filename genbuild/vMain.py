@@ -411,6 +411,12 @@ def generate_selector(timers_list):
         html_file = f'{config_id}.html'
         html_path = SCRIPT_DIR / OUTPUT_DIR / html_file
 
+        # Check if timer should be hidden after expiry
+        display_on_expire = timer.get('display_on_expire', True)
+        if status == 'ended' and not display_on_expire:
+            print(f"  Skipping {config_id} (expired, display_on_expire=false)")
+            continue
+
         if html_path.exists():
             timers_data.append({
                 'id': config_id,
@@ -420,7 +426,8 @@ def generate_selector(timers_list):
                 'progress': progress,
                 'status': status,
                 'status_label': status_label,
-                'html_file': html_file
+                'html_file': html_file,
+                'display_on_expire': display_on_expire
             })
     
     # Sort timers: running first, then upcoming, then ended
@@ -497,6 +504,12 @@ def generate_selector(timers_list):
         <!-- Controls -->
         <div class="controls">
             <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search timers...">
+            <select class="filter-select" id="statusFilter">
+                <option value="all">Show All</option>
+                <option value="running">Running</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="ended">Ended</option>
+            </select>
             <select class="control-btn" id="sortSelect">
                 <option value="status">Sort: Status</option>
                 <option value="name">Sort: Name</option>
@@ -504,6 +517,9 @@ def generate_selector(timers_list):
                 <option value="target">Sort: Target Date</option>
             </select>
             <button class="control-btn create-btn" id="createBtn">+ Create Timer</button>
+            <button class="export-btn" id="exportBtn" title="Export timers">📤 Export</button>
+            <button class="import-btn" id="importBtn" title="Import timers">📥 Import</button>
+            <input type="file" id="importInput" accept=".json" />
             <button class="control-btn active" id="gridBtn" title="Grid View">▦</button>
             <button class="control-btn" id="listBtn" title="List View">☰</button>
         </div>

@@ -4,7 +4,8 @@ const DEFAULTS = {
     target_time: '{{TARGET_TIME}}',
     start_time: '{{START_TIME}}',
     display_name: '',
-    config_id: 'default'
+    config_id: 'default',
+    on_expire: 'stop'  // Options: 'stop', 'continue', 'hide'
 };
 const MILLISECONDS_AT_FULL_BRIGHTNESS = {{DAYS_AT_FULL_BRIGHTNESS}};
 const CONFIG_URL = '{{CONFIG_URL}}'; // Injected by build script
@@ -13,6 +14,9 @@ const CONFIG_URL = '{{CONFIG_URL}}'; // Injected by build script
 // Cache configuration
 const CACHE_KEY = 'seven_segment_config';
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
+// Notification state
+let notificationPermission = 'default'; // 'default', 'granted', 'denied'
 
 // Color state
 let currentColor = '#00ff00';
@@ -23,6 +27,7 @@ let colorTransitionProgress = 1;
 let TARGET_TIME = DEFAULTS.target_time;
 let START_TIME = DEFAULTS.start_time;
 let DISPLAY_NAME = DEFAULTS.display_name;
+let ON_EXPIRE = DEFAULTS.on_expire;
 
 /**
  * Load config from GitHub with localStorage caching
@@ -90,7 +95,17 @@ function applyConfig(config) {
     if (config.display_name) {
         DISPLAY_NAME = config.display_name;
     }
+    // Use on_expire from config if available
+    if (config.on_expire) {
+        ON_EXPIRE = config.on_expire;
+    }
 }
 
 // Initialize config on script load
 loadConfig();
+
+// Check notification permission on load
+if ('Notification' in window) {
+    notificationPermission = Notification.permission;
+    console.log('[Config] Notification permission:', notificationPermission);
+}

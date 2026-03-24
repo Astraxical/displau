@@ -1,5 +1,8 @@
 {
     "id": "your-timer-name",
+    "display_name": "Your Timer Name",
     "target_time": "2026-12-31T23:59:59",
-    "start_time": "2026-01-01T00:00:00"
+    "start_time": "2026-01-01T00:00:00",
+    "on_expire": "stop",
+    "display_on_expire": true
 }

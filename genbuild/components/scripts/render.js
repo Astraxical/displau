@@ -60,6 +60,14 @@ function updateDisplay(timeStr) {
     const display = document.getElementById('display');
     display.innerHTML = '';
     const colonCount = (timeStr.match(/:/g) || []).length;
+    const isNegative = timeStr.startsWith('-');
+    
+    // Handle negative sign for negative time display
+    if (isNegative) {
+        const minusElement = createMinusSign();
+        display.appendChild(minusElement);
+        timeStr = timeStr.substring(1); // Remove the minus sign for parsing
+    }
 
     if (colonCount === 3) {
         const parts = timeStr.split(':');
@@ -142,4 +150,40 @@ function updateDisplay(timeStr) {
 
     const color = getColor();
     applyColor(color);
+}
+
+/**
+ * Create a minus sign element for negative time display
+ * @returns {HTMLDivElement} Minus sign element
+ */
+function createMinusSign() {
+    const minus = document.createElement('div');
+    minus.className = 'minus-sign';
+    minus.innerHTML = '<div class="minus-bar"></div>';
+    return minus;
+}
+
+/**
+ * Show expired message overlay when timer ends (for on_expire: 'hide')
+ */
+function showExpiredMessage() {
+    const display = document.getElementById('display');
+    if (!display) return;
+    
+    // Clear the display
+    display.innerHTML = '';
+    
+    // Create expired message container
+    const expiredContainer = document.createElement('div');
+    expiredContainer.className = 'expired-message';
+    expiredContainer.innerHTML = `
+        <div class="expired-text">EXPIRED</div>
+        <div class="expired-subtext">${DISPLAY_NAME || 'Timer Complete'}</div>
+    `;
+    
+    display.appendChild(expiredContainer);
+    
+    // Force red color for expired message
+    const redColor = '#ff0000';
+    document.body.style.setProperty('--expired-color', redColor);
 }

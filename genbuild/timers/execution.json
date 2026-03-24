@@ -1,5 +1,7 @@
 {
     "id": "execution",
     "target_time": "2026-04-15T00:00:00",
-    "start_time": "2026-03-15T00:00:00"
+    "start_time": "2026-03-15T00:00:00",
+    "on_expire": "stop",
+    "display_on_expire": true
 }

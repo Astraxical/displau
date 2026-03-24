@@ -4,3 +4,142 @@
     justify-content: center;
     align-items: center;
 }
+
+/* ============================================
+   EXPIRED STATE STYLES
+   ============================================ */
+
+/* Expired body state - triggers pulse animation */
+body.expired {
+    animation: expiredPulse 2s ease-in-out infinite;
+}
+
+@keyframes expiredPulse {
+    0%, 100% {
+        background: #1a1a2e;
+    }
+    50% {
+        background: #2a1a1e;
+    }
+}
+
+/* Expired segments - red flash */
+body.expired .segment-part.on {
+    animation: expiredFlash 1s ease-in-out infinite;
+}
+
+@keyframes expiredFlash {
+    0%, 100% {
+        background: #ff0000;
+        box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000, 0 0 45px #ff0000;
+    }
+    50% {
+        background: #ff4444;
+        box-shadow: 0 0 25px #ff0000, 0 0 50px #ff0000, 0 0 75px #ff0000;
+    }
+}
+
+/* Expired colon dots - red flash */
+body.expired .colon-dot.on {
+    animation: expiredFlash 1s ease-in-out infinite;
+}
+
+/* ============================================
+   EXPIRED MESSAGE STYLES (for on_expire: hide)
+   ============================================ */
+
+.expired-message {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    animation: expiredMessagePulse 2s ease-in-out infinite;
+}
+
+.expired-text {
+    font-size: 8vw;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    color: #ff0000;
+    text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000;
+    letter-spacing: 0.5rem;
+    animation: expiredTextFlash 1.5s ease-in-out infinite;
+}
+
+.expired-subtext {
+    font-size: 2vw;
+    color: #ff6666;
+    text-shadow: 0 0 10px #ff0000;
+    letter-spacing: 0.2rem;
+}
+
+@keyframes expiredMessagePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+@keyframes expiredTextFlash {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000;
+    }
+    50% {
+        opacity: 0.7;
+        text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000, 0 0 90px #ff0000;
+    }
+}
+
+/* ============================================
+   MINUS SIGN FOR NEGATIVE TIME
+   ============================================ */
+
+.minus-sign {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 0.5vw;
+}
+
+.minus-bar {
+    width: 3vw;
+    height: 0.8vw;
+    background: #ff0000;
+    border-radius: 2px;
+    box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+    animation: minusPulse 2s ease-in-out infinite;
+}
+
+@keyframes minusPulse {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+    }
+    50% {
+        opacity: 0.8;
+        box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
+    }
+}
+
+/* ============================================
+   RESPONSIVE STYLES
+   ============================================ */
+
+@media (max-width: 768px) {
+    .expired-text {
+        font-size: 12vw;
+    }
+    
+    .expired-subtext {
+        font-size: 4vw;
+    }
+    
+    .minus-bar {
+        width: 5vw;
+        height: 1.2vw;
+    }
+}

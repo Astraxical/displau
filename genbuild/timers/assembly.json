@@ -2,5 +2,7 @@
     "id": "assembly",
     "display_name": "Assembly Countdown",
     "target_time": "2026-03-24T05:30:00",
-    "start_time": "2026-03-21T23:54:57"
+    "start_time": "2026-03-21T23:54:57",
+    "on_expire": "stop",
+    "display_on_expire": true
 }

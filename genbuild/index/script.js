@@ -194,3 +194,143 @@ ${JSON.stringify(config, null, 4)}
         console.error('Failed to copy:', err);
     });
 });
+
+// ============================================
+// STATUS FILTER FUNCTIONALITY
+// ============================================
+
+const statusFilter = document.getElementById('statusFilter');
+
+if (statusFilter) {
+    statusFilter.addEventListener('change', (e) => {
+        const filterValue = e.target.value;
+        document.querySelectorAll('.timer-card').forEach(card => {
+            const status = card.dataset.status;
+            if (filterValue === 'all' || status === filterValue) {
+                card.classList.remove('hidden');
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+    });
+}
+
+// ============================================
+// EXPORT/IMPORT FUNCTIONALITY
+// ============================================
+
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const importInput = document.getElementById('importInput');
+
+// Export all timer configurations
+if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+        // Collect all timer data from cards
+        const timers = [];
+        document.querySelectorAll('.timer-card').forEach(card => {
+            const name = card.dataset.name;
+            const status = card.dataset.status;
+            const progressEl = card.querySelector('.progress-text');
+            const startEl = card.querySelector('.start');
+            const targetEl = card.querySelector('.target');
+            
+            // Extract times from display
+            const startMatch = startEl?.textContent?.match(/📅 Start: (.+)/);
+            const targetMatch = targetEl?.textContent?.match(/🎯 Target: (.+)/);
+            
+            const timerData = {
+                id: name,
+                display_name: card.querySelector('.card-header h3')?.textContent || name,
+                target_time: targetMatch ? targetMatch[1].trim() : '',
+                start_time: startMatch ? startMatch[1].trim() : '',
+                status: status,
+                progress: progressEl ? parseFloat(progressEl.textContent) : 0
+            };
+            timers.push(timerData);
+        });
+
+        const exportData = {
+            exported_at: new Date().toISOString(),
+            total_timers: timers.length,
+            timers: timers
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 4)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `timers-export-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert(`Exported ${timers.length} timer(s) to ${a.download}`);
+    });
+}
+
+// Import timer configurations
+if (importBtn && importInput) {
+    importBtn.addEventListener('click', () => {
+        importInput.click();
+    });
+
+    importInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                
+                // Support both array format and {timers: [...]} format
+                const timers = Array.isArray(data) ? data : (data.timers || []);
+                
+                if (timers.length === 0) {
+                    alert('No timers found in import file');
+                    return;
+                }
+
+                // Show import summary
+                let summary = `Import ${timers.length} timer(s)?\n\n`;
+                timers.forEach(t => {
+                    summary += `• ${t.display_name || t.id}: ${t.target_time}\n`;
+                });
+                summary += `\nThis will download the timer JSON files and show instructions.`;
+
+                if (confirm(summary)) {
+                    // Show instructions for each timer
+                    timers.forEach(timer => {
+                        const config = {
+                            id: timer.id,
+                            display_name: timer.display_name || timer.id,
+                            target_time: timer.target_time,
+                            start_time: timer.start_time,
+                            on_expire: timer.on_expire || 'stop'
+                        };
+
+                        const instructions = `Timer: ${config.display_name}
+
+Save this as genbuild/timers/${config.id}.json:
+
+${JSON.stringify(config, null, 4)}
+
+Then run: python vMain.py --deploy`;
+
+                        console.log(instructions);
+                    });
+
+                    alert(`Import instructions logged to console. Copy each timer config to genbuild/timers/ and run: python vMain.py --deploy`);
+                }
+            } catch (err) {
+                alert('Error parsing import file: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+        
+        // Reset input so same file can be selected again
+        importInput.value = '';
+    });
+}

@@ -2,5 +2,7 @@
     "id": "graduation",
     "display_name": "Graduation Day",
     "target_time": "2026-03-31T05:00:00",
-    "start_time": "2026-03-21T23:55:38"
+    "start_time": "2026-03-21T23:55:38",
+    "on_expire": "stop",
+    "display_on_expire": true
 }

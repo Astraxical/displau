@@ -535,10 +535,6 @@ def generate_selector(timers_list):
                 <option value="progress">Sort: Progress</option>
                 <option value="target">Sort: Target Date</option>
             </select>
-            <button class="control-btn create-btn" id="createBtn">+ Create Timer</button>
-            <button class="export-btn" id="exportBtn" title="Export timers">📤 Export</button>
-            <button class="import-btn" id="importBtn" title="Import timers">📥 Import</button>
-            <input type="file" id="importInput" accept=".json" />
             <button class="control-btn active" id="gridBtn" title="Grid View">▦</button>
             <button class="control-btn" id="listBtn" title="List View">☰</button>
         </div>
@@ -550,70 +546,6 @@ def generate_selector(timers_list):
 
         <div class="footer">
             <p>7 Segment Display Timer System</p>
-        </div>
-    </div>
-
-    <!-- Create Timer Modal -->
-    <div class="modal" id="createModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>🛠️ Create New Timer</h2>
-                <button class="close-btn" id="closeModal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-section">
-                    <div class="form-group">
-                        <label for="timerId">Timer ID (e.g., my-event)</label>
-                        <input type="text" id="timerId" placeholder="my-event" pattern="[a-z0-9-]+">
-                    </div>
-                    <div class="form-group">
-                        <label for="targetTime">Target Time</label>
-                        <input type="datetime-local" id="targetTime">
-                    </div>
-                    <div class="form-group">
-                        <label for="startTime">Start Time (optional)</label>
-                        <input type="datetime-local" id="startTime">
-                    </div>
-                    <div class="form-actions">
-                        <button class="submit-btn" id="generateBtn">Generate Timer</button>
-                    </div>
-                    <div class="form-actions">
-                        <a href="#" class="timer-link" id="downloadJsonBtn" style="display: none;">⬇️ Download JSON</a>
-                        <a href="#" class="timer-link" id="copyInstructionsBtn" style="display: none;">📋 Copy Instructions</a>
-                    </div>
-                </div>
-                <div class="preview-container">
-                    <h3>👁️ Live Preview</h3>
-                    <div class="preview-card">
-                        <div class="card-header">
-                            <h3 id="previewName">My Event</h3>
-                            <span class="status-badge status-upcoming">Upcoming</span>
-                        </div>
-                        <div class="preview-timer">
-                            <div class="display">
-                                <span class="preview-segment on"></span>
-                                <span class="preview-segment"></span>
-                                <span class="preview-segment on"></span>
-                                <span class="preview-segment on"></span>
-                                <span class="preview-segment"></span>
-                                <span class="preview-segment on"></span>
-                            </div>
-                            <div class="preview-time" id="previewTime">00:00:00:00</div>
-                        </div>
-                        <div class="preview-info">
-                            <p>📅 Start: <span id="previewStart">-</span></p>
-                            <p>🎯 Target: <span id="previewTarget">-</span></p>
-                        </div>
-                        <div class="json-output" id="jsonOutput">
-// Timer config will appear here...
-{{
-    "id": "my-event",
-    "target_time": "2026-12-31T23:59:59",
-    "start_time": "2026-01-01T00:00:00"
-}}</div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 

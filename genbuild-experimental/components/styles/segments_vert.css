@@ -1,0 +1,11 @@
+/* Vertical segments (b, c, e, f) */
+.seg-b, .seg-c, .seg-e, .seg-f {
+    width: 1vw;
+    height: 5.5vw;
+    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+}
+
+.seg-b { top: 0.6vw; right: 0; }
+.seg-c { bottom: 0.6vw; right: 0; }
+.seg-e { bottom: 0.6vw; left: 0; }
+.seg-f { top: 0.6vw; left: 0; }

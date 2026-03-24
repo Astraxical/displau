@@ -24,9 +24,9 @@ DEFAULT_TARGET_TIME = '2026-03-31T05:00:00'
 DEFAULT_CONFIG_URL = ''  # e.g., 'https://raw.githubusercontent.com/user/repo/gh-pages/config.json'
 GITHUB_REPO = 'Astraxical/displau'  # Your GitHub username/repo
 GITHUB_BRANCH = 'master'  # Your branch name
-TIMERS_PATH = 'g-timers/stable'  # Path to timers folder in repo
+TIMERS_PATH = 'g-timers/experimental'  # Path to timers folder in repo
 OUTPUT_DIR = 'output'
-OUTPUT_PATTERN = '{config_id}.html'  # Output filename pattern (no timestamp)
+OUTPUT_PATTERN = '{config_id}-exp.html'  # Output filename pattern with -exp suffix
 
 # Components to include (set to False to exclude)
 INCLUDE_UNUSED_SCRIPTS = False

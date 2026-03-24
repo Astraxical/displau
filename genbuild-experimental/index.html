@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7 Segment Display - Timer Selector</title>
+    <link rel="stylesheet" href="index/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>⏱️ Timer Selector</h1>
+        <p class="subtitle">Select a countdown timer to view</p>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #00ff88;">0</div>
+                <div class="stat-label">Running</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #ffc107;">0</div>
+                <div class="stat-label">Upcoming</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #f44336;">0</div>
+                <div class="stat-label">Ended</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search timers...">
+            <select class="filter-select" id="statusFilter">
+                <option value="all">Show All</option>
+                <option value="running">Running</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="ended">Ended</option>
+            </select>
+            <select class="control-btn" id="sortSelect">
+                <option value="status">Sort: Status</option>
+                <option value="name">Sort: Name</option>
+                <option value="progress">Sort: Progress</option>
+                <option value="target">Sort: Target Date</option>
+            </select>
+            <button class="control-btn active" id="gridBtn" title="Grid View">▦</button>
+            <button class="control-btn" id="listBtn" title="List View">☰</button>
+        </div>
+
+        <!-- Timers Grid -->
+        <div class="timers-grid" id="timersGrid">
+            
+        </div>
+
+        <div class="footer">
+            <p>7 Segment Display Timer System</p>
+        </div>
+    </div>
+
+    <script src="index/script.js"></script>
+</body>
+</html>

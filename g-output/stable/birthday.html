@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/execution.json">
+<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/g-timers/stable/birthday.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -459,8 +459,8 @@ body {
         // ============ CONFIGURATION ============
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
-    target_time: '2026-04-15T00:00:00',
-    start_time: '2026-03-15T00:00:00',
+    target_time: '2026-05-16T00:00:00',
+    start_time: '2026-03-25T02:06:27',
     display_name: '',
     config_id: 'default',
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
@@ -487,8 +487,8 @@ const DEFAULTS = {
         { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 1807758382;
-const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/execution.json'; // Injected by build script
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 4485212778;
+const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/g-timers/stable/birthday.json'; // Injected by build script
 // =======================================
 
 // Cache configuration
@@ -536,7 +536,7 @@ async function loadConfig() {
     }
     
     // Try fetch from GitHub
-    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/execution.json') {
+    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/g-timers/stable/birthday.json') {
         try {
             console.log('[Config] Fetching config from:', CONFIG_URL);
             const response = await fetch(CONFIG_URL, {

@@ -1,0 +1,17 @@
+{
+    "id": "graduation",
+    "display_name": "Graduation Day",
+    "description": "Graduation ceremony countdown",
+    "target_time": "2026-03-31T05:00:00",
+    "start_time": "2026-03-21T23:55:38",
+    "direction": "down",
+    "min_value": 0,
+    "max_value": null,
+    "on_expire": "stop",
+    "display_on_expire": false,
+    "tags": ["personal", "graduation", "milestone", "education"],
+    "category": "personal",
+    "color_theme": "progress",
+    "show_milliseconds": true,
+    "timezone": "UTC"
+}

@@ -1,0 +1,23 @@
+/* Colon separator */
+.colon {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2vw;
+}
+
+.colon-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.colon-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}

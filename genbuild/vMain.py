@@ -428,8 +428,8 @@ def generate_selector(timers_list):
                 status_label = 'Running'
                 # Calculate actual progress percentage
                 progress = min(100, max(0, (elapsed / total_duration) * 100)) if total_duration > 0 else 0
-                # Format as 3-digit percentage (e.g., 033%, 100%)
-                progress_text = f'{int(progress):03d}%'
+                # Format as ###.##% (e.g., 033.00%, 100.00%)
+                progress_text = f'{progress:06.2f}%'
         except:
             progress = 0
             status = 'running'

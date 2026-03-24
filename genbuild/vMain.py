@@ -411,21 +411,30 @@ def generate_selector(timers_list):
             target_dt = datetime.fromisoformat(target_time)
             total_duration = (target_dt - start_dt).total_seconds()
             elapsed = (now - start_dt).total_seconds()
-            progress = min(100, max(0, (elapsed / total_duration) * 100)) if total_duration > 0 else 0
-
+            
+            # Determine status first
             if now > target_dt:
                 status = 'ended'
                 status_label = 'Ended'
+                progress = 100
+                progress_text = '100%'
             elif now < start_dt:
                 status = 'upcoming'
                 status_label = 'Upcoming'
+                progress = 0
+                progress_text = '???%'
             else:
                 status = 'running'
                 status_label = 'Running'
+                # Calculate actual progress percentage
+                progress = min(100, max(0, (elapsed / total_duration) * 100)) if total_duration > 0 else 0
+                # Format as 3-digit percentage (e.g., 033%, 100%)
+                progress_text = f'{int(progress):03d}%'
         except:
             progress = 0
             status = 'running'
             status_label = 'Running'
+            progress_text = '???%'
 
         html_file = f'{config_id}.html'
         html_path = SCRIPT_DIR / OUTPUT_DIR / html_file
@@ -443,6 +452,7 @@ def generate_selector(timers_list):
                 'target_time': target_time,
                 'start_time': start_time,
                 'progress': progress,
+                'progress_text': progress_text,
                 'status': status,
                 'status_label': status_label,
                 'html_file': html_file,
@@ -475,7 +485,7 @@ def generate_selector(timers_list):
                 <div class="progress-bar">
                     <div class="progress-fill" style="width: {timer['progress']:.1f}%"></div>
                 </div>
-                <span class="progress-text">{timer['progress']:.1f}%</span>
+                <span class="progress-text">{timer['progress_text']}</span>
             </div>
             <p class="time-info">
                 <span class="start">📅 Start: {timer['start_time']}</span>

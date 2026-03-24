@@ -8,7 +8,12 @@ const DEFAULTS = {
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
     direction: '{{DIRECTION}}',  // Options: 'down', 'up'
     min_value: {{MIN_VALUE}},       // Minimum value in milliseconds (null for no limit)
-    max_value: {{MAX_VALUE}}     // Maximum value in milliseconds (null for no limit)
+    max_value: {{MAX_VALUE}},     // Maximum value in milliseconds (null for no limit)
+    color_transition_table: [     // Color transition table
+        { ratio: 1.0, color: '#00ff00' },
+        { ratio: 0.5, color: '#ffff00' },
+        { ratio: 0.0, color: '#ff0000' }
+    ]
 };
 const MILLISECONDS_AT_FULL_BRIGHTNESS = {{DAYS_AT_FULL_BRIGHTNESS}};
 const CONFIG_URL = '{{CONFIG_URL}}'; // Injected by build script
@@ -34,6 +39,7 @@ let ON_EXPIRE = DEFAULTS.on_expire;
 let DIRECTION = DEFAULTS.direction;
 let MIN_VALUE = DEFAULTS.min_value;
 let MAX_VALUE = DEFAULTS.max_value;
+let COLOR_TRANSITION_TABLE = DEFAULTS.color_transition_table;
 
 /**
  * Load config from GitHub with localStorage caching
@@ -116,6 +122,10 @@ function applyConfig(config) {
     // Use max_value from config if available
     if (config.max_value !== undefined) {
         MAX_VALUE = config.max_value;
+    }
+    // Use color_transition_table from config if available
+    if (config.color_transition_table && Array.isArray(config.color_transition_table)) {
+        COLOR_TRANSITION_TABLE = config.color_transition_table;
     }
 }
 

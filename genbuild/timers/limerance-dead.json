@@ -12,6 +12,11 @@
     "tags": ["deadline", "personal", "important"],
     "category": "personal",
     "color_theme": "cyan",
+    "color_transition_table": [
+        {"ratio": 1.0, "color": "#00ffff"},
+        {"ratio": 0.5, "color": "#00ced1"},
+        {"ratio": 0.0, "color": "#008b8b"}
+    ],
     "show_milliseconds": true,
     "timezone": "UTC"
 }

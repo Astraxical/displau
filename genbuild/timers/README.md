@@ -129,6 +129,46 @@ Copy this file and rename it to create a new timer.
 - **Meaning:** Color theme for the timer display
 - **Use case:** Customize the appearance of individual timers
 
+### `color_transition_table` (optional)
+- **Type:** Array of objects
+- **Structure:** Each object has `ratio` (0.0 to 1.0) and `color` (hex string)
+- **Default:** Green → Yellow → Red gradient
+- **Meaning:** Defines color transitions based on remaining time ratio
+  - `ratio: 1.0` = 100% time remaining (start)
+  - `ratio: 0.5` = 50% time remaining
+  - `ratio: 0.0` = 0% time remaining (expired)
+- **Use case:** Create custom color gradients for your timer
+
+**Example Tables:**
+```json
+// Default: Green → Yellow → Red
+"color_transition_table": [
+    {"ratio": 1.0, "color": "#00ff00"},
+    {"ratio": 0.5, "color": "#ffff00"},
+    {"ratio": 0.0, "color": "#ff0000"}
+]
+
+// Cyberpunk: Cyan → Magenta → Red
+"color_transition_table": [
+    {"ratio": 1.0, "color": "#00ffff"},
+    {"ratio": 0.5, "color": "#ff00ff"},
+    {"ratio": 0.0, "color": "#ff0000"}
+]
+
+// Cool to Warm: Blue → Green → Orange
+"color_transition_table": [
+    {"ratio": 1.0, "color": "#0088ff"},
+    {"ratio": 0.5, "color": "#00ff88"},
+    {"ratio": 0.0, "color": "#ff8800"}
+]
+
+// Single color fade (green to dark)
+"color_transition_table": [
+    {"ratio": 1.0, "color": "#00ff00"},
+    {"ratio": 0.0, "color": "#004400"}
+]
+```
+
 ### `show_milliseconds` (optional)
 - **Type:** Boolean
 - **Options:** `true` | `false`
@@ -163,6 +203,11 @@ Copy this file and rename it to create a new timer.
     "tags": ["holiday", "celebration", "yearly"],
     "category": "holidays",
     "color_theme": "gold",
+    "color_transition_table": [
+        {"ratio": 1.0, "color": "#ffd700"},
+        {"ratio": 0.5, "color": "#ff8800"},
+        {"ratio": 0.0, "color": "#ff0000"}
+    ],
     "show_milliseconds": false,
     "timezone": "UTC"
 }
@@ -184,6 +229,11 @@ Copy this file and rename it to create a new timer.
     "tags": ["work", "product", "important"],
     "category": "work",
     "color_theme": "blue",
+    "color_transition_table": [
+        {"ratio": 1.0, "color": "#0088ff"},
+        {"ratio": 0.5, "color": "#00ff88"},
+        {"ratio": 0.0, "color": "#ff8800"}
+    ],
     "show_milliseconds": true,
     "timezone": "America/New_York"
 }

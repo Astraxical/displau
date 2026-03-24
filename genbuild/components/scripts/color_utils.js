@@ -24,14 +24,43 @@ function lerpColor(color1, color2, t) {
     );
 }
 
+/**
+ * Get color from transition table based on remaining ratio
+ * @param {number} remainingRatio - Ratio of time remaining (0.0 to 1.0)
+ * @returns {string} Hex color string
+ */
 function getColorForRemainingRatio(remainingRatio) {
-    // remainingRatio: 1 = full time (green), 0 = no time (red)
-    const green = { r: 0, g: 255, b: 0 };
-    const red = { r: 255, g: 0, b: 0 };
+    // Use the color transition table from config
+    const table = COLOR_TRANSITION_TABLE || [
+        { ratio: 1.0, color: '#00ff00' },
+        { ratio: 0.5, color: '#ffff00' },
+        { ratio: 0.0, color: '#ff0000' }
+    ];
 
-    return rgbToHex(
-        green.r + (red.r - green.r) * (1 - remainingRatio),
-        green.g + (red.g - green.g) * (1 - remainingRatio),
-        green.b + (red.b - green.b) * (1 - remainingRatio)
-    );
+    // Sort table by ratio (descending)
+    const sortedTable = [...table].sort((a, b) => b.ratio - a.ratio);
+
+    // Clamp ratio to 0-1
+    const ratio = Math.max(0, Math.min(1, remainingRatio));
+
+    // Find the two entries that bracket our ratio
+    for (let i = 0; i < sortedTable.length - 1; i++) {
+        const entry1 = sortedTable[i];
+        const entry2 = sortedTable[i + 1];
+
+        if (ratio <= entry1.ratio && ratio >= entry2.ratio) {
+            // Calculate interpolation factor (0 to 1)
+            const range = entry1.ratio - entry2.ratio;
+            const t = range === 0 ? 0 : (entry1.ratio - ratio) / range;
+
+            // Interpolate between the two colors
+            return lerpColor(entry1.color, entry2.color, t);
+        }
+    }
+
+    // If ratio is outside all ranges, return the edge color
+    if (ratio > sortedTable[0].ratio) {
+        return sortedTable[0].color;
+    }
+    return sortedTable[sortedTable.length - 1].color;
 }

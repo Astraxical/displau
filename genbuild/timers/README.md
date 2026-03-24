@@ -82,6 +82,46 @@ Copy this file and rename it to create a new timer.
   - **`false`**: Timer card is hidden from selector page once the timer ends
 - **Use case:** Set to `false` for timers that should disappear after completion (e.g., one-time events)
 
+### `description` (optional)
+- **Type:** String
+- **Example:** `"Countdown to product launch event"`, `"Days until graduation"`
+- **Meaning:** A brief description of the timer, shown on the selector page card
+
+### `tags` (optional)
+- **Type:** Array of strings
+- **Example:** `["event", "work", "important"]`, `["personal", "birthday"]`
+- **Meaning:** Tags for organizing and filtering timers on the selector page
+- **Use case:** Add relevant keywords to help categorize and search timers
+
+### `category` (optional)
+- **Type:** String
+- **Options:** Any string value
+- **Example:** `"personal"`, `"work"`, `"events"`, `"holidays"`
+- **Default:** `"general"`
+- **Meaning:** Category for grouping timers on the selector page
+- **Use case:** Group related timers together
+
+### `color_theme` (optional)
+- **Type:** String
+- **Options:** `"green"` | `"blue"` | `"purple"` | `"orange"` | `"red"` | `"cyan"` | `"pink"`
+- **Default:** `"green"`
+- **Meaning:** Color theme for the timer display
+- **Use case:** Customize the appearance of individual timers
+
+### `show_milliseconds` (optional)
+- **Type:** Boolean
+- **Options:** `true` | `false`
+- **Default:** `true`
+- **Meaning:** Whether to show milliseconds in the countdown display
+- **Use case:** Set to `false` for cleaner display when precision isn't needed
+
+### `timezone` (optional)
+- **Type:** String
+- **Example:** `"UTC"`, `"America/New_York"`, `"Europe/London"`, `"Asia/Tokyo"`
+- **Default:** `"UTC"`
+- **Meaning:** Timezone for the target_time and start_time
+- **Use case:** Ensure timer counts down correctly for viewers in different timezones
+
 ---
 
 ## Examples
@@ -91,10 +131,16 @@ Copy this file and rename it to create a new timer.
 {
     "id": "newyear",
     "display_name": "New Year 2027",
+    "description": "Countdown to the new year",
     "target_time": "2027-01-01T00:00:00",
     "start_time": "2026-01-01T00:00:00",
     "on_expire": "stop",
-    "display_on_expire": true
+    "display_on_expire": true,
+    "tags": ["holiday", "celebration", "yearly"],
+    "category": "holidays",
+    "color_theme": "gold",
+    "show_milliseconds": false,
+    "timezone": "UTC"
 }
 ```
 
@@ -103,10 +149,16 @@ Copy this file and rename it to create a new timer.
 {
     "id": "product-launch",
     "display_name": "Product Launch",
+    "description": "New product reveal event",
     "target_time": "2026-06-15T10:00:00",
     "start_time": "2026-03-01T00:00:00",
     "on_expire": "continue",
-    "display_on_expire": true
+    "display_on_expire": true,
+    "tags": ["work", "product", "important"],
+    "category": "work",
+    "color_theme": "blue",
+    "show_milliseconds": true,
+    "timezone": "America/New_York"
 }
 ```
 
@@ -115,10 +167,16 @@ Copy this file and rename it to create a new timer.
 {
     "id": "birthday",
     "display_name": "Birthday Celebration",
+    "description": "Annual birthday countdown",
     "target_time": "2026-08-20T18:00:00",
     "start_time": "2026-01-01T00:00:00",
     "on_expire": "hide",
-    "display_on_expire": true
+    "display_on_expire": false,
+    "tags": ["personal", "birthday", "celebration"],
+    "category": "personal",
+    "color_theme": "pink",
+    "show_milliseconds": true,
+    "timezone": "UTC"
 }
 ```
 
@@ -127,10 +185,16 @@ Copy this file and rename it to create a new timer.
 {
     "id": "wedding",
     "display_name": "Wedding Day",
+    "description": "Wedding ceremony countdown",
     "target_time": "2026-12-25T14:00:00",
     "start_time": "2026-06-01T00:00:00",
     "on_expire": "stop",
-    "display_on_expire": false
+    "display_on_expire": false,
+    "tags": ["personal", "wedding", "special"],
+    "category": "personal",
+    "color_theme": "purple",
+    "show_milliseconds": false,
+    "timezone": "Europe/London"
 }
 ```
 

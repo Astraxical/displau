@@ -1,8 +1,14 @@
 {
     "id": "birthday",
     "display_name": "Birthday Countdown",
+    "description": "Annual birthday celebration",
     "target_time": "2026-05-16T00:00:00",
     "start_time": "2026-05-01T00:00:00",
     "on_expire": "stop",
-    "display_on_expire": false
+    "display_on_expire": false,
+    "tags": ["personal", "birthday", "celebration"],
+    "category": "personal",
+    "color_theme": "pink",
+    "show_milliseconds": true,
+    "timezone": "UTC"
 }

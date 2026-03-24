@@ -1,8 +1,14 @@
 {
     "id": "limerance-dead",
     "display_name": "Limerance Dead",
+    "description": "Limerance deadline",
     "target_time": "2026-03-24T00:00:00",
     "start_time": "2026-03-17T00:00:00",
     "on_expire": "stop",
-    "display_on_expire": false
+    "display_on_expire": false,
+    "tags": ["deadline", "personal", "important"],
+    "category": "personal",
+    "color_theme": "cyan",
+    "show_milliseconds": true,
+    "timezone": "UTC"
 }

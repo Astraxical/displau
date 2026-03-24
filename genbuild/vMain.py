@@ -103,7 +103,7 @@ def load_script_components():
     return '\n'.join(combined_scripts)
 
 
-def replace_placeholders(content, target_time, days_at_full_brightness, config_url, start_time):
+def replace_placeholders(content, target_time, days_at_full_brightness, config_url, start_time, direction='down', min_value=0, max_value='null'):
     """Replace configuration placeholders in content."""
     return content.replace(
         '{{TARGET_TIME}}', target_time
@@ -113,6 +113,12 @@ def replace_placeholders(content, target_time, days_at_full_brightness, config_u
         '{{CONFIG_URL}}', config_url
     ).replace(
         '{{START_TIME}}', start_time
+    ).replace(
+        '{{DIRECTION}}', direction
+    ).replace(
+        '{{MIN_VALUE}}', str(min_value)
+    ).replace(
+        '{{MAX_VALUE}}', str(max_value)
     )
 
 
@@ -138,7 +144,7 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
     # Get target time from arg or use default
     if target_time_str is None:
         target_time_str = DEFAULT_TARGET_TIME
-    
+
     # Auto-generate config URL if enabled and not provided
     if auto_config and not config_url:
         config_url = get_config_url(config_id)
@@ -160,7 +166,7 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
     now = datetime.now()
     time_diff = target_dt - now
     milliseconds_at_full_brightness = max(0, int(time_diff.total_seconds() * 1000))
-    
+
     # Use provided start_time or default to now
     if start_time_str is None:
         start_time_str = now.isoformat(timespec='seconds')
@@ -170,8 +176,21 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
     styles = load_style_components()
     scripts = load_script_components()
 
+    # Get direction, min_value, max_value from config if available
+    direction = 'down'
+    min_value = 0
+    max_value = 'null'
+    
+    if config_url:
+        config = fetch_config_from_url(config_url)
+        if config:
+            direction = config.get('direction', 'down')
+            min_value = config.get('min_value', 0)
+            max_val = config.get('max_value', None)
+            max_value = 'null' if max_val is None else str(max_val)
+
     # Replace placeholders in scripts
-    scripts = replace_placeholders(scripts, target_time_str, milliseconds_at_full_brightness, config_url, start_time_str)
+    scripts = replace_placeholders(scripts, target_time_str, milliseconds_at_full_brightness, config_url, start_time_str, direction, min_value, max_value)
 
     # Also replace placeholder in html_open
     html['html_open'] = html['html_open'].replace('{{CONFIG_URL}}', config_url)

@@ -5,7 +5,10 @@ const DEFAULTS = {
     start_time: '{{START_TIME}}',
     display_name: '',
     config_id: 'default',
-    on_expire: 'stop'  // Options: 'stop', 'continue', 'hide'
+    on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
+    direction: '{{DIRECTION}}',  // Options: 'down', 'up'
+    min_value: {{MIN_VALUE}},       // Minimum value in milliseconds (null for no limit)
+    max_value: {{MAX_VALUE}}     // Maximum value in milliseconds (null for no limit)
 };
 const MILLISECONDS_AT_FULL_BRIGHTNESS = {{DAYS_AT_FULL_BRIGHTNESS}};
 const CONFIG_URL = '{{CONFIG_URL}}'; // Injected by build script
@@ -28,6 +31,9 @@ let TARGET_TIME = DEFAULTS.target_time;
 let START_TIME = DEFAULTS.start_time;
 let DISPLAY_NAME = DEFAULTS.display_name;
 let ON_EXPIRE = DEFAULTS.on_expire;
+let DIRECTION = DEFAULTS.direction;
+let MIN_VALUE = DEFAULTS.min_value;
+let MAX_VALUE = DEFAULTS.max_value;
 
 /**
  * Load config from GitHub with localStorage caching
@@ -98,6 +104,18 @@ function applyConfig(config) {
     // Use on_expire from config if available
     if (config.on_expire) {
         ON_EXPIRE = config.on_expire;
+    }
+    // Use direction from config if available
+    if (config.direction) {
+        DIRECTION = config.direction;
+    }
+    // Use min_value from config if available
+    if (config.min_value !== undefined) {
+        MIN_VALUE = config.min_value;
+    }
+    // Use max_value from config if available
+    if (config.max_value !== undefined) {
+        MAX_VALUE = config.max_value;
     }
 }
 

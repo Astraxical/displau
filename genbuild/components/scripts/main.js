@@ -62,16 +62,15 @@ function handleExpiry() {
  * Update countdown display
  */
 function updateCountdown() {
-    const target = new Date(TARGET_TIME).getTime();
-    const start = new Date(START_TIME).getTime();
-    const realNow = Date.now();
-
-    // Check if expired
-    if (isExpired()) {
+    // Use the new direction-aware time value function
+    const currentTimeValue = getCurrentTimeValue();
+    
+    // For down direction, check if expired
+    if (DIRECTION === 'down' && isExpired()) {
         if (!hasExpired) {
             handleExpiry();
         }
-        
+
         // Handle different expiry behaviors
         const onExpire = ON_EXPIRE || 'stop';
 
@@ -89,47 +88,21 @@ function updateCountdown() {
         return;
     }
 
-    // Calculate actual elapsed time since last update
-    const deltaTime = realNow - lastRealTime;
-    lastRealTime = realNow;
-
-    // If paused, don't accumulate time
-    if (isPaused) {
-        pausedAt = realNow;
+    // For up direction, just display elapsed time
+    if (DIRECTION === 'up') {
+        const timeStr = formatTime(currentTimeValue);
+        updateDisplay(timeStr);
+        document.title = `${timeStr.split('.')[0]} - ${DISPLAY_NAME || 'Timer'}`;
         return;
     }
 
-    // Apply speed factor to elapsed time
-    const adjustedDelta = deltaTime * speedFactor;
-    pauseOffset += adjustedDelta - deltaTime;
-
-    // Calculate current time with offset
-    let now = realNow + pauseOffset;
-
-    const remaining = target - now;
-    const total = target - start;
-    const timeStr = formatTime(Math.max(0, remaining));
+    // For down direction (not expired yet)
+    const timeStr = formatTime(Math.max(0, currentTimeValue));
     updateDisplay(timeStr);
 
     // Update document title
     const displayName = DISPLAY_NAME || '7 Segment Timer';
     document.title = `${timeStr.split('.')[0]} - ${displayName}`;
-
-    // Exponential speed adjustment based on how far off we are
-    const expectedRemaining = total - (realNow - start);
-    const diff = remaining - expectedRemaining;
-
-    if (Math.abs(diff) > 100) { // Only adjust if off by more than 100ms
-        // Exponential factor: larger diff = faster catchup
-        const catchupFactor = Math.min(0.5, Math.abs(diff) / 10000); // Max 50% speed change
-        speedFactor = 1.0 + Math.sign(diff) * catchupFactor;
-    } else {
-        // Gradually return to normal speed
-        speedFactor = speedFactor * 0.95 + 1.0 * 0.05;
-        if (Math.abs(speedFactor - 1.0) < 0.0001) {
-            speedFactor = 1.0;
-        }
-    }
 }
 
 function togglePause() {

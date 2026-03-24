@@ -82,6 +82,27 @@ Copy this file and rename it to create a new timer.
   - **`false`**: Timer card is hidden from selector page once the timer ends
 - **Use case:** Set to `false` for timers that should disappear after completion (e.g., one-time events)
 
+### `direction` (optional)
+- **Type:** String
+- **Options:** `"down"` | `"up"`
+- **Default:** `"down"`
+- **Meaning:** Controls whether the timer counts down or up:
+  - **`"down"`**: Classic countdown from start_time to target_time (decreases to zero)
+  - **`"up"`**: Stopwatch mode, counts up from start_time (increases like elapsed time)
+- **Use case:** Use `"up"` for session timers, meeting durations, or "time since" displays
+
+### `min_value` (optional)
+- **Type:** Number (milliseconds) or `null`
+- **Default:** `0` (for down direction), `null` (for up direction)
+- **Meaning:** Minimum value the timer will display
+- **Use case:** Prevent countdown from going below zero or a specific value
+
+### `max_value` (optional)
+- **Type:** Number (milliseconds) or `null`
+- **Default:** `null` (no limit)
+- **Meaning:** Maximum value the timer will display
+- **Use case:** Cap stopwatch at certain duration (e.g., 86400000 for 24 hours)
+
 ### `description` (optional)
 - **Type:** String
 - **Example:** `"Countdown to product launch event"`, `"Days until graduation"`
@@ -134,6 +155,9 @@ Copy this file and rename it to create a new timer.
     "description": "Countdown to the new year",
     "target_time": "2027-01-01T00:00:00",
     "start_time": "2026-01-01T00:00:00",
+    "direction": "down",
+    "min_value": 0,
+    "max_value": null,
     "on_expire": "stop",
     "display_on_expire": true,
     "tags": ["holiday", "celebration", "yearly"],
@@ -152,6 +176,9 @@ Copy this file and rename it to create a new timer.
     "description": "New product reveal event",
     "target_time": "2026-06-15T10:00:00",
     "start_time": "2026-03-01T00:00:00",
+    "direction": "down",
+    "min_value": 0,
+    "max_value": null,
     "on_expire": "continue",
     "display_on_expire": true,
     "tags": ["work", "product", "important"],
@@ -159,6 +186,26 @@ Copy this file and rename it to create a new timer.
     "color_theme": "blue",
     "show_milliseconds": true,
     "timezone": "America/New_York"
+}
+```
+
+### Stopwatch Timer (Counts Up)
+```json
+{
+    "id": "meeting-timer",
+    "display_name": "Meeting Duration",
+    "description": "Track meeting elapsed time",
+    "start_time": "2026-03-24T09:00:00",
+    "direction": "up",
+    "min_value": 0,
+    "max_value": 7200000,
+    "on_expire": "stop",
+    "display_on_expire": true,
+    "tags": ["work", "meeting", "stopwatch"],
+    "category": "work",
+    "color_theme": "cyan",
+    "show_milliseconds": true,
+    "timezone": "UTC"
 }
 ```
 
@@ -170,6 +217,9 @@ Copy this file and rename it to create a new timer.
     "description": "Annual birthday countdown",
     "target_time": "2026-08-20T18:00:00",
     "start_time": "2026-01-01T00:00:00",
+    "direction": "down",
+    "min_value": 0,
+    "max_value": null,
     "on_expire": "hide",
     "display_on_expire": false,
     "tags": ["personal", "birthday", "celebration"],
@@ -188,6 +238,9 @@ Copy this file and rename it to create a new timer.
     "description": "Wedding ceremony countdown",
     "target_time": "2026-12-25T14:00:00",
     "start_time": "2026-06-01T00:00:00",
+    "direction": "down",
+    "min_value": 0,
+    "max_value": null,
     "on_expire": "stop",
     "display_on_expire": false,
     "tags": ["personal", "wedding", "special"],

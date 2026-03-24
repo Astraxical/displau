@@ -463,7 +463,10 @@ const DEFAULTS = {
     start_time: '2026-03-17T00:00:00',
     display_name: '',
     config_id: 'default',
-    on_expire: 'stop'  // Options: 'stop', 'continue', 'hide'
+    on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
+    direction: 'down',  // Options: 'down', 'up'
+    min_value: 0,       // Minimum value in milliseconds (null for no limit)
+    max_value: null     // Maximum value in milliseconds (null for no limit)
 };
 const MILLISECONDS_AT_FULL_BRIGHTNESS = 0;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/limerance-dead.json'; // Injected by build script
@@ -486,6 +489,9 @@ let TARGET_TIME = DEFAULTS.target_time;
 let START_TIME = DEFAULTS.start_time;
 let DISPLAY_NAME = DEFAULTS.display_name;
 let ON_EXPIRE = DEFAULTS.on_expire;
+let DIRECTION = DEFAULTS.direction;
+let MIN_VALUE = DEFAULTS.min_value;
+let MAX_VALUE = DEFAULTS.max_value;
 
 /**
  * Load config from GitHub with localStorage caching
@@ -557,6 +563,18 @@ function applyConfig(config) {
     if (config.on_expire) {
         ON_EXPIRE = config.on_expire;
     }
+    // Use direction from config if available
+    if (config.direction) {
+        DIRECTION = config.direction;
+    }
+    // Use min_value from config if available
+    if (config.min_value !== undefined) {
+        MIN_VALUE = config.min_value;
+    }
+    // Use max_value from config if available
+    if (config.max_value !== undefined) {
+        MAX_VALUE = config.max_value;
+    }
 }
 
 // Initialize config on script load
@@ -607,10 +625,55 @@ function getColorForRemainingRatio(remainingRatio) {
 }
 
 /**
- * Check if the timer has expired
+ * Get the current time value based on direction (up or down)
+ * @returns {number} Current time value in milliseconds
+ */
+function getCurrentTimeValue() {
+    const start = new Date(START_TIME).getTime();
+    const target = new Date(TARGET_TIME).getTime();
+    const now = Date.now();
+    
+    if (DIRECTION === 'up') {
+        // Counting up from start_time (stopwatch mode)
+        const elapsed = now - start;
+        
+        // Apply max_value limit if set
+        if (MAX_VALUE !== null && elapsed > MAX_VALUE) {
+            return MAX_VALUE;
+        }
+        
+        // Apply min_value limit if set
+        if (MIN_VALUE !== null && elapsed < MIN_VALUE) {
+            return MIN_VALUE;
+        }
+        
+        return elapsed;
+    } else {
+        // Counting down to target_time (classic mode)
+        const remaining = target - now;
+        
+        // Apply min_value limit if set
+        if (MIN_VALUE !== null && remaining < MIN_VALUE) {
+            return MIN_VALUE;
+        }
+        
+        // Apply max_value limit if set
+        if (MAX_VALUE !== null && remaining > MAX_VALUE) {
+            return MAX_VALUE;
+        }
+        
+        return remaining;
+    }
+}
+
+/**
+ * Check if the timer has expired (only applies to down direction)
  * @returns {boolean} True if current time is past target time
  */
 function isExpired() {
+    if (DIRECTION === 'up') {
+        return false; // Up direction never expires
+    }
     const target = new Date(TARGET_TIME).getTime();
     const now = Date.now();
     return now >= target;
@@ -624,10 +687,20 @@ function calculateRemainingRatio() {
     const start = new Date(START_TIME).getTime();
     const target = new Date(TARGET_TIME).getTime();
     const now = Date.now();
-    const totalDuration = target - start;
-    const elapsed = now - start;
-    const progress = Math.max(0, Math.min(1, elapsed / totalDuration));
-    return 1 - progress; // 1 = full time remaining, 0 = no time
+    
+    if (DIRECTION === 'up') {
+        // For up direction, ratio increases from 0 to 1
+        const totalDuration = target - start;
+        const elapsed = now - start;
+        const progress = elapsed / totalDuration;
+        return Math.min(1, Math.max(0, progress));
+    } else {
+        // For down direction, ratio decreases from 1 to 0
+        const totalDuration = target - start;
+        const elapsed = now - start;
+        const progress = Math.max(0, Math.min(1, elapsed / totalDuration));
+        return 1 - progress; // 1 = full time remaining, 0 = no time
+    }
 }
 
 /**
@@ -1194,16 +1267,15 @@ function handleExpiry() {
  * Update countdown display
  */
 function updateCountdown() {
-    const target = new Date(TARGET_TIME).getTime();
-    const start = new Date(START_TIME).getTime();
-    const realNow = Date.now();
-
-    // Check if expired
-    if (isExpired()) {
+    // Use the new direction-aware time value function
+    const currentTimeValue = getCurrentTimeValue();
+    
+    // For down direction, check if expired
+    if (DIRECTION === 'down' && isExpired()) {
         if (!hasExpired) {
             handleExpiry();
         }
-        
+
         // Handle different expiry behaviors
         const onExpire = ON_EXPIRE || 'stop';
 
@@ -1221,47 +1293,21 @@ function updateCountdown() {
         return;
     }
 
-    // Calculate actual elapsed time since last update
-    const deltaTime = realNow - lastRealTime;
-    lastRealTime = realNow;
-
-    // If paused, don't accumulate time
-    if (isPaused) {
-        pausedAt = realNow;
+    // For up direction, just display elapsed time
+    if (DIRECTION === 'up') {
+        const timeStr = formatTime(currentTimeValue);
+        updateDisplay(timeStr);
+        document.title = `${timeStr.split('.')[0]} - ${DISPLAY_NAME || 'Timer'}`;
         return;
     }
 
-    // Apply speed factor to elapsed time
-    const adjustedDelta = deltaTime * speedFactor;
-    pauseOffset += adjustedDelta - deltaTime;
-
-    // Calculate current time with offset
-    let now = realNow + pauseOffset;
-
-    const remaining = target - now;
-    const total = target - start;
-    const timeStr = formatTime(Math.max(0, remaining));
+    // For down direction (not expired yet)
+    const timeStr = formatTime(Math.max(0, currentTimeValue));
     updateDisplay(timeStr);
 
     // Update document title
     const displayName = DISPLAY_NAME || '7 Segment Timer';
     document.title = `${timeStr.split('.')[0]} - ${displayName}`;
-
-    // Exponential speed adjustment based on how far off we are
-    const expectedRemaining = total - (realNow - start);
-    const diff = remaining - expectedRemaining;
-
-    if (Math.abs(diff) > 100) { // Only adjust if off by more than 100ms
-        // Exponential factor: larger diff = faster catchup
-        const catchupFactor = Math.min(0.5, Math.abs(diff) / 10000); // Max 50% speed change
-        speedFactor = 1.0 + Math.sign(diff) * catchupFactor;
-    } else {
-        // Gradually return to normal speed
-        speedFactor = speedFactor * 0.95 + 1.0 * 0.05;
-        if (Math.abs(speedFactor - 1.0) < 0.0001) {
-            speedFactor = 1.0;
-        }
-    }
 }
 
 function togglePause() {

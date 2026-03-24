@@ -1,8 +1,53 @@
 /**
- * Check if the timer has expired
+ * Get the current time value based on direction (up or down)
+ * @returns {number} Current time value in milliseconds
+ */
+function getCurrentTimeValue() {
+    const start = new Date(START_TIME).getTime();
+    const target = new Date(TARGET_TIME).getTime();
+    const now = Date.now();
+    
+    if (DIRECTION === 'up') {
+        // Counting up from start_time (stopwatch mode)
+        const elapsed = now - start;
+        
+        // Apply max_value limit if set
+        if (MAX_VALUE !== null && elapsed > MAX_VALUE) {
+            return MAX_VALUE;
+        }
+        
+        // Apply min_value limit if set
+        if (MIN_VALUE !== null && elapsed < MIN_VALUE) {
+            return MIN_VALUE;
+        }
+        
+        return elapsed;
+    } else {
+        // Counting down to target_time (classic mode)
+        const remaining = target - now;
+        
+        // Apply min_value limit if set
+        if (MIN_VALUE !== null && remaining < MIN_VALUE) {
+            return MIN_VALUE;
+        }
+        
+        // Apply max_value limit if set
+        if (MAX_VALUE !== null && remaining > MAX_VALUE) {
+            return MAX_VALUE;
+        }
+        
+        return remaining;
+    }
+}
+
+/**
+ * Check if the timer has expired (only applies to down direction)
  * @returns {boolean} True if current time is past target time
  */
 function isExpired() {
+    if (DIRECTION === 'up') {
+        return false; // Up direction never expires
+    }
     const target = new Date(TARGET_TIME).getTime();
     const now = Date.now();
     return now >= target;
@@ -16,10 +61,20 @@ function calculateRemainingRatio() {
     const start = new Date(START_TIME).getTime();
     const target = new Date(TARGET_TIME).getTime();
     const now = Date.now();
-    const totalDuration = target - start;
-    const elapsed = now - start;
-    const progress = Math.max(0, Math.min(1, elapsed / totalDuration));
-    return 1 - progress; // 1 = full time remaining, 0 = no time
+    
+    if (DIRECTION === 'up') {
+        // For up direction, ratio increases from 0 to 1
+        const totalDuration = target - start;
+        const elapsed = now - start;
+        const progress = elapsed / totalDuration;
+        return Math.min(1, Math.max(0, progress));
+    } else {
+        // For down direction, ratio decreases from 1 to 0
+        const totalDuration = target - start;
+        const elapsed = now - start;
+        const progress = Math.max(0, Math.min(1, elapsed / totalDuration));
+        return 1 - progress; // 1 = full time remaining, 0 = no time
+    }
 }
 
 /**

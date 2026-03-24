@@ -100,7 +100,7 @@ function updateProgressBars() {
         if (now > target) {
             // Timer has ended
             progress = 100;
-            progressText = '100%';
+            progressText = '100.00%';
             
             // Update status if needed
             if (card.dataset.status !== 'ended') {
@@ -114,7 +114,7 @@ function updateProgressBars() {
         } else if (now < start) {
             // Timer hasn't started yet
             progress = 0;
-            progressText = '???%';
+            progressText = '???.??%';
         } else {
             // Timer is running
             const total = (target - start);

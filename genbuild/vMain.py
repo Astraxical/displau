@@ -417,12 +417,12 @@ def generate_selector(timers_list):
                 status = 'ended'
                 status_label = 'Ended'
                 progress = 100
-                progress_text = '100%'
+                progress_text = '100.00%'
             elif now < start_dt:
                 status = 'upcoming'
                 status_label = 'Upcoming'
                 progress = 0
-                progress_text = '???%'
+                progress_text = '???.??%'
             else:
                 status = 'running'
                 status_label = 'Running'
@@ -434,7 +434,7 @@ def generate_selector(timers_list):
             progress = 0
             status = 'running'
             status_label = 'Running'
-            progress_text = '???%'
+            progress_text = '???.??%'
 
         html_file = f'{config_id}.html'
         html_path = SCRIPT_DIR / OUTPUT_DIR / html_file

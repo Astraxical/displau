@@ -131,14 +131,15 @@ Copy this file and rename it to create a new timer.
 
 ### `color_transition_table` (optional)
 - **Type:** Array of objects
-- **Structure:** Each object has `ratio` (0.0 to 1.0) and `color` (hex string)
-- **Default:** Blue → Green → Yellow → Orange → Red (Violet for negative)
+- **Structure:** Each object has `ratio` (can be negative) and `color` (hex string)
+- **Default:** Blue → Green → Yellow → Orange → Red → Violet → Deep Violet
 - **Meaning:** Defines color transitions based on remaining time ratio
   - `ratio: 1.0` = 100% time remaining (start)
   - `ratio: 0.5` = 50% time remaining
   - `ratio: 0.0` = 0% time remaining (expired)
-  - Negative time (beyond zero) = Violet
-- **Use case:** Create custom color gradients for your timer
+  - `ratio: -0.5` = -50% time (50% into overtime)
+  - `ratio: -1.0` = -100% time (100% into overtime)
+- **Use case:** Create custom color gradients for your timer, including overtime colors
 
 **Default Transition:**
 ```json
@@ -147,21 +148,23 @@ Copy this file and rename it to create a new timer.
     {"ratio": 0.75, "color": "#00ff00"}, // Green: 0-25% done
     {"ratio": 0.5, "color": "#ffff00"},  // Yellow: 50% done
     {"ratio": 0.25, "color": "#ff8800"}, // Orange: 75% done
-    {"ratio": 0.0, "color": "#ff0000"}   // Red: Zero
+    {"ratio": 0.0, "color": "#ff0000"},  // Red: Zero
+    {"ratio": -0.5, "color": "#ee82ee"}, // Violet: -50% (overtime)
+    {"ratio": -1.0, "color": "#8b00ff"}  // Deep Violet: -100% (extended overtime)
 ]
-// Violet (#ee82ee) is used automatically for negative time
 ```
 
 **Example Tables:**
 ```json
-// Cyberpunk: Cyan → Magenta → Red
+// Cyberpunk: Cyan → Magenta → Red → Purple (overtime)
 "color_transition_table": [
     {"ratio": 1.0, "color": "#00ffff"},
     {"ratio": 0.5, "color": "#ff00ff"},
-    {"ratio": 0.0, "color": "#ff0000"}
+    {"ratio": 0.0, "color": "#ff0000"},
+    {"ratio": -0.5, "color": "#8b00ff"}
 ]
 
-// Cool to Warm: Blue → Green → Orange
+// Cool to Warm: Blue → Green → Orange → Red
 "color_transition_table": [
     {"ratio": 1.0, "color": "#0088ff"},
     {"ratio": 0.5, "color": "#00ff88"},
@@ -172,6 +175,13 @@ Copy this file and rename it to create a new timer.
 "color_transition_table": [
     {"ratio": 1.0, "color": "#00ff00"},
     {"ratio": 0.0, "color": "#004400"}
+]
+
+// Custom overtime: Red → Black → Deep Purple
+"color_transition_table": [
+    {"ratio": 0.0, "color": "#ff0000"},
+    {"ratio": -0.5, "color": "#000000"},
+    {"ratio": -1.0, "color": "#4b0082"}
 ]
 ```
 

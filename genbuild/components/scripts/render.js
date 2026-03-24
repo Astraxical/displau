@@ -1,15 +1,16 @@
-// Negative time color (violet - beyond zero)
-const NEGATIVE_TIME_COLOR = typeof window !== 'undefined' ? (window.NEGATIVE_TIME_COLOR || '#ee82ee') : '#ee82ee';
-
 function getColor() {
     return currentColor;
 }
 
 /**
- * Get color for negative time display (violet - beyond zero)
+ * Get color for negative time display
+ * Uses the same color system as the transition table
  */
 function getNegativeTimeColor() {
-    return NEGATIVE_TIME_COLOR;
+    // For negative time, calculate color based on how far into negative
+    // This will be handled by getColorForRemainingRatio with negative ratio
+    // Return a default violet as fallback
+    return '#ee82ee';
 }
 
 function getDarkerComplementaryColor(hex) {
@@ -20,13 +21,6 @@ function getDarkerComplementaryColor(hex) {
         (255 - rgb.g) * factor,
         (255 - rgb.b) * factor
     );
-}
-
-/**
- * Get darker complementary color for negative time
- */
-function getNegativeTimeComplementary() {
-    return getDarkerComplementaryColor(NEGATIVE_TIME_COLOR);
 }
 
 function applyColor(color) {
@@ -53,14 +47,18 @@ function applyColor(color) {
 }
 
 /**
- * Apply dark pink color for negative time display
+ * Apply color for negative time display
+ * Uses the current color from the transition table (which handles negative ratios)
  */
 function applyNegativeTimeColor() {
-    const complementary = getNegativeTimeComplementary();
+    // Use the currentColor which is already calculated from the transition table
+    // for negative time ratios
+    const color = currentColor || '#ee82ee';
+    const complementary = getDarkerComplementaryColor(color);
 
     document.querySelectorAll('.segment-part.on').forEach(seg => {
-        seg.style.background = NEGATIVE_TIME_COLOR;
-        seg.style.boxShadow = `0 0 15px ${NEGATIVE_TIME_COLOR}, 0 0 30px ${NEGATIVE_TIME_COLOR}`;
+        seg.style.background = color;
+        seg.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
     });
 
     document.querySelectorAll('.segment-part:not(.on)').forEach(seg => {
@@ -69,8 +67,8 @@ function applyNegativeTimeColor() {
     });
 
     document.querySelectorAll('.colon-dot.on').forEach(dot => {
-        dot.style.background = NEGATIVE_TIME_COLOR;
-        dot.style.boxShadow = `0 0 15px ${NEGATIVE_TIME_COLOR}, 0 0 30px ${NEGATIVE_TIME_COLOR}`;
+        dot.style.background = color;
+        dot.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
     });
 
     document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
@@ -80,8 +78,8 @@ function applyNegativeTimeColor() {
     // Color the minus sign
     const minusBar = document.querySelector('.minus-bar');
     if (minusBar) {
-        minusBar.style.background = NEGATIVE_TIME_COLOR;
-        minusBar.style.boxShadow = `0 0 10px ${NEGATIVE_TIME_COLOR}, 0 0 20px ${NEGATIVE_TIME_COLOR}`;
+        minusBar.style.background = color;
+        minusBar.style.boxShadow = `0 0 10px ${color}, 0 0 20px ${color}`;
     }
 }
 

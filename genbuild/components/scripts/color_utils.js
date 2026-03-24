@@ -26,17 +26,20 @@ function lerpColor(color1, color2, t) {
 
 /**
  * Get color from transition table based on remaining ratio
- * @param {number} remainingRatio - Ratio of time remaining (0.0 to 1.0)
+ * Supports negative ratios for negative time (beyond zero)
+ * @param {number} remainingRatio - Ratio of time remaining (can be negative for overtime)
  * @returns {string} Hex color string
  */
 function getColorForRemainingRatio(remainingRatio) {
-    // Default color transition: Blue→Green→Yellow→Orange→Red
+    // Default color transition: Blue→Green→Yellow→Orange→Red→Violet→Deep Violet
     const defaultTable = [
         { ratio: 1.0, color: '#0088ff' },   // Blue: Yet to start
         { ratio: 0.75, color: '#00ff00' },  // Green: 0-25% done
         { ratio: 0.5, color: '#ffff00' },   // Yellow: 50% done
         { ratio: 0.25, color: '#ff8800' },  // Orange: 75% done
-        { ratio: 0.0, color: '#ff0000' }    // Red: Zero
+        { ratio: 0.0, color: '#ff0000' },   // Red: Zero
+        { ratio: -0.5, color: '#ee82ee' },  // Violet: -50% (overtime)
+        { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100% (extended overtime)
     ];
 
     // Use the color transition table from config
@@ -45,18 +48,15 @@ function getColorForRemainingRatio(remainingRatio) {
     // Sort table by ratio (descending)
     const sortedTable = [...table].sort((a, b) => b.ratio - a.ratio);
 
-    // Clamp ratio to 0-1
-    const ratio = Math.max(0, Math.min(1, remainingRatio));
-
     // Find the two entries that bracket our ratio
     for (let i = 0; i < sortedTable.length - 1; i++) {
         const entry1 = sortedTable[i];
         const entry2 = sortedTable[i + 1];
 
-        if (ratio <= entry1.ratio && ratio >= entry2.ratio) {
+        if (remainingRatio <= entry1.ratio && remainingRatio >= entry2.ratio) {
             // Calculate interpolation factor (0 to 1)
             const range = entry1.ratio - entry2.ratio;
-            const t = range === 0 ? 0 : (entry1.ratio - ratio) / range;
+            const t = range === 0 ? 0 : (entry1.ratio - remainingRatio) / range;
 
             // Interpolate between the two colors
             return lerpColor(entry1.color, entry2.color, t);
@@ -64,7 +64,7 @@ function getColorForRemainingRatio(remainingRatio) {
     }
 
     // If ratio is outside all ranges, return the edge color
-    if (ratio > sortedTable[0].ratio) {
+    if (remainingRatio > sortedTable[0].ratio) {
         return sortedTable[0].color;
     }
     return sortedTable[sortedTable.length - 1].color;

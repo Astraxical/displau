@@ -11,12 +11,7 @@
     "display_on_expire": false,
     "tags": ["deadline", "personal", "important"],
     "category": "personal",
-    "color_theme": "cyan",
-    "color_transition_table": [
-        {"ratio": 1.0, "color": "#00ffff"},
-        {"ratio": 0.5, "color": "#00ced1"},
-        {"ratio": 0.0, "color": "#008b8b"}
-    ],
+    "color_theme": "progress",
     "show_milliseconds": true,
     "timezone": "UTC"
 }

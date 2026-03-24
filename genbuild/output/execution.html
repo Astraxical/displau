@@ -467,13 +467,17 @@ const DEFAULTS = {
     direction: 'down',  // Options: 'down', 'up'
     min_value: 0,       // Minimum value in milliseconds (null for no limit)
     max_value: null,     // Maximum value in milliseconds (null for no limit)
-    color_transition_table: [     // Color transition table
-        { ratio: 1.0, color: '#00ff00' },
-        { ratio: 0.5, color: '#ffff00' },
-        { ratio: 0.0, color: '#ff0000' }
+    // Default color transition: Blue→Green→Yellow→Orange→Red (Violet for negative)
+    color_transition_table: [
+        { ratio: 1.0, color: '#0088ff' },   // Blue: Yet to start (100%)
+        { ratio: 0.75, color: '#00ff00' },  // Green: 0-25% done
+        { ratio: 0.5, color: '#ffff00' },   // Yellow: 50% done
+        { ratio: 0.25, color: '#ff8800' },  // Orange: 75% done
+        { ratio: 0.0, color: '#ff0000' }    // Red: Zero
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 1811832186;
+const NEGATIVE_TIME_COLOR = '#ee82ee';  // Violet: Beyond zero (negative time)
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 1811635601;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/execution.json'; // Injected by build script
 // =======================================
 
@@ -628,12 +632,17 @@ function lerpColor(color1, color2, t) {
  * @returns {string} Hex color string
  */
 function getColorForRemainingRatio(remainingRatio) {
-    // Use the color transition table from config
-    const table = COLOR_TRANSITION_TABLE || [
-        { ratio: 1.0, color: '#00ff00' },
-        { ratio: 0.5, color: '#ffff00' },
-        { ratio: 0.0, color: '#ff0000' }
+    // Default color transition: Blue→Green→Yellow→Orange→Red
+    const defaultTable = [
+        { ratio: 1.0, color: '#0088ff' },   // Blue: Yet to start
+        { ratio: 0.75, color: '#00ff00' },  // Green: 0-25% done
+        { ratio: 0.5, color: '#ffff00' },   // Yellow: 50% done
+        { ratio: 0.25, color: '#ff8800' },  // Orange: 75% done
+        { ratio: 0.0, color: '#ff0000' }    // Red: Zero
     ];
+
+    // Use the color transition table from config
+    const table = COLOR_TRANSITION_TABLE || defaultTable;
 
     // Sort table by ratio (descending)
     const sortedTable = [...table].sort((a, b) => b.ratio - a.ratio);
@@ -862,15 +871,15 @@ function createDecimal() {
     return decimal;
 }
 
-// Dark pink color for negative time display
-const NEGATIVE_TIME_COLOR = '#ff1493';
+// Negative time color (violet - beyond zero)
+const NEGATIVE_TIME_COLOR = typeof window !== 'undefined' ? (window.NEGATIVE_TIME_COLOR || '#ee82ee') : '#ee82ee';
 
 function getColor() {
     return currentColor;
 }
 
 /**
- * Get color for negative time display (dark pink)
+ * Get color for negative time display (violet - beyond zero)
  */
 function getNegativeTimeColor() {
     return NEGATIVE_TIME_COLOR;

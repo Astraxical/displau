@@ -1,12 +1,12 @@
-// Dark pink color for negative time display
-const NEGATIVE_TIME_COLOR = '#ff1493';
+// Negative time color (violet - beyond zero)
+const NEGATIVE_TIME_COLOR = typeof window !== 'undefined' ? (window.NEGATIVE_TIME_COLOR || '#ee82ee') : '#ee82ee';
 
 function getColor() {
     return currentColor;
 }
 
 /**
- * Get color for negative time display (dark pink)
+ * Get color for negative time display (violet - beyond zero)
  */
 function getNegativeTimeColor() {
     return NEGATIVE_TIME_COLOR;

@@ -11,10 +11,12 @@
     "display_on_expire": false,
     "tags": ["event", "countdown"],
     "category": "personal",
-    "color_theme": "green",
+    "color_theme": "progress",
     "color_transition_table": [
-        {"ratio": 1.0, "color": "#00ff00"},
+        {"ratio": 1.0, "color": "#0088ff"},
+        {"ratio": 0.75, "color": "#00ff00"},
         {"ratio": 0.5, "color": "#ffff00"},
+        {"ratio": 0.25, "color": "#ff8800"},
         {"ratio": 0.0, "color": "#ff0000"}
     ],
     "show_milliseconds": true,

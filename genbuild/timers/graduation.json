@@ -11,12 +11,7 @@
     "display_on_expire": false,
     "tags": ["personal", "graduation", "milestone", "education"],
     "category": "personal",
-    "color_theme": "purple",
-    "color_transition_table": [
-        {"ratio": 1.0, "color": "#da70d6"},
-        {"ratio": 0.5, "color": "#9370db"},
-        {"ratio": 0.0, "color": "#4b0082"}
-    ],
+    "color_theme": "progress",
     "show_milliseconds": true,
     "timezone": "UTC"
 }

@@ -11,12 +11,7 @@
     "display_on_expire": false,
     "tags": ["personal", "birthday", "celebration"],
     "category": "personal",
-    "color_theme": "pink",
-    "color_transition_table": [
-        {"ratio": 1.0, "color": "#ff69b4"},
-        {"ratio": 0.5, "color": "#ff1493"},
-        {"ratio": 0.0, "color": "#c71585"}
-    ],
+    "color_theme": "progress",
     "show_milliseconds": true,
     "timezone": "UTC"
 }

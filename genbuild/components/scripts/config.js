@@ -9,12 +9,16 @@ const DEFAULTS = {
     direction: '{{DIRECTION}}',  // Options: 'down', 'up'
     min_value: {{MIN_VALUE}},       // Minimum value in milliseconds (null for no limit)
     max_value: {{MAX_VALUE}},     // Maximum value in milliseconds (null for no limit)
-    color_transition_table: [     // Color transition table
-        { ratio: 1.0, color: '#00ff00' },
-        { ratio: 0.5, color: '#ffff00' },
-        { ratio: 0.0, color: '#ff0000' }
+    // Default color transition: Blue→Green→Yellow→Orange→Red (Violet for negative)
+    color_transition_table: [
+        { ratio: 1.0, color: '#0088ff' },   // Blue: Yet to start (100%)
+        { ratio: 0.75, color: '#00ff00' },  // Green: 0-25% done
+        { ratio: 0.5, color: '#ffff00' },   // Yellow: 50% done
+        { ratio: 0.25, color: '#ff8800' },  // Orange: 75% done
+        { ratio: 0.0, color: '#ff0000' }    // Red: Zero
     ]
 };
+const NEGATIVE_TIME_COLOR = '#ee82ee';  // Violet: Beyond zero (negative time)
 const MILLISECONDS_AT_FULL_BRIGHTNESS = {{DAYS_AT_FULL_BRIGHTNESS}};
 const CONFIG_URL = '{{CONFIG_URL}}'; // Injected by build script
 // =======================================

@@ -11,12 +11,7 @@
     "display_on_expire": false,
     "tags": ["work", "project", "deadline"],
     "category": "work",
-    "color_theme": "red",
-    "color_transition_table": [
-        {"ratio": 1.0, "color": "#ff4444"},
-        {"ratio": 0.5, "color": "#ff0000"},
-        {"ratio": 0.0, "color": "#cc0000"}
-    ],
+    "color_theme": "progress",
     "show_milliseconds": true,
     "timezone": "UTC"
 }

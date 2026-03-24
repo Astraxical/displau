@@ -132,22 +132,28 @@ Copy this file and rename it to create a new timer.
 ### `color_transition_table` (optional)
 - **Type:** Array of objects
 - **Structure:** Each object has `ratio` (0.0 to 1.0) and `color` (hex string)
-- **Default:** Green → Yellow → Red gradient
+- **Default:** Blue → Green → Yellow → Orange → Red (Violet for negative)
 - **Meaning:** Defines color transitions based on remaining time ratio
   - `ratio: 1.0` = 100% time remaining (start)
   - `ratio: 0.5` = 50% time remaining
   - `ratio: 0.0` = 0% time remaining (expired)
+  - Negative time (beyond zero) = Violet
 - **Use case:** Create custom color gradients for your timer
+
+**Default Transition:**
+```json
+"color_transition_table": [
+    {"ratio": 1.0, "color": "#0088ff"},  // Blue: Yet to start
+    {"ratio": 0.75, "color": "#00ff00"}, // Green: 0-25% done
+    {"ratio": 0.5, "color": "#ffff00"},  // Yellow: 50% done
+    {"ratio": 0.25, "color": "#ff8800"}, // Orange: 75% done
+    {"ratio": 0.0, "color": "#ff0000"}   // Red: Zero
+]
+// Violet (#ee82ee) is used automatically for negative time
+```
 
 **Example Tables:**
 ```json
-// Default: Green → Yellow → Red
-"color_transition_table": [
-    {"ratio": 1.0, "color": "#00ff00"},
-    {"ratio": 0.5, "color": "#ffff00"},
-    {"ratio": 0.0, "color": "#ff0000"}
-]
-
 // Cyberpunk: Cyan → Magenta → Red
 "color_transition_table": [
     {"ratio": 1.0, "color": "#00ffff"},

@@ -368,9 +368,9 @@ select.control-btn {
 }
 
 .status-upcoming {
-    background: rgba(255, 193, 7, 0.2);
-    color: #ffc107;
-    border: 1px solid #ffc107;
+    background: rgba(156, 39, 176, 0.2);
+    color: #e040fb;
+    border: 1px solid #e040fb;
 }
 
 .status-ended {

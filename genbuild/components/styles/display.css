@@ -95,7 +95,7 @@ body.expired .colon-dot.on {
 }
 
 /* ============================================
-   MINUS SIGN FOR NEGATIVE TIME
+   MINUS SIGN FOR NEGATIVE TIME (Dark Pink)
    ============================================ */
 
 .minus-sign {
@@ -108,20 +108,20 @@ body.expired .colon-dot.on {
 .minus-bar {
     width: 3vw;
     height: 0.8vw;
-    background: #ff0000;
+    background: #ff1493;
     border-radius: 2px;
-    box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+    box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
     animation: minusPulse 2s ease-in-out infinite;
 }
 
 @keyframes minusPulse {
     0%, 100% {
         opacity: 1;
-        box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+        box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
     }
     50% {
         opacity: 0.8;
-        box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
+        box-shadow: 0 0 15px #ff1493, 0 0 30px #ff1493;
     }
 }
 

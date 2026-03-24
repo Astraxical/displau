@@ -1,5 +1,15 @@
+// Dark pink color for negative time display
+const NEGATIVE_TIME_COLOR = '#ff1493';
+
 function getColor() {
     return currentColor;
+}
+
+/**
+ * Get color for negative time display (dark pink)
+ */
+function getNegativeTimeColor() {
+    return NEGATIVE_TIME_COLOR;
 }
 
 function getDarkerComplementaryColor(hex) {
@@ -10,6 +20,13 @@ function getDarkerComplementaryColor(hex) {
         (255 - rgb.g) * factor,
         (255 - rgb.b) * factor
     );
+}
+
+/**
+ * Get darker complementary color for negative time
+ */
+function getNegativeTimeComplementary() {
+    return getDarkerComplementaryColor(NEGATIVE_TIME_COLOR);
 }
 
 function applyColor(color) {
@@ -33,6 +50,39 @@ function applyColor(color) {
     document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
         dot.style.background = complementary;
     });
+}
+
+/**
+ * Apply dark pink color for negative time display
+ */
+function applyNegativeTimeColor() {
+    const complementary = getNegativeTimeComplementary();
+
+    document.querySelectorAll('.segment-part.on').forEach(seg => {
+        seg.style.background = NEGATIVE_TIME_COLOR;
+        seg.style.boxShadow = `0 0 15px ${NEGATIVE_TIME_COLOR}, 0 0 30px ${NEGATIVE_TIME_COLOR}`;
+    });
+
+    document.querySelectorAll('.segment-part:not(.on)').forEach(seg => {
+        seg.style.background = complementary;
+        seg.style.boxShadow = '';
+    });
+
+    document.querySelectorAll('.colon-dot.on').forEach(dot => {
+        dot.style.background = NEGATIVE_TIME_COLOR;
+        dot.style.boxShadow = `0 0 15px ${NEGATIVE_TIME_COLOR}, 0 0 30px ${NEGATIVE_TIME_COLOR}`;
+    });
+
+    document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
+        dot.style.background = complementary;
+    });
+
+    // Color the minus sign
+    const minusBar = document.querySelector('.minus-bar');
+    if (minusBar) {
+        minusBar.style.background = NEGATIVE_TIME_COLOR;
+        minusBar.style.boxShadow = `0 0 10px ${NEGATIVE_TIME_COLOR}, 0 0 20px ${NEGATIVE_TIME_COLOR}`;
+    }
 }
 
 function setDigit(element, value) {
@@ -148,8 +198,13 @@ function updateDisplay(timeStr) {
         }
     }
 
-    const color = getColor();
-    applyColor(color);
+    // Apply color based on whether this is negative time
+    if (isNegative) {
+        applyNegativeTimeColor();
+    } else {
+        const color = getColor();
+        applyColor(color);
+    }
 }
 
 /**

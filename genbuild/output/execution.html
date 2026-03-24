@@ -225,7 +225,7 @@ body.expired .colon-dot.on {
 }
 
 /* ============================================
-   MINUS SIGN FOR NEGATIVE TIME
+   MINUS SIGN FOR NEGATIVE TIME (Dark Pink)
    ============================================ */
 
 .minus-sign {
@@ -238,20 +238,20 @@ body.expired .colon-dot.on {
 .minus-bar {
     width: 3vw;
     height: 0.8vw;
-    background: #ff0000;
+    background: #ff1493;
     border-radius: 2px;
-    box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+    box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
     animation: minusPulse 2s ease-in-out infinite;
 }
 
 @keyframes minusPulse {
     0%, 100% {
         opacity: 1;
-        box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+        box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
     }
     50% {
         opacity: 0.8;
-        box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
+        box-shadow: 0 0 15px #ff1493, 0 0 30px #ff1493;
     }
 }
 
@@ -465,7 +465,7 @@ const DEFAULTS = {
     config_id: 'default',
     on_expire: 'stop'  // Options: 'stop', 'continue', 'hide'
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 1816945432;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 1816683242;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/genbuild/timers/execution.json'; // Injected by build script
 // =======================================
 
@@ -750,8 +750,18 @@ function createDecimal() {
     return decimal;
 }
 
+// Dark pink color for negative time display
+const NEGATIVE_TIME_COLOR = '#ff1493';
+
 function getColor() {
     return currentColor;
+}
+
+/**
+ * Get color for negative time display (dark pink)
+ */
+function getNegativeTimeColor() {
+    return NEGATIVE_TIME_COLOR;
 }
 
 function getDarkerComplementaryColor(hex) {
@@ -762,6 +772,13 @@ function getDarkerComplementaryColor(hex) {
         (255 - rgb.g) * factor,
         (255 - rgb.b) * factor
     );
+}
+
+/**
+ * Get darker complementary color for negative time
+ */
+function getNegativeTimeComplementary() {
+    return getDarkerComplementaryColor(NEGATIVE_TIME_COLOR);
 }
 
 function applyColor(color) {
@@ -785,6 +802,39 @@ function applyColor(color) {
     document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
         dot.style.background = complementary;
     });
+}
+
+/**
+ * Apply dark pink color for negative time display
+ */
+function applyNegativeTimeColor() {
+    const complementary = getNegativeTimeComplementary();
+
+    document.querySelectorAll('.segment-part.on').forEach(seg => {
+        seg.style.background = NEGATIVE_TIME_COLOR;
+        seg.style.boxShadow = `0 0 15px ${NEGATIVE_TIME_COLOR}, 0 0 30px ${NEGATIVE_TIME_COLOR}`;
+    });
+
+    document.querySelectorAll('.segment-part:not(.on)').forEach(seg => {
+        seg.style.background = complementary;
+        seg.style.boxShadow = '';
+    });
+
+    document.querySelectorAll('.colon-dot.on').forEach(dot => {
+        dot.style.background = NEGATIVE_TIME_COLOR;
+        dot.style.boxShadow = `0 0 15px ${NEGATIVE_TIME_COLOR}, 0 0 30px ${NEGATIVE_TIME_COLOR}`;
+    });
+
+    document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
+        dot.style.background = complementary;
+    });
+
+    // Color the minus sign
+    const minusBar = document.querySelector('.minus-bar');
+    if (minusBar) {
+        minusBar.style.background = NEGATIVE_TIME_COLOR;
+        minusBar.style.boxShadow = `0 0 10px ${NEGATIVE_TIME_COLOR}, 0 0 20px ${NEGATIVE_TIME_COLOR}`;
+    }
 }
 
 function setDigit(element, value) {
@@ -900,8 +950,13 @@ function updateDisplay(timeStr) {
         }
     }
 
-    const color = getColor();
-    applyColor(color);
+    // Apply color based on whether this is negative time
+    if (isNegative) {
+        applyNegativeTimeColor();
+    } else {
+        const color = getColor();
+        applyColor(color);
+    }
 }
 
 /**

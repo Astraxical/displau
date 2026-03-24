@@ -4,5 +4,5 @@
     "target_time": "2026-05-16T00:00:00",
     "start_time": "2026-05-01T00:00:00",
     "on_expire": "stop",
-    "display_on_expire": true
+    "display_on_expire": false
 }

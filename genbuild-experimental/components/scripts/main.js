@@ -299,12 +299,59 @@ async function toggleNotifications() {
 
 function addDisplayName() {
     if (!DISPLAY_NAME) return;
-    
+
     const nameEl = document.createElement('div');
     nameEl.className = 'timer-display-name';
     nameEl.textContent = DISPLAY_NAME;
     document.body.appendChild(nameEl);
 }
 
+/**
+ * Update watermark color based on build age
+ * Fresh (built today) = cyan/green, Old = orange/red
+ */
+function updateWatermarkAge() {
+    const watermark = document.querySelector('.version-watermark');
+    if (!watermark) return;
+    
+    const buildDate = watermark.dataset.build;
+    if (!buildDate) return;
+    
+    // Parse: 2.0.0.20260325123452.stable
+    const parts = buildDate.split('.');
+    if (parts.length < 3) return;
+    
+    const timestamp = parts[2]; // 20260325123452
+    try {
+        const buildTime = new Date(
+            parseInt(timestamp.slice(0, 4)),
+            parseInt(timestamp.slice(4, 6)) - 1,
+            parseInt(timestamp.slice(6, 8)),
+            parseInt(timestamp.slice(8, 10)),
+            parseInt(timestamp.slice(10, 12)),
+            parseInt(timestamp.slice(12, 14))
+        );
+        
+        const now = new Date();
+        const hoursOld = (now - buildTime) / (1000 * 60 * 60);
+        
+        // Check if built today (same calendar day)
+        const isSameDay = buildTime.getDate() === now.getDate() &&
+                         buildTime.getMonth() === now.getMonth() &&
+                         buildTime.getFullYear() === now.getFullYear();
+        
+        if (isSameDay || hoursOld < 24) {
+            watermark.dataset.age = 'fresh';
+        } else {
+            watermark.dataset.age = 'old';
+        }
+    } catch (e) {
+        console.log('Watermark age check error:', e);
+    }
+}
+
 // Start initialization
 init();
+
+// Update watermark age after a short delay
+setTimeout(updateWatermarkAge, 500);

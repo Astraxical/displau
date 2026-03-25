@@ -199,6 +199,28 @@ body {
     color: rgba(255, 165, 0, 0.7);
 }
 
+/* Fresh build (updated today) - bright cyan/green */
+.version-watermark[data-age="fresh"] {
+    border-color: rgba(0, 255, 200, 0.5) !important;
+    color: rgba(0, 255, 200, 0.8) !important;
+    opacity: 0.7;
+}
+
+.version-watermark[data-age="fresh"] .version-label {
+    color: rgba(0, 255, 200, 1) !important;
+}
+
+/* Old build (not updated today) - warning orange/red */
+.version-watermark[data-age="old"] {
+    border-color: rgba(255, 69, 0, 0.5) !important;
+    color: rgba(255, 69, 0, 0.8) !important;
+    opacity: 0.7;
+}
+
+.version-watermark[data-age="old"] .version-label {
+    color: rgba(255, 69, 0, 1) !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .version-watermark {
@@ -537,9 +559,9 @@ body {
     </div>
 
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260325123417.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260325123651.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260325123417.stable</span>
+        <span class="version-date">2.0.0.20260325123651.stable</span>
     </div>
 
     <script>
@@ -575,7 +597,7 @@ const DEFAULTS = {
         { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 1769142802;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 1768988765;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/g-timers/stable/execution.json'; // Injected by build script
 // =======================================
 
@@ -1657,15 +1679,62 @@ async function toggleNotifications() {
 
 function addDisplayName() {
     if (!DISPLAY_NAME) return;
-    
+
     const nameEl = document.createElement('div');
     nameEl.className = 'timer-display-name';
     nameEl.textContent = DISPLAY_NAME;
     document.body.appendChild(nameEl);
 }
 
+/**
+ * Update watermark color based on build age
+ * Fresh (built today) = cyan/green, Old = orange/red
+ */
+function updateWatermarkAge() {
+    const watermark = document.querySelector('.version-watermark');
+    if (!watermark) return;
+    
+    const buildDate = watermark.dataset.build;
+    if (!buildDate) return;
+    
+    // Parse: 2.0.0.20260325123452.stable
+    const parts = buildDate.split('.');
+    if (parts.length < 3) return;
+    
+    const timestamp = parts[2]; // 20260325123452
+    try {
+        const buildTime = new Date(
+            parseInt(timestamp.slice(0, 4)),
+            parseInt(timestamp.slice(4, 6)) - 1,
+            parseInt(timestamp.slice(6, 8)),
+            parseInt(timestamp.slice(8, 10)),
+            parseInt(timestamp.slice(10, 12)),
+            parseInt(timestamp.slice(12, 14))
+        );
+        
+        const now = new Date();
+        const hoursOld = (now - buildTime) / (1000 * 60 * 60);
+        
+        // Check if built today (same calendar day)
+        const isSameDay = buildTime.getDate() === now.getDate() &&
+                         buildTime.getMonth() === now.getMonth() &&
+                         buildTime.getFullYear() === now.getFullYear();
+        
+        if (isSameDay || hoursOld < 24) {
+            watermark.dataset.age = 'fresh';
+        } else {
+            watermark.dataset.age = 'old';
+        }
+    } catch (e) {
+        console.log('Watermark age check error:', e);
+    }
+}
+
 // Start initialization
 init();
+
+// Update watermark age after a short delay
+setTimeout(updateWatermarkAge, 500);
 
     </script>
 </body>

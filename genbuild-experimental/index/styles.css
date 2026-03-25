@@ -679,6 +679,28 @@ select.control-btn {
     color: rgba(255, 165, 0, 0.7);
 }
 
+/* Fresh build (updated today) - bright cyan/green */
+.version-watermark-selector[data-age="fresh"] {
+    border-color: rgba(0, 255, 200, 0.5) !important;
+    color: rgba(0, 255, 200, 0.8) !important;
+    opacity: 0.7;
+}
+
+.version-watermark-selector[data-age="fresh"] .version-label {
+    color: rgba(0, 255, 200, 1) !important;
+}
+
+/* Old build (not updated today) - warning orange/red */
+.version-watermark-selector[data-age="old"] {
+    border-color: rgba(255, 69, 0, 0.5) !important;
+    color: rgba(255, 69, 0, 0.8) !important;
+    opacity: 0.7;
+}
+
+.version-watermark-selector[data-age="old"] .version-label {
+    color: rgba(255, 69, 0, 1) !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .version-watermark-selector {

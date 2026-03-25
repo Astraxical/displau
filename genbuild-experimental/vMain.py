@@ -103,8 +103,15 @@ def load_script_components():
     return '\n'.join(combined_scripts)
 
 
-def replace_placeholders(content, target_time, days_at_full_brightness, config_url, start_time, direction='down', min_value=0, max_value='null'):
+def replace_placeholders(content, target_time, days_at_full_brightness, config_url, start_time, direction='down', min_value=0, max_value='null', version_type='STABLE', build_date=None):
     """Replace configuration placeholders in content."""
+    if build_date is None:
+        # Format: 2.<version>.<minorfix>.YYYYMMDDHHMMSS.{stable/experimental}
+        now = datetime.now()
+        timestamp = now.strftime('%Y%m%d%H%M%S')
+        version_num = '2.0.0'  # Major.Minor.Fix
+        build_date = f"{version_num}.{timestamp}.{version_type.lower()}"
+    
     return content.replace(
         '{{TARGET_TIME}}', target_time
     ).replace(
@@ -119,6 +126,10 @@ def replace_placeholders(content, target_time, days_at_full_brightness, config_u
         '{{MIN_VALUE}}', str(min_value)
     ).replace(
         '{{MAX_VALUE}}', str(max_value)
+    ).replace(
+        '{{VERSION_TYPE}}', version_type
+    ).replace(
+        '{{BUILD_DATE}}', build_date
     )
 
 
@@ -180,7 +191,10 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
     direction = 'down'
     min_value = 0
     max_value = 'null'
-    
+
+    # Determine version type from TIMERS_PATH
+    version_type = 'EXPERIMENTAL' if 'experimental' in TIMERS_PATH.lower() else 'STABLE'
+
     if config_url:
         config = fetch_config_from_url(config_url)
         if config:
@@ -190,7 +204,10 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
             max_value = 'null' if max_val is None else str(max_val)
 
     # Replace placeholders in scripts
-    scripts = replace_placeholders(scripts, target_time_str, milliseconds_at_full_brightness, config_url, start_time_str, direction, min_value, max_value)
+    scripts = replace_placeholders(scripts, target_time_str, milliseconds_at_full_brightness, config_url, start_time_str, direction, min_value, max_value, version_type)
+
+    # Replace placeholders in body HTML (for version watermark)
+    html['body'] = replace_placeholders(html['body'], target_time_str, milliseconds_at_full_brightness, config_url, start_time_str, direction, min_value, max_value, version_type)
 
     # Also replace placeholder in html_open
     html['html_open'] = html['html_open'].replace('{{CONFIG_URL}}', config_url)
@@ -395,9 +412,17 @@ def generate_selector(timers_list):
     # Place index.html in the parent directory (genbuild/) for cleaner URL
     output_path = SCRIPT_DIR / 'index.html'
 
+    # Determine version type from TIMERS_PATH
+    version_type = 'EXPERIMENTAL' if 'experimental' in TIMERS_PATH.lower() else 'STABLE'
+    
+    # Generate build date in format: 2.<version>.<minorfix>.YYYYMMDDHHMMSS.{stable/experimental}
+    now = datetime.now()
+    timestamp = now.strftime('%Y%m%d%H%M%S')
+    version_num = '2.0.0'  # Major.Minor.Fix
+    build_date = f"{version_num}.{timestamp}.{version_type.lower()}"
+
     # Process timers with status and progress
     timers_data = []
-    now = datetime.now()
 
     for timer in timers_list:
         config_id = timer.get('id', 'unknown')
@@ -559,13 +584,21 @@ def generate_selector(timers_list):
         </div>
     </div>
 
+    <!-- Version Watermark -->
+    <div class="version-watermark-selector" data-version="__VERSION_TYPE__" data-build="__BUILD_DATE__">
+        <span class="version-label">__VERSION_TYPE__</span>
+        <span class="version-date">__BUILD_DATE__</span>
+    </div>
+
     <script src="index/script.js"></script>
 </body>
 </html>'''
     
     with open(output_path, 'w', encoding='utf-8') as f:
+        # Replace version placeholders in selector page
+        html_content = html_content.replace('__VERSION_TYPE__', version_type).replace('__BUILD_DATE__', build_date)
         f.write(html_content)
-    
+
     print(f"Generated selector page: {output_path}")
 
 

@@ -14,15 +14,15 @@
         <!-- Stats Bar -->
         <div class="stats-bar">
             <div class="stat-item">
-                <div class="stat-value">0</div>
+                <div class="stat-value">3</div>
                 <div class="stat-label">Total</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" style="color: #00ff88;">0</div>
+                <div class="stat-value" style="color: #00ff88;">2</div>
                 <div class="stat-label">Running</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" style="color: #ffc107;">0</div>
+                <div class="stat-value" style="color: #ffc107;">1</div>
                 <div class="stat-label">Upcoming</div>
             </div>
             <div class="stat-item">
@@ -53,11 +53,86 @@
         <!-- Timers Grid -->
         <div class="timers-grid" id="timersGrid">
             
+        <div class="timer-card" data-status="running" data-name="graduation">
+            <div class="card-header">
+                <h3>Graduation Day</h3>
+                <span class="status-badge status-running">Running</span>
+            </div>
+            <div class="timer-preview">
+                <iframe src="output/graduation.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 38.3%"></div>
+                </div>
+                <span class="progress-text">038.29%</span>
+            </div>
+            <p class="time-info">
+                <span class="start">📅 Start: 2026-03-21T23:55:38</span>
+                <span class="target">🎯 Target: 2026-03-31T05:00:00</span>
+            </p>
+            <div class="card-actions">
+                <a href="output/graduation.html" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="output/graduation.html" class="download-link" download="graduation.html" title="Download">⬇️</a>
+            </div>
+        </div>
+        <div class="timer-card" data-status="running" data-name="execution">
+            <div class="card-header">
+                <h3>Execution</h3>
+                <span class="status-badge status-running">Running</span>
+            </div>
+            <div class="timer-preview">
+                <iframe src="output/execution.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 33.9%"></div>
+                </div>
+                <span class="progress-text">033.95%</span>
+            </div>
+            <p class="time-info">
+                <span class="start">📅 Start: 2026-03-15T00:00:00</span>
+                <span class="target">🎯 Target: 2026-04-15T00:00:00</span>
+            </p>
+            <div class="card-actions">
+                <a href="output/execution.html" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="output/execution.html" class="download-link" download="execution.html" title="Download">⬇️</a>
+            </div>
+        </div>
+        <div class="timer-card" data-status="upcoming" data-name="birthday">
+            <div class="card-header">
+                <h3>Birthday Countdown</h3>
+                <span class="status-badge status-upcoming">Upcoming</span>
+            </div>
+            <div class="timer-preview">
+                <iframe src="output/birthday.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0.0%"></div>
+                </div>
+                <span class="progress-text">???.??%</span>
+            </div>
+            <p class="time-info">
+                <span class="start">📅 Start: 2026-05-01T00:00:00</span>
+                <span class="target">🎯 Target: 2026-05-16T00:00:00</span>
+            </p>
+            <div class="card-actions">
+                <a href="output/birthday.html" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="output/birthday.html" class="download-link" download="birthday.html" title="Download">⬇️</a>
+            </div>
+        </div>
         </div>
 
         <div class="footer">
             <p>7 Segment Display Timer System</p>
         </div>
+    </div>
+
+    <!-- Version Watermark -->
+    <div class="version-watermark-selector" data-version="EXPERIMENTAL" data-build="2.0.0.20260325123452.experimental">
+        <span class="version-label">EXPERIMENTAL</span>
+        <span class="version-date">2.0.0.20260325123452.experimental</span>
     </div>
 
     <script src="index/script.js"></script>

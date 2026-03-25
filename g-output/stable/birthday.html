@@ -136,6 +136,85 @@ body {
 }
 
 /* ============================================
+   VERSION WATERMARK
+   ============================================ */
+
+.version-watermark {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(0, 255, 136, 0.5);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #00ff88;
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 10000;
+    transition: opacity 0.3s;
+}
+
+.version-watermark:hover {
+    opacity: 1;
+}
+
+.version-label {
+    font-weight: bold;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.version-date {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Stable version - Green */
+.version-watermark[data-version="STABLE"] {
+    border-color: rgba(0, 255, 136, 0.5);
+    color: #00ff88;
+}
+
+.version-watermark[data-version="STABLE"] .version-label {
+    color: #00ff88;
+}
+
+/* Experimental version - Orange */
+.version-watermark[data-version="EXPERIMENTAL"] {
+    border-color: rgba(255, 165, 0, 0.5);
+    color: #ffa500;
+}
+
+.version-watermark[data-version="EXPERIMENTAL"] .version-label {
+    color: #ffa500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .version-watermark {
+        top: 5px;
+        right: 5px;
+        padding: 6px 10px;
+        font-size: 10px;
+    }
+
+    .version-label {
+        font-size: 11px;
+    }
+
+    .version-date {
+        font-size: 9px;
+    }
+}
+
+/* ============================================
    EXPIRED STATE STYLES
    ============================================ */
 
@@ -454,13 +533,19 @@ body {
         <!-- Dynamic countdown display -->
     </div>
 
+    <!-- Version Watermark -->
+    <div class="version-watermark" data-version="STABLE" data-build="2026-03-25">
+        <span class="version-label">STABLE</span>
+        <span class="version-date">2026-03-25</span>
+    </div>
+
     <script>
         
         // ============ CONFIGURATION ============
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
     target_time: '2026-05-16T00:00:00',
-    start_time: '2026-03-25T02:06:27',
+    start_time: '2026-05-01T00:00:00',
     display_name: '',
     config_id: 'default',
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
@@ -487,7 +572,7 @@ const DEFAULTS = {
         { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 4485212778;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 4449285772;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/g-timers/stable/birthday.json'; // Injected by build script
 // =======================================
 

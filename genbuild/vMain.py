@@ -103,8 +103,11 @@ def load_script_components():
     return '\n'.join(combined_scripts)
 
 
-def replace_placeholders(content, target_time, days_at_full_brightness, config_url, start_time, direction='down', min_value=0, max_value='null'):
+def replace_placeholders(content, target_time, days_at_full_brightness, config_url, start_time, direction='down', min_value=0, max_value='null', version_type='STABLE', build_date=None):
     """Replace configuration placeholders in content."""
+    if build_date is None:
+        build_date = datetime.now().strftime('%Y-%m-%d')
+    
     return content.replace(
         '{{TARGET_TIME}}', target_time
     ).replace(
@@ -119,6 +122,10 @@ def replace_placeholders(content, target_time, days_at_full_brightness, config_u
         '{{MIN_VALUE}}', str(min_value)
     ).replace(
         '{{MAX_VALUE}}', str(max_value)
+    ).replace(
+        '{{VERSION_TYPE}}', version_type
+    ).replace(
+        '{{BUILD_DATE}}', build_date
     )
 
 
@@ -180,7 +187,10 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
     direction = 'down'
     min_value = 0
     max_value = 'null'
-    
+
+    # Determine version type from TIMERS_PATH
+    version_type = 'EXPERIMENTAL' if 'experimental' in TIMERS_PATH.lower() else 'STABLE'
+
     if config_url:
         config = fetch_config_from_url(config_url)
         if config:
@@ -190,7 +200,10 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
             max_value = 'null' if max_val is None else str(max_val)
 
     # Replace placeholders in scripts
-    scripts = replace_placeholders(scripts, target_time_str, milliseconds_at_full_brightness, config_url, start_time_str, direction, min_value, max_value)
+    scripts = replace_placeholders(scripts, target_time_str, milliseconds_at_full_brightness, config_url, start_time_str, direction, min_value, max_value, version_type)
+
+    # Replace placeholders in body HTML (for version watermark)
+    html['body'] = replace_placeholders(html['body'], target_time_str, milliseconds_at_full_brightness, config_url, start_time_str, direction, min_value, max_value, version_type)
 
     # Also replace placeholder in html_open
     html['html_open'] = html['html_open'].replace('{{CONFIG_URL}}', config_url)

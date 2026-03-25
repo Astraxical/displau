@@ -1,0 +1,21 @@
+# GitHub Pages Jekyll Configuration
+# Excludes experimental folders from build
+
+exclude:
+  - genbuild-experimental
+  - g-output/experimental
+  - g-timers/experimental
+  - .gitignore
+  - README.md
+  - .github
+
+# Disable Jekyll processing for certain files
+include:
+  - g-output/stable
+  - genbuild
+
+# Site settings
+title: 7 Segment Display Timers
+description: Countdown timers with 7-segment display
+baseurl: "/displau"
+url: "https://astraxical.github.io"

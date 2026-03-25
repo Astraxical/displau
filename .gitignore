@@ -1,0 +1,25 @@
+# Git Ignore for 7 Segment Display Timer Project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts (output is generated)
+g-output/stable/*.html
+g-output/experimental/*.html
+genbuild/output
+genbuild-experimental/output
+
+# Qwen settings
+.qwen/
+
+# Logs
+*.log
+npm-debug.log*

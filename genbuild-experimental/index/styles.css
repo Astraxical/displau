@@ -634,16 +634,20 @@ select.control-btn {
     font-family: 'Courier New', monospace;
     font-size: 10px;
     color: rgba(255, 255, 255, 0.6);
-    opacity: 0.5;
+    opacity: 0;
     pointer-events: none;
     z-index: 10000;
     transition: opacity 0.3s;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+/* Show watermark when hovering near bottom-right corner */
+.version-watermark-selector.visible {
+    opacity: 0.5;
+}
+
 .version-watermark-selector:hover {
-    opacity: 0.9;
-    background: rgba(0, 0, 0, 0.5);
+    opacity: 0.9 !important;
 }
 
 .version-watermark-selector .version-label {

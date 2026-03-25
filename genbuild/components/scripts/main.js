@@ -323,24 +323,19 @@ function updateWatermarkAge() {
     
     const timestamp = parts[2]; // 20260325123452
     try {
-        const buildTime = new Date(
-            parseInt(timestamp.slice(0, 4)),
-            parseInt(timestamp.slice(4, 6)) - 1,
-            parseInt(timestamp.slice(6, 8)),
-            parseInt(timestamp.slice(8, 10)),
-            parseInt(timestamp.slice(10, 12)),
-            parseInt(timestamp.slice(12, 14))
-        );
+        // Parse timestamp: YYYYMMDDHHMMSS
+        const year = parseInt(timestamp.slice(0, 4));
+        const month = parseInt(timestamp.slice(4, 6));
+        const day = parseInt(timestamp.slice(6, 8));
         
         const now = new Date();
-        const hoursOld = (now - buildTime) / (1000 * 60 * 60);
         
         // Check if built today (same calendar day)
-        const isSameDay = buildTime.getDate() === now.getDate() &&
-                         buildTime.getMonth() === now.getMonth() &&
-                         buildTime.getFullYear() === now.getFullYear();
+        const isToday = (day === now.getDate() && 
+                        month === (now.getMonth() + 1) && 
+                        year === now.getFullYear());
         
-        if (isSameDay || hoursOld < 24) {
+        if (isToday) {
             watermark.dataset.age = 'fresh';
         } else {
             watermark.dataset.age = 'old';
@@ -350,8 +345,34 @@ function updateWatermarkAge() {
     }
 }
 
+/**
+ * Show/hide watermark based on cursor proximity to bottom-right corner
+ */
+function setupWatermarkVisibility() {
+    const watermark = document.querySelector('.version-watermark');
+    if (!watermark) return;
+    
+    const showThreshold = 200; // pixels from corner
+    
+    document.addEventListener('mousemove', (e) => {
+        const rect = watermark.getBoundingClientRect();
+        const distX = Math.abs(e.clientX - rect.left);
+        const distY = Math.abs(e.clientY - rect.top);
+        
+        // Show if cursor is near the watermark
+        if (distX < showThreshold && distY < showThreshold) {
+            watermark.classList.add('visible');
+        } else {
+            watermark.classList.remove('visible');
+        }
+    });
+}
+
 // Start initialization
 init();
 
-// Update watermark age after a short delay
-setTimeout(updateWatermarkAge, 500);
+// Update watermark age and setup visibility after a short delay
+setTimeout(() => {
+    updateWatermarkAge();
+    setupWatermarkVisibility();
+}, 500);

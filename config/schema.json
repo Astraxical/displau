@@ -67,6 +67,21 @@
             "description": "Whether to show in selector after expiry",
             "default": true
         },
+        "enabled": {
+            "type": "boolean",
+            "description": "Whether timer is enabled (disabled timers are not built)",
+            "default": true
+        },
+        "priority": {
+            "type": "integer",
+            "description": "Sort priority (lower = higher priority)",
+            "default": 0
+        },
+        "featured": {
+            "type": "boolean",
+            "description": "Highlight timer in selector",
+            "default": false
+        },
         "tags": {
             "type": "array",
             "description": "Tags for categorization",

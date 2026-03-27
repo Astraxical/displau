@@ -398,16 +398,96 @@ def build_all_timers() -> None:
         )
 
 
-def build_timers_folder(generate_selector_page: bool = False) -> None:
+def classify_timer(timer: dict[str, Any], now: datetime) -> str:
+    """
+    Classify a timer based on its status.
+    
+    Returns:
+        'active' - Currently running (start < now < target)
+        'inactive' - Expired and hidden, or disabled
+        'unknown' - Upcoming or expired but still displayed
+    """
+    # Check if disabled
+    if not timer.get('enabled', True):
+        return 'inactive'
+    
+    target_time_str = timer.get('target_time', '')
+    start_time_str = timer.get('start_time', '')
+    display_on_expire = timer.get('display_on_expire', True)
+    
+    try:
+        target_dt = datetime.fromisoformat(target_time_str)
+        start_dt = datetime.fromisoformat(start_time_str) if start_time_str else now
+        
+        if now > target_dt:
+            # Timer has expired
+            if not display_on_expire:
+                return 'inactive'
+            return 'unknown'  # Expired but still displayed
+        elif now < start_dt:
+            # Timer hasn't started yet
+            return 'unknown'
+        else:
+            # Currently running
+            return 'active'
+    except (ValueError, TypeError):
+        return 'unknown'
+
+
+def organize_timers(timer_ids: set[str]) -> None:
+    """
+    Organize timer files into appropriate subdirectories based on status.
+    """
+    now = datetime.now()
+    
+    # Status folders
+    status_folders = ['active', 'inactive', 'unknown']
+    
+    # Ensure status folders exist
+    for folder in status_folders:
+        (TIMERS_DIR / folder).mkdir(parents=True, exist_ok=True)
+    
+    # Scan all timer files (including subdirectories)
+    all_timer_files = list(TIMERS_DIR.glob('**/*.json'))
+    
+    for timer_file in all_timer_files:
+        # Skip TEMPLATE.json and README.md
+        if timer_file.name.startswith('TEMPLATE') or timer_file.name == 'README.md':
+            continue
+        
+        # Skip files already in status folders
+        if timer_file.parent.name in status_folders:
+            continue
+        
+        # Read timer config
+        try:
+            with open(timer_file, 'r', encoding='utf-8') as f:
+                timer = json.load(f)
+            
+            # Classify timer
+            status = classify_timer(timer, now)
+            
+            # Move file to appropriate folder
+            dest_file = TIMERS_DIR / status / timer_file.name
+            if timer_file != dest_file:
+                dest_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(timer_file), str(dest_file))
+                logger.info(f"Moved {timer_file.name} → {status}/")
+        except Exception as e:
+            logger.warning(f"Failed to organize {timer_file.name}: {e}")
+
+
+def build_timers_folder(generate_selector_page: bool = False, organize: bool = True) -> None:
     """Build all timers from the timers/ folder."""
     stats.start()
-    
+
     if not TIMERS_DIR.exists():
         logger.error(f"timers/ folder not found at {TIMERS_DIR}")
         return
 
+    # Scan all subdirectories recursively
     timer_files = sorted([
-        f for f in TIMERS_DIR.glob('*.json')
+        f for f in TIMERS_DIR.glob('**/*.json')
         if not f.name.startswith('TEMPLATE') and f.name != 'README.md'
     ])
 
@@ -423,6 +503,11 @@ def build_timers_folder(generate_selector_page: bool = False) -> None:
     for i, timer_file in enumerate(timer_files, 1):
         with open(timer_file, 'r', encoding='utf-8') as f:
             timer = json.load(f)
+
+        # Check if enabled
+        if not timer.get('enabled', True):
+            logger.info(f"Skipping {timer_file.stem} (disabled)")
+            continue
 
         # Validate timer config
         if HAS_SCHEMA:
@@ -445,9 +530,14 @@ def build_timers_folder(generate_selector_page: bool = False) -> None:
 
     clean_orphaned_outputs(timer_ids)
 
+    # Organize timers into status folders
+    if organize:
+        logger.info("Organizing timers by status...")
+        organize_timers(timer_ids)
+
     if generate_selector_page:
         generate_selector(timers_list)
-    
+
     stats.stop()
     stats.print_summary()
 
@@ -695,7 +785,8 @@ def main() -> None:
         epilog='Examples:\n'
                '  python3 vMain.py 2026-12-31T23:59:59 --config-id newyear\n'
                '  python3 vMain.py --timers-dir --selector\n'
-               '  python3 vMain.py --deploy\n',
+               '  python3 vMain.py --deploy\n'
+               '  python3 vMain.py --timers-dir --no-organize  # Don\'t auto-sort timers\n',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
@@ -740,6 +831,11 @@ def main() -> None:
         help='Clean output, rebuild all, and push to GitHub'
     )
     parser.add_argument(
+        '--no-organize',
+        action='store_true',
+        help='Don\'t auto-sort timers into status folders'
+    )
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='Enable verbose output'
@@ -757,7 +853,10 @@ def main() -> None:
     elif args.all:
         build_all_timers()
     elif args.timers_dir:
-        build_timers_folder(generate_selector_page=args.selector)
+        build_timers_folder(
+            generate_selector_page=args.selector,
+            organize=not args.no_organize
+        )
     else:
         build_html(
             target_time_str=args.target_time,

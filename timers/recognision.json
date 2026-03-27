@@ -2,7 +2,7 @@
     "id": "recognision",
     "display_name": "Recognision Day",
     "description": "School Recognision Day",
-    "target_time": "2026-03-27T02:30:00",
+    "target_time": "2026-03-27T14:30:00",
     "start_time": "2026-03-27T00:00:00",
     "direction": "down",
     "min_value": 0,

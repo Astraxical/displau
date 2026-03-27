@@ -9,6 +9,8 @@ let lastRealTime = Date.now();
 // Speed adjustment for sync
 let speedFactor = 1.0;
 let catchupRemaining = 0; // Time left to catch up (in ms)
+let catchupDuration = 5000; // Total catchup duration (5 seconds)
+let catchupStartTime = 0; // When catchup started
 
 // Expiry state
 let hasExpired = false;
@@ -74,15 +76,31 @@ function updateCountdown() {
     // Skip update if paused
     if (isPaused) return;
 
-    // Apply catchup speed if catching up from pause
+    // Apply catchup speed with smooth fade in/out
     if (catchupRemaining > 0) {
-        const catchupAmount = Math.min(catchupRemaining, 100); // Catch up max 100ms per update
+        const elapsed = Date.now() - catchupStartTime;
+        const progress = Math.min(1, elapsed / catchupDuration);
+        
+        // Smooth ease-in-out curve for speed fade
+        // Starts slow, peaks in middle, ends slow
+        const speedCurve = Math.sin(progress * Math.PI);
+        
+        // Calculate catchup amount based on curve
+        // Total catchup over 5s with ~10ms updates = ~500 updates
+        // Average speed = catchupRemaining / 500, peak = ~3x average
+        const baseAmount = catchupRemaining / (catchupDuration / 10);
+        const catchupAmount = baseAmount * speedCurve * 1.5; // Scale to ensure we catch up in time
+        
         pauseOffset += catchupAmount;
         catchupRemaining -= catchupAmount;
         
-        if (catchupRemaining <= 0) {
+        if (catchupRemaining <= 0 || progress >= 1) {
             console.log('[Timer] Catchup complete');
             catchupRemaining = 0;
+            speedFactor = 1.0;
+        } else {
+            // Update speed factor for display/debug
+            speedFactor = 1 + (speedCurve * 2); // 1x to 3x speed
         }
     }
 
@@ -335,11 +353,11 @@ function togglePause() {
     } else {
         const pauseDuration = Date.now() - pausedAt;
         
-        // Calculate catchup: make up lost time over 5 seconds
-        // Don't add pauseOffset immediately - let catchup handle it gradually
+        // Calculate catchup: make up lost time over 5 seconds with smooth fade
         if (pauseDuration > 1000) { // Only catchup if paused for more than 1 second
             catchupRemaining = pauseDuration;
-            console.log(`[Timer] Resumed, catching up ${catchupRemaining}ms over 5s`);
+            catchupStartTime = Date.now();
+            console.log(`[Timer] Resumed, catching up ${catchupRemaining}ms over 5s with fade`);
         } else {
             // For short pauses, just add the offset directly
             pauseOffset += pauseDuration;

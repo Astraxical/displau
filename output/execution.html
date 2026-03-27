@@ -561,8 +561,8 @@ body {
 </head>
 <body>
     <!-- Display Name Overlay -->
-    <div class="timer-display-name" id="displayName" title="Execution">
-        Execution
+    <div class="timer-display-name" id="displayName" title="">
+        
     </div>
 
     <!-- 7-Segment Display -->
@@ -577,9 +577,9 @@ body {
     </div>
 
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327112949.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327122050.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260327112949.stable</span>
+        <span class="version-date">2.0.0.20260327122050.stable</span>
     </div>
 
     <script>
@@ -588,7 +588,7 @@ body {
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
     target_time: '2026-04-15T00:00:00',
-    start_time: '2026-03-15T00:00:00',
+    start_time: '2026-03-27T12:20:50',
     display_name: '',
     config_id: 'default',
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
@@ -615,7 +615,7 @@ const DEFAULTS = {
         { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 1600210219;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 1597149376;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/execution.json'; // Injected by build script
 // =======================================
 

@@ -386,6 +386,7 @@ select.control-btn {
     overflow: hidden;
     margin-bottom: 1rem;
     border: 1px solid rgba(0, 255, 136, 0.2);
+    pointer-events: none;
 }
 
 .timer-preview iframe {
@@ -393,6 +394,7 @@ select.control-btn {
     height: 120px;
     border: none;
     display: block;
+    pointer-events: none;
 }
 
 /* Progress Bar */

@@ -30,6 +30,50 @@
         {"ratio": -0.75, "color": "#c060ff"},
         {"ratio": -1.0, "color": "#8b00ff"}
     ],
+    "time_format_table": [
+        {"ratio": 1.0, "format": "days_full"},
+        {"ratio": 0.75, "format": "hours_full"},
+        {"ratio": 0.5, "format": "minutes_precise"},
+        {"ratio": 0.25, "format": "seconds_precise"},
+        {"ratio": 0.1, "format": "critical"}
+    ],
+    // Alternative format examples:
+    // "time_format_table": [
+    //     {"ratio": 1.0, "format": "days_compact"},    // 5d3h15m30s
+    //     {"ratio": 0.5, "format": "hours_compact"},   // 3h15m
+    //     {"ratio": 0.25, "format": "minutes_compact"},// 15m30s
+    //     {"ratio": 0.1, "format": "critical"}         // 1:30.456
+    // ],
+    // "time_format_table": [
+    //     {"ratio": 1.0, "format": "hours_decimal"},   // 2.50 (hours)
+    //     {"ratio": 0.5, "format": "minutes_decimal"}, // 45.50 (minutes)
+    //     {"ratio": 0.25, "format": "seconds_decimal"},// 45.123 (seconds)
+    //     {"ratio": 0.1, "format": "milliseconds_only"}// raw ms
+    // ],
+    // "time_format_table": [
+    //     {"ratio": 1.0, "format": "minimal"},         // 5d, 3h, 15m
+    //     {"ratio": 0.5, "format": "verbose"},         // 15 minutes 30 seconds
+    //     {"ratio": 0.1, "format": "critical"}
+    // ],
+    // TOKEN-BASED CUSTOM FORMATS:
+    // "time_format_table": [
+    //     {"ratio": 1.0, "format": "DD:HH:MM:SS"},     // 05:23:30:45
+    //     {"ratio": 0.5, "format": "DD:MM:SS.mmm"},    // 05:30:45.123 (days:minutes:seconds)
+    //     {"ratio": 0.25, "format": "HH:MM:SS.cc"},    // 23:30:45.12
+    //     {"ratio": 0.1, "format": "MM:SS.mmm"}        // 30:45.123
+    // ],
+    // "time_format_table": [
+    //     {"ratio": 1.0, "format": "DDd HHh MMm"},     // 05d 23h 30m
+    //     {"ratio": 0.5, "format": "HHh MMm SSs"},     // 23h 30m 45s
+    //     {"ratio": 0.1, "format": "MM:SS.mmm"}        // 30:45.123
+    // ],
+    // TOTAL VALUE TOKENS (don't roll over):
+    // "time_format_table": [
+    //     {"ratio": 1.0, "format": "TTT:MM:SS"},       // 125:30:45 (125 total hours, padded)
+    //     {"ratio": 1.0, "format": "TT:MM:SS"},        // 125:30:45 (125 total hours)
+    //     {"ratio": 0.5, "format": "MMm:SS"},          // 7530:45 (7530 total minutes)
+    //     {"ratio": 0.1, "format": "SSs.mmm"}          // 451845.123 (total seconds)
+    // ]
     "show_milliseconds": true,
     "timezone": "UTC"
 }

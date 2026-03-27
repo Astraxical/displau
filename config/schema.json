@@ -113,6 +113,24 @@
                 }
             }
         },
+        "time_format_table": {
+            "type": "array",
+            "description": "Custom time format table - defines display format at different remaining time ratios",
+            "items": {
+                "type": "object",
+                "required": ["ratio", "format"],
+                "properties": {
+                    "ratio": {
+                        "type": "number",
+                        "description": "Remaining time ratio threshold (1.0 = start, 0.0 = end)"
+                    },
+                    "format": {
+                        "type": "string",
+                        "description": "Time format preset"
+                    }
+                }
+            }
+        },
         "show_milliseconds": {
             "type": "boolean",
             "description": "Show milliseconds in display",

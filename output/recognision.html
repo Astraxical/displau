@@ -561,8 +561,8 @@ body {
 </head>
 <body>
     <!-- Display Name Overlay -->
-    <div class="timer-display-name" id="displayName" title="Recognision Day">
-        Recognision Day
+    <div class="timer-display-name" id="displayName" title="">
+        
     </div>
 
     <!-- 7-Segment Display -->
@@ -577,9 +577,9 @@ body {
     </div>
 
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327112950.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327122051.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260327112950.stable</span>
+        <span class="version-date">2.0.0.20260327122051.stable</span>
     </div>
 
     <script>
@@ -588,7 +588,7 @@ body {
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
     target_time: '2026-03-27T14:30:00',
-    start_time: '2026-03-27T00:00:00',
+    start_time: '2026-03-27T12:20:51',
     display_name: '',
     config_id: 'default',
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
@@ -615,7 +615,7 @@ const DEFAULTS = {
         { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 10809076;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 7748659;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/recognision.json'; // Injected by build script
 // =======================================
 

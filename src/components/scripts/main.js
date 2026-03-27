@@ -22,6 +22,11 @@ let colorIntervalMs = 30;
 // Check if embedded in iframe
 const isEmbedded = window.self !== window.top;
 
+// Add embedded class to body if in iframe
+if (isEmbedded) {
+    document.body.classList.add('embedded');
+}
+
 /**
  * Handle timer expiry - called once when timer reaches zero
  */

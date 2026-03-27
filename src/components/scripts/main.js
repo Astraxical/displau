@@ -8,6 +8,7 @@ let lastRealTime = Date.now();
 
 // Speed adjustment for sync
 let speedFactor = 1.0;
+let catchupRemaining = 0; // Time left to catch up (in ms)
 
 // Expiry state
 let hasExpired = false;
@@ -26,6 +27,9 @@ const isEmbedded = window.self !== window.top;
 if (isEmbedded) {
     document.body.classList.add('embedded');
 }
+
+// Hide display name by default
+let displayNameVisible = false;
 
 /**
  * Handle timer expiry - called once when timer reaches zero
@@ -69,6 +73,18 @@ function handleExpiry() {
 function updateCountdown() {
     // Skip update if paused
     if (isPaused) return;
+
+    // Apply catchup speed if catching up from pause
+    if (catchupRemaining > 0) {
+        const catchupAmount = Math.min(catchupRemaining, 100); // Catch up max 100ms per update
+        pauseOffset += catchupAmount;
+        catchupRemaining -= catchupAmount;
+        
+        if (catchupRemaining <= 0) {
+            console.log('[Timer] Catchup complete');
+            catchupRemaining = 0;
+        }
+    }
 
     // Use the new direction-aware time value function
     const currentTimeValue = getCurrentTimeValue();
@@ -239,6 +255,7 @@ function addDisplayName() {
     const nameEl = document.createElement('div');
     nameEl.className = 'timer-display-name';
     nameEl.textContent = DISPLAY_NAME;
+    nameEl.style.opacity = displayNameVisible ? '1' : '0';
     document.body.appendChild(nameEl);
 }
 
@@ -316,8 +333,17 @@ function togglePause() {
         document.body.classList.add('paused');
         document.title = '⏸️ PAUSED';
     } else {
-        pauseOffset += Date.now() - pausedAt;
-        console.log('[Timer] Resumed');
+        const pauseDuration = Date.now() - pausedAt;
+        pauseOffset += pauseDuration;
+        
+        // Calculate catchup: make up lost time over 5 seconds
+        if (pauseDuration > 1000) { // Only catchup if paused for more than 1 second
+            catchupRemaining = pauseDuration;
+            console.log(`[Timer] Resumed, catching up ${catchupRemaining}ms over 5s`);
+        } else {
+            console.log('[Timer] Resumed');
+        }
+        
         document.body.classList.remove('paused');
         // Restore title with display name
         const displayName = DISPLAY_NAME || '7 Segment Timer';
@@ -328,7 +354,6 @@ function togglePause() {
 /**
  * Toggle hide/show display name
  */
-let displayNameVisible = true;
 function toggleHide() {
     const displayName = document.querySelector('.timer-display-name');
 

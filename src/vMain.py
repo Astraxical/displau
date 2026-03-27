@@ -231,7 +231,7 @@ def fetch_config_from_url(config_url: str) -> Optional[dict[str, Any]]:
             data = response.read().decode('utf-8')
             return json.loads(data)
     except (URLError, HTTPError, json.JSONDecodeError) as e:
-        logger.warning(f"Could not fetch config from {config_url}: {e}")
+        logger.debug(f"Could not fetch config from {config_url}: {e}")
         return None
 
 

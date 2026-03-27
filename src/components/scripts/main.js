@@ -170,56 +170,29 @@ async function init() {
     colorInterval = setInterval(updateColorTransition, colorIntervalMs);
     lastRealTime = Date.now();
 
-    // Add control buttons (only if not embedded)
-    if (!isEmbedded) {
-        addControlButtons();
-        addDisplayName();
-    }
+    // Add display name
+    addDisplayName();
+
+    // Keyboard shortcuts (no visible buttons)
+    setupKeyboardShortcuts();
 }
 
-function addControlButtons() {
-    const controls = document.createElement('div');
-    controls.className = 'timer-controls';
-
-    // Check initial notification permission
-    const notifPermission = getNotificationPermission();
-    const notifBtnTitle = notifPermission === 'granted' ? 'Notifications enabled' : 'Enable notifications';
-    const notifBtnIcon = notifPermission === 'granted' ? '🔔' : '🔕';
-
-    controls.innerHTML = `
-        <button id="pauseBtn" class="control-btn" title="Pause/Resume (Space)">⏸️</button>
-        <button id="hideBtn" class="control-btn" title="Hide/Show (H)">🙈</button>
-        <button id="fullscreenBtn" class="control-btn" title="Fullscreen (F)">⛶</button>
-    `;
-    document.body.appendChild(controls);
-
-    // Add event listeners
-    const pauseBtn = document.getElementById('pauseBtn');
-    const hideBtn = document.getElementById('hideBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-
-    if (pauseBtn) {
-        pauseBtn.addEventListener('click', togglePause);
-    }
-
-    if (hideBtn) {
-        hideBtn.addEventListener('click', toggleHide);
-    }
-
-    if (fullscreenBtn) {
-        fullscreenBtn.addEventListener('click', toggleFullscreen);
-    }
-
+function setupKeyboardShortcuts() {
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
+        // Space - Pause/Resume (only if not typing in input)
         if (e.code === 'Space' && e.target === document.body) {
             e.preventDefault();
             togglePause();
         }
+        // F - Fullscreen
         if (e.code === 'KeyF') {
+            e.preventDefault();
             toggleFullscreen();
         }
+        // H - Hide/Show display name
         if (e.code === 'KeyH') {
+            e.preventDefault();
             toggleHide();
         }
     });
@@ -336,60 +309,48 @@ function setupWatermarkVisibility() {
  */
 function togglePause() {
     isPaused = !isPaused;
-    const pauseBtn = document.getElementById('pauseBtn');
 
     if (isPaused) {
         pausedAt = Date.now();
         console.log('[Timer] Paused');
         document.body.classList.add('paused');
-        if (pauseBtn) pauseBtn.textContent = '▶️';
+        document.title = '⏸️ PAUSED';
     } else {
         pauseOffset += Date.now() - pausedAt;
         console.log('[Timer] Resumed');
         document.body.classList.remove('paused');
-        if (pauseBtn) pauseBtn.textContent = '⏸️';
+        // Restore title with display name
+        const displayName = DISPLAY_NAME || '7 Segment Timer';
+        document.title = displayName;
     }
 }
 
 /**
- * Toggle hide/show controls
+ * Toggle hide/show display name
  */
-let controlsVisible = true;
+let displayNameVisible = true;
 function toggleHide() {
-    const controls = document.querySelector('.timer-controls');
     const displayName = document.querySelector('.timer-display-name');
 
-    controlsVisible = !controlsVisible;
-
-    if (controls) {
-        controls.style.opacity = controlsVisible ? '1' : '0';
-        controls.style.pointerEvents = controlsVisible ? 'auto' : 'none';
-    }
+    displayNameVisible = !displayNameVisible;
 
     if (displayName) {
-        displayName.style.opacity = controlsVisible ? '1' : '0';
+        displayName.style.opacity = displayNameVisible ? '1' : '0';
     }
 
-    console.log('[Timer] Controls', controlsVisible ? 'shown' : 'hidden');
+    console.log('[Timer] Display name', displayNameVisible ? 'shown' : 'hidden');
 }
 
 /**
  * Toggle fullscreen
  */
 function toggleFullscreen() {
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
             console.log('[Fullscreen] Error:', err);
         });
-        if (fullscreenBtn) {
-            fullscreenBtn.textContent = '⛶ Exit';
-        }
     } else {
         document.exitFullscreen();
-        if (fullscreenBtn) {
-            fullscreenBtn.textContent = '⛶';
-        }
     }
 }
 

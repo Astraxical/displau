@@ -250,13 +250,13 @@ async function toggleNotifications() {
 }
 
 function addDisplayName() {
+    // Display name is already in HTML template, just update visibility
     if (!DISPLAY_NAME) return;
-
-    const nameEl = document.createElement('div');
-    nameEl.className = 'timer-display-name';
-    nameEl.textContent = DISPLAY_NAME;
-    nameEl.style.opacity = displayNameVisible ? '1' : '0';
-    document.body.appendChild(nameEl);
+    
+    const nameEl = document.getElementById('displayName');
+    if (nameEl) {
+        nameEl.style.opacity = displayNameVisible ? '1' : '0';
+    }
 }
 
 /**

@@ -8,7 +8,8 @@ function getCurrentTimeValue() {
     const now = Date.now();
 
     // Apply pause offset (for catchup after pause)
-    const adjustedNow = now - pauseOffset;
+    // Adding offset makes "now" appear later, so countdown goes faster
+    const adjustedNow = now + pauseOffset;
 
     if (DIRECTION === 'up') {
         // Counting up from start_time (stopwatch mode)

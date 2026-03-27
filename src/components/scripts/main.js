@@ -77,27 +77,24 @@ function updateCountdown() {
     // Skip update if paused
     if (isPaused) return;
 
-    // Apply catchup with smooth fade - gradually reduce pauseOffset over 5 seconds
+    // Apply catchup with smooth fade - gradually increase pauseOffset to make timer count faster
     if (catchupRemaining > 0) {
         const elapsed = Date.now() - catchupStartTime;
         const progress = Math.min(1, elapsed / catchupDuration);
         
         // Smooth ease-in-out curve: starts slow, peaks in middle, ends slow
-        // Using sine curve for smooth acceleration/deceleration
         const speedCurve = Math.sin(progress * Math.PI);
         
-        // Calculate how much offset to remove this update
-        // Total catchupRemaining spread over 5 seconds with sine curve
+        // Calculate how much offset to add this update
         const baseAmount = catchupRemaining / (catchupDuration / 10);
-        const removeAmount = baseAmount * speedCurve * 1.5;
+        const addAmount = baseAmount * speedCurve * 1.5;
         
-        pauseOffset = Math.max(0, pauseOffset - removeAmount);
-        catchupRemaining -= removeAmount;
+        pauseOffset += addAmount;
+        catchupRemaining -= addAmount;
         
         if (catchupRemaining <= 0 || progress >= 1) {
             console.log('[Timer] Catchup complete');
             catchupRemaining = 0;
-            pauseOffset = 0;
             speedFactor = 1.0;
         } else {
             speedFactor = 1 + (speedCurve * 2);
@@ -353,15 +350,15 @@ function togglePause() {
     } else {
         pauseDurationAtResume = Date.now() - pausedAt;
         
-        // Calculate catchup: make up lost time over 5 seconds with smooth fade
+        // For catchup: start at paused time, then speed up to lose the paused duration
         if (pauseDurationAtResume > 1000) { // Only catchup if paused for more than 1 second
             catchupRemaining = pauseDurationAtResume;
             catchupStartTime = Date.now();
-            // Add the pause duration immediately so there's no jump on resume
-            pauseOffset += pauseDurationAtResume;
+            // DON'T add offset yet - start from paused time
+            // pauseOffset will increase during catchup to make timer count faster
             console.log(`[Timer] Resumed, catching up ${catchupRemaining}ms over 5s with fade`);
         } else {
-            // For short pauses, just add the offset directly
+            // For short pauses, just add the offset directly (no noticeable jump)
             pauseOffset += pauseDurationAtResume;
             console.log('[Timer] Resumed');
         }

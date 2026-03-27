@@ -25,7 +25,7 @@ DEFAULT_CONFIG_URL = ''  # e.g., 'https://raw.githubusercontent.com/user/repo/gh
 GITHUB_REPO = 'Astraxical/displau'  # Your GitHub username/repo
 GITHUB_BRANCH = 'master'  # Your branch name
 TIMERS_PATH = 'g-timers/experimental'  # Path to timers folder in repo
-OUTPUT_DIR = 'output'
+OUTPUT_DIR = '../g-output/experimental'  # Output directory (relative to genbuild-experimental/)
 OUTPUT_PATTERN = '{config_id}-exp.html'  # Output filename pattern with -exp suffix
 
 # Components to include (set to False to exclude)
@@ -320,13 +320,15 @@ def build_timers_folder(generate_selector_page=False):
 
         config_id = timer.get('id', timer_file.stem)
         target_time = timer.get('target_time', None)
+        start_time = timer.get('start_time', None)
         timer_ids.add(config_id)
 
         print(f"\n[{i}/{len(timer_files)}] Building {config_id}...")
         build_html(
             target_time_str=target_time,
+            start_time_str=start_time,
             config_id=config_id,
-            auto_config=True  # Auto-generate config URL
+            auto_config=False  # Use local config values
         )
         
         timers_list.append(timer)
@@ -384,25 +386,28 @@ def clean_orphaned_outputs(timer_ids):
     output_dir = SCRIPT_DIR / OUTPUT_DIR
     if not output_dir.exists():
         return
-    
+
     # Get all timer HTML files
     html_files = list(output_dir.glob('*.html'))
-    
+
     deleted_count = 0
     for html_file in html_files:
-        # Extract config_id from filename (e.g., "assembly.html" -> "assembly")
+        # Extract config_id from filename (e.g., "assembly-exp.html" -> "assembly")
         config_id = html_file.stem
-        
+        # Remove -exp suffix for experimental builds
+        if config_id.endswith('-exp'):
+            config_id = config_id[:-4]
+
         # Skip index.html (selector page)
         if config_id == 'index':
             continue
-        
+
         # If this config_id is not in the current timers list, delete the HTML
         if config_id not in timer_ids:
             html_file.unlink()
             print(f"Deleted orphaned HTML: {html_file.name}")
             deleted_count += 1
-    
+
     if deleted_count > 0:
         print(f"Cleaned {deleted_count} orphaned HTML file(s)")
 
@@ -461,7 +466,7 @@ def generate_selector(timers_list):
             status_label = 'Running'
             progress_text = '???.??%'
 
-        html_file = f'{config_id}.html'
+        html_file = f'{config_id}-exp.html'
         html_path = SCRIPT_DIR / OUTPUT_DIR / html_file
 
         # Check if timer should be hidden after expiry
@@ -504,7 +509,7 @@ def generate_selector(timers_list):
                 <span class="status-badge status-{timer['status']}">{timer['status_label']}</span>
             </div>
             <div class="timer-preview">
-                <iframe src="output/{timer['html_file']}" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                <iframe src="g-output/experimental/{timer['html_file']}" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
             </div>
             <div class="progress-container">
                 <div class="progress-bar">
@@ -517,8 +522,8 @@ def generate_selector(timers_list):
                 <span class="target">🎯 Target: {timer['target_time']}</span>
             </p>
             <div class="card-actions">
-                <a href="output/{timer['html_file']}" class="timer-link" target="_blank">Open Full Timer →</a>
-                <a href="output/{timer['html_file']}" class="download-link" download="{timer['html_file']}" title="Download">⬇️</a>
+                <a href="g-output/experimental/{timer['html_file']}" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="g-output/experimental/{timer['html_file']}" class="download-link" download="{timer['html_file']}" title="Download">⬇️</a>
             </div>
         </div>'''
 

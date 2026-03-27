@@ -744,51 +744,9 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
 
         body {{
             font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-            background: 
-                radial-gradient(ellipse at top, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at bottom right, rgba(0, 150, 100, 0.06) 0%, transparent 40%),
-                var(--bg-primary);
+            background: var(--bg-primary);
             min-height: 100vh;
             color: var(--text-primary);
-            overflow-x: hidden;
-            position: relative;
-        }}
-
-        body::before {{
-            content: '';
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background-image: 
-                linear-gradient(rgba(0, 255, 136, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 136, 0.02) 1px, transparent 1px);
-            background-size: 50px 50px;
-            pointer-events: none;
-            z-index: 0;
-            animation: gridMove 20s linear infinite;
-        }}
-
-        @keyframes gridMove {{
-            0% {{ transform: translate(0, 0); }}
-            100% {{ transform: translate(50px, 50px); }}
-        }}
-
-        body::after {{
-            content: '';
-            position: fixed;
-            top: 20%; right: 10%;
-            width: 400px; height: 400px;
-            background: radial-gradient(circle, rgba(0, 255, 136, 0.08) 0%, transparent 70%);
-            border-radius: 50%;
-            filter: blur(60px);
-            pointer-events: none;
-            z-index: 0;
-            animation: float 15s ease-in-out infinite;
-        }}
-
-        @keyframes float {{
-            0%, 100% {{ transform: translate(0, 0) scale(1); }}
-            50% {{ transform: translate(-30px, 20px) scale(1.1); }}
         }}
 
         .container {{

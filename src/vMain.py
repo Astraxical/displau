@@ -14,6 +14,7 @@ import logging
 import shutil
 import subprocess
 import sys
+import time
 from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
@@ -58,6 +59,60 @@ logging.basicConfig(
     format='%(levelname)s: %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Build statistics
+class BuildStats:
+    """Track build statistics."""
+    def __init__(self):
+        self.start_time = None
+        self.end_time = None
+        self.timers_built = 0
+        self.timers_failed = 0
+        self.total_size = 0
+        self.errors = []
+    
+    def start(self):
+        self.start_time = time.time()
+    
+    def stop(self):
+        self.end_time = time.time()
+    
+    def add_success(self, size: int):
+        self.timers_built += 1
+        self.total_size += size
+    
+    def add_error(self, timer_id: str, error: str):
+        self.timers_failed += 1
+        self.errors.append(f"{timer_id}: {error}")
+    
+    def get_duration(self) -> float:
+        if self.start_time and self.end_time:
+            return self.end_time - self.start_time
+        return 0.0
+    
+    def print_summary(self):
+        """Print build summary."""
+        duration = self.get_duration()
+        avg_size = self.total_size / max(1, self.timers_built)
+        
+        logger.info("=" * 50)
+        logger.info("BUILD SUMMARY")
+        logger.info("=" * 50)
+        logger.info(f"  Duration: {duration:.2f}s")
+        logger.info(f"  Timers built: {self.timers_built}")
+        logger.info(f"  Timers failed: {self.timers_failed}")
+        logger.info(f"  Total size: {self.total_size:,} bytes")
+        logger.info(f"  Average size: {avg_size:,.0f} bytes")
+        
+        if self.errors:
+            logger.warning(f"  Errors: {len(self.errors)}")
+            for error in self.errors:
+                logger.warning(f"    - {error}")
+        
+        logger.info("=" * 50)
+
+
+stats = BuildStats()
 
 
 def load_component(filepath: Path) -> str:
@@ -135,7 +190,8 @@ def replace_placeholders(
     min_value: int = 0,
     max_value: Optional[int | str] = 'null',
     version_type: str = 'STABLE',
-    build_date: Optional[str] = None
+    build_date: Optional[str] = None,
+    display_name: str = ''
 ) -> str:
     """Replace configuration placeholders in content."""
     if build_date is None:
@@ -153,6 +209,7 @@ def replace_placeholders(
         '{{MAX_VALUE}}': str(max_value) if max_value is not None else 'null',
         '{{VERSION_TYPE}}': version_type,
         '{{BUILD_DATE}}': build_date,
+        '{{DISPLAY_NAME}}': display_name,
     }
 
     for placeholder, value in replacements.items():
@@ -237,6 +294,7 @@ def build_html(
     min_value = 0
     max_value = 'null'
     version_type = 'STABLE'
+    display_name = ''
 
     if config_url:
         config = fetch_config_from_url(config_url)
@@ -245,14 +303,15 @@ def build_html(
             min_value = config.get('min_value', 0)
             max_val = config.get('max_value', None)
             max_value = 'null' if max_val is None else str(max_val)
+            display_name = config.get('display_name', '')
 
     scripts = replace_placeholders(
         scripts, target_time_str, milliseconds_at_full_brightness,
-        config_url, start_time_str, direction, min_value, max_value, version_type
+        config_url, start_time_str, direction, min_value, max_value, version_type, display_name=display_name
     )
     html['body'] = replace_placeholders(
         html['body'], target_time_str, milliseconds_at_full_brightness,
-        config_url, start_time_str, direction, min_value, max_value, version_type
+        config_url, start_time_str, direction, min_value, max_value, version_type, display_name=display_name
     )
     html['html_open'] = html['html_open'].replace('{{CONFIG_URL}}', config_url)
 
@@ -269,13 +328,20 @@ def build_html(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(final_html)
-
-    logger.info(f"Generated {output_path}")
-    logger.info(f"  TARGET_TIME = {target_time_str}")
-    logger.info(f"  START_TIME = {start_time_str}")
-    logger.info(f"  CONFIG_URL = {config_url}")
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(final_html)
+        
+        file_size = output_path.stat().st_size
+        stats.add_success(file_size)
+        
+        logger.info(f"Generated {output_path} ({file_size:,} bytes)")
+        logger.info(f"  TARGET_TIME = {target_time_str}")
+        logger.info(f"  START_TIME = {start_time_str}")
+        logger.info(f"  CONFIG_URL = {config_url}")
+    except Exception as e:
+        stats.add_error(config_id, str(e))
+        logger.error(f"Failed to generate {output_path}: {e}")
 
 
 def build_batch(batch_file: str) -> None:
@@ -334,6 +400,8 @@ def build_all_timers() -> None:
 
 def build_timers_folder(generate_selector_page: bool = False) -> None:
     """Build all timers from the timers/ folder."""
+    stats.start()
+    
     if not TIMERS_DIR.exists():
         logger.error(f"timers/ folder not found at {TIMERS_DIR}")
         return
@@ -379,6 +447,9 @@ def build_timers_folder(generate_selector_page: bool = False) -> None:
 
     if generate_selector_page:
         generate_selector(timers_list)
+    
+    stats.stop()
+    stats.print_summary()
 
 
 def deploy(generate_selector_page: bool = True) -> None:

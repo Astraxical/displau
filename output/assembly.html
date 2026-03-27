@@ -560,14 +560,26 @@ body {
     </style>
 </head>
 <body>
+    <!-- Display Name Overlay -->
+    <div class="timer-display-name" id="displayName" title="Assembly Countdown">
+        Assembly Countdown
+    </div>
+
+    <!-- 7-Segment Display -->
     <div class="display" id="display">
         <!-- Dynamic countdown display -->
     </div>
 
+    <!-- Control Buttons -->
+    <div class="timer-controls" id="controls">
+        <button class="control-btn" id="pauseBtn" title="Pause/Resume (Space)">⏸️</button>
+        <button class="control-btn" id="fullscreenBtn" title="Fullscreen (F)">⛶</button>
+    </div>
+
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327111517.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327112417.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260327111517.stable</span>
+        <span class="version-date">2.0.0.20260327112417.stable</span>
     </div>
 
     <script>
@@ -576,7 +588,7 @@ body {
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
     target_time: '2026-03-24T05:30:00',
-    start_time: '2026-03-22T07:54:57',
+    start_time: '2026-03-21T23:54:57',
     display_name: '',
     config_id: 'default',
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
@@ -1448,6 +1460,9 @@ function handleExpiry() {
  * Update countdown display
  */
 function updateCountdown() {
+    // Skip update if paused
+    if (isPaused) return;
+
     // Use the new direction-aware time value function
     const currentTimeValue = getCurrentTimeValue();
     
@@ -1489,44 +1504,6 @@ function updateCountdown() {
     // Update document title
     const displayName = DISPLAY_NAME || '7 Segment Timer';
     document.title = `${timeStr.split('.')[0]} - ${displayName}`;
-}
-
-function togglePause() {
-    const pauseBtn = document.getElementById('pauseBtn');
-    if (!pauseBtn) return;
-    
-    if (isPaused) {
-        // Resume - calculate how much time we missed
-        isPaused = false;
-        const resumeTime = Date.now();
-        const pauseDuration = resumeTime - pausedAt;
-        
-        // Add the paused duration to offset so we don't lose time
-        pauseOffset -= pauseDuration;
-        pausedAt = null;
-        
-        // Set high speed factor for exponential catchup
-        speedFactor = 1.5; // Start at 50% faster
-        
-        pauseBtn.textContent = '⏸️ Pause';
-        pauseBtn.title = 'Pause timer';
-        
-        // Restart intervals
-        updateInterval = setInterval(updateCountdown, 10);
-        colorInterval = setInterval(updateColorTransition, 30);
-        lastRealTime = Date.now();
-    } else {
-        // Pause
-        isPaused = true;
-        pausedAt = Date.now();
-        
-        pauseBtn.textContent = '▶️ Resume';
-        pauseBtn.title = 'Resume timer';
-        
-        // Clear intervals
-        if (updateInterval) clearInterval(updateInterval);
-        if (colorInterval) clearInterval(colorInterval);
-    }
 }
 
 function toggleFullscreen() {
@@ -1737,14 +1714,14 @@ function updateWatermarkAge() {
 function setupWatermarkVisibility() {
     const watermark = document.querySelector('.version-watermark');
     if (!watermark) return;
-    
+
     const showThreshold = 200; // pixels from corner
-    
+
     document.addEventListener('mousemove', (e) => {
         const rect = watermark.getBoundingClientRect();
         const distX = Math.abs(e.clientX - rect.left);
         const distY = Math.abs(e.clientY - rect.top);
-        
+
         // Show if cursor is near the watermark
         if (distX < showThreshold && distY < showThreshold) {
             watermark.classList.add('visible');
@@ -1754,6 +1731,80 @@ function setupWatermarkVisibility() {
     });
 }
 
+/**
+ * Setup keyboard shortcuts
+ */
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Space: Pause/Resume
+        if (e.code === 'Space' && e.target === document.body) {
+            e.preventDefault();
+            togglePause();
+        }
+        // F: Fullscreen
+        if (e.code === 'KeyF') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+        // M: Toggle notifications (future feature)
+        if (e.code === 'KeyM') {
+            e.preventDefault();
+            console.log('[Keyboard] M pressed - notifications toggle (future feature)');
+        }
+    });
+}
+
+/**
+ * Setup control button handlers
+ */
+function setupControlButtons() {
+    const pauseBtn = document.getElementById('pauseBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+    if (pauseBtn) {
+        pauseBtn.addEventListener('click', togglePause);
+    }
+
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+    }
+}
+
+/**
+ * Toggle pause/resume
+ */
+function togglePause() {
+    isPaused = !isPaused;
+    
+    if (isPaused) {
+        pausedAt = Date.now();
+        console.log('[Timer] Paused');
+        document.body.classList.add('paused');
+        if (pauseBtn) pauseBtn.textContent = '▶️';
+    } else {
+        pauseOffset += Date.now() - pausedAt;
+        console.log('[Timer] Resumed');
+        document.body.classList.remove('paused');
+        if (pauseBtn) pauseBtn.textContent = '⏸️';
+    }
+}
+
+/**
+ * Toggle fullscreen
+ */
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log('[Fullscreen] Error:', err);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+// Get pause button reference
+const pauseBtn = document.getElementById('pauseBtn');
+
 // Start initialization
 init();
 
@@ -1761,6 +1812,8 @@ init();
 setTimeout(() => {
     updateWatermarkAge();
     setupWatermarkVisibility();
+    setupKeyboardShortcuts();
+    setupControlButtons();
 }, 500);
 
     </script>

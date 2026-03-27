@@ -25,7 +25,7 @@ DEFAULT_CONFIG_URL = ''  # e.g., 'https://raw.githubusercontent.com/user/repo/gh
 GITHUB_REPO = 'Astraxical/displau'  # Your GitHub username/repo
 GITHUB_BRANCH = 'master'  # Your branch name
 TIMERS_PATH = 'g-timers/stable'  # Path to timers folder in repo
-OUTPUT_DIR = 'output'
+OUTPUT_DIR = '../g-output/stable'  # Output directory (relative to genbuild/)
 OUTPUT_PATTERN = '{config_id}.html'  # Output filename pattern (no timestamp)
 
 # Components to include (set to False to exclude)
@@ -150,7 +150,7 @@ def fetch_config_from_url(config_url):
         return None
 
 
-def build_html(target_time_str=None, config_url='', config_id='default', auto_config=True, start_time_str=None):
+def build_html(target_time_str=None, config_url='', config_id='default', auto_config=True, start_time_str=None, use_local_config=False):
     """Generate the HTML file from components."""
     # Get target time from arg or use default
     if target_time_str is None:
@@ -162,13 +162,14 @@ def build_html(target_time_str=None, config_url='', config_id='default', auto_co
         print(f"Auto-generated config URL: {config_url}")
 
     # If config_url is provided, try to fetch config from it
-    if config_url:
+    # Only override values if they weren't explicitly provided
+    if config_url and not use_local_config:
         config = fetch_config_from_url(config_url)
         if config:
-            if 'target_time' in config:
+            if 'target_time' in config and target_time_str is None:
                 target_time_str = config['target_time']
                 print(f"Fetched target_time from config: {target_time_str}")
-            if 'start_time' in config:
+            if 'start_time' in config and start_time_str is None:
                 start_time_str = config['start_time']
                 print(f"Fetched start_time from config: {start_time_str}")
 
@@ -504,7 +505,7 @@ def generate_selector(timers_list):
                 <span class="status-badge status-{timer['status']}">{timer['status_label']}</span>
             </div>
             <div class="timer-preview">
-                <iframe src="output/{timer['html_file']}" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+                <iframe src="g-output/stable/{timer['html_file']}" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
             </div>
             <div class="progress-container">
                 <div class="progress-bar">
@@ -517,8 +518,8 @@ def generate_selector(timers_list):
                 <span class="target">🎯 Target: {timer['target_time']}</span>
             </p>
             <div class="card-actions">
-                <a href="output/{timer['html_file']}" class="timer-link" target="_blank">Open Full Timer →</a>
-                <a href="output/{timer['html_file']}" class="download-link" download="{timer['html_file']}" title="Download">⬇️</a>
+                <a href="g-output/stable/{timer['html_file']}" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="g-output/stable/{timer['html_file']}" class="download-link" download="{timer['html_file']}" title="Download">⬇️</a>
             </div>
         </div>'''
 

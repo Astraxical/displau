@@ -120,8 +120,8 @@ function updateProgressBars() {
             const total = (target - start);
             const elapsed = (now - start);
             progress = (elapsed / total) * 100;
-            // Format as ###.##%
-            progressText = `${progress.toFixed(2).padStart(6, '0')}%`;
+            // Format as ###.##% (e.g., 033.00%, 100.00%)
+            progressText = `${progress.toFixed(2).toString().padStart(6, '0')}%`;
         }
         
         // Update progress bar and text

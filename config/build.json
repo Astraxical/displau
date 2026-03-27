@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "github": {
+        "repo": "Astraxical/displau",
+        "branch": "master"
+    },
+    "paths": {
+        "timers": "timers",
+        "output": "output",
+        "components": "components"
+    },
+    "build": {
+        "default_target_time": "2026-03-31T05:00:00",
+        "output_pattern": "{config_id}.html",
+        "include_unused_scripts": false
+    },
+    "cache": {
+        "duration_minutes": 5,
+        "localStorage_key": "seven_segment_config"
+    }
+}

@@ -11,11 +11,21 @@ Thumbs.db
 *.swo
 *~
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+
 # Build artifacts (output is generated)
-g-output/stable/*.html
-g-output/experimental/*.html
-genbuild/output
-genbuild-experimental/output
+output/*.html
+src/index.html
 
 # Qwen settings
 .qwen/

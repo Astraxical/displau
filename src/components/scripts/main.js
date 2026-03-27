@@ -77,7 +77,7 @@ function updateCountdown() {
     // Skip update if paused
     if (isPaused) return;
 
-    // Apply catchup with smooth fade - gradually increase pauseOffset to make timer count faster
+    // Apply catchup with smooth fade - gradually increase pauseOffset from negative to 0
     if (catchupRemaining > 0) {
         const elapsed = Date.now() - catchupStartTime;
         const progress = Math.min(1, elapsed / catchupDuration);
@@ -85,16 +85,18 @@ function updateCountdown() {
         // Smooth ease-in-out curve: starts slow, peaks in middle, ends slow
         const speedCurve = Math.sin(progress * Math.PI);
         
-        // Calculate how much offset to add this update
+        // Calculate how much to reduce the remaining catchup
         const baseAmount = catchupRemaining / (catchupDuration / 10);
-        const addAmount = baseAmount * speedCurve * 1.5;
+        const reduceAmount = baseAmount * speedCurve * 1.5;
         
-        pauseOffset += addAmount;
-        catchupRemaining -= addAmount;
+        catchupRemaining -= reduceAmount;
+        // Increase pauseOffset toward 0 (from negative value)
+        pauseOffset = -catchupRemaining;
         
         if (catchupRemaining <= 0 || progress >= 1) {
             console.log('[Timer] Catchup complete');
             catchupRemaining = 0;
+            pauseOffset = 0;
             speedFactor = 1.0;
         } else {
             speedFactor = 1 + (speedCurve * 2);
@@ -348,18 +350,18 @@ function togglePause() {
         document.body.classList.add('paused');
         document.title = '⏸️ PAUSED';
     } else {
-        pauseDurationAtResume = Date.now() - pausedAt;
+        const pauseDuration = Date.now() - pausedAt;
         
-        // For catchup: start at paused time, then speed up to lose the paused duration
-        if (pauseDurationAtResume > 1000) { // Only catchup if paused for more than 1 second
-            catchupRemaining = pauseDurationAtResume;
+        // For catchup: compensate for paused time, then gradually remove compensation
+        if (pauseDuration > 1000) { // Only catchup if paused for more than 1 second
+            // Set offset to NEGATIVE pause duration so display continues from paused value
+            // Then gradually increase to 0 over 5 seconds (catching up)
+            pauseOffset = -pauseDuration;
+            catchupRemaining = pauseDuration;
             catchupStartTime = Date.now();
-            // DON'T add offset yet - start from paused time
-            // pauseOffset will increase during catchup to make timer count faster
             console.log(`[Timer] Resumed, catching up ${catchupRemaining}ms over 5s with fade`);
         } else {
-            // For short pauses, just add the offset directly (no noticeable jump)
-            pauseOffset += pauseDurationAtResume;
+            // For short pauses, no compensation needed
             console.log('[Timer] Resumed');
         }
         

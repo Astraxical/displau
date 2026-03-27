@@ -114,3 +114,9 @@ body {
 :fullscreen .timer-controls {
     bottom: 3rem;
 }
+
+/* Hide controls when embedded in iframe (preview mode) */
+body.embedded .button-panel,
+body.embedded .timer-controls {
+    display: none !important;
+}

@@ -706,7 +706,10 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
                 <span class="target">🎯 Target: {timer['target_time']}</span>
             </p>
             <div class="card-actions">
-                <a href="output/{timer['html_file']}" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="output/{timer['html_file']}" class="timer-link" target="_blank">
+                    <span>Open Timer</span>
+                    <span>→</span>
+                </a>
                 <a href="output/{timer['html_file']}" class="download-link" download="{timer['html_file']}" title="Download">⬇️</a>
             </div>
         </div>'''
@@ -718,21 +721,479 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>7 Segment Display - Timer Selector</title>
     <link rel="stylesheet" href="src/index/styles.css">
+    <link rel="stylesheet" href="src/components/styles/button-panel.css">
+    <style>
+        :root {{
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(20, 20, 30, 0.6);
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            --accent-primary: #00ff88;
+            --accent-secondary: #00cc6a;
+            --accent-glow: rgba(0, 255, 136, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-accent: rgba(0, 255, 136, 0.2);
+            --gradient-primary: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            --gradient-glow: linear-gradient(135deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 204, 106, 0.05) 100%);
+        }}
+
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+
+        body {{
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: 
+                radial-gradient(ellipse at top, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom right, rgba(0, 150, 100, 0.06) 0%, transparent 40%),
+                var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+        }}
+
+        body::before {{
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 136, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 136, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+            animation: gridMove 20s linear infinite;
+        }}
+
+        @keyframes gridMove {{
+            0% {{ transform: translate(0, 0); }}
+            100% {{ transform: translate(50px, 50px); }}
+        }}
+
+        body::after {{
+            content: '';
+            position: fixed;
+            top: 20%; right: 10%;
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(60px);
+            pointer-events: none;
+            z-index: 0;
+            animation: float 15s ease-in-out infinite;
+        }}
+
+        @keyframes float {{
+            0%, 100% {{ transform: translate(0, 0) scale(1); }}
+            50% {{ transform: translate(-30px, 20px) scale(1.1); }}
+        }}
+
+        .container {{
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            position: relative;
+            z-index: 1;
+        }}
+
+        .header-section {{
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }}
+
+        .header-section h1 {{
+            font-size: 3.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent-primary) 50%, #00cc6a 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.75rem;
+            text-shadow: 0 0 60px rgba(0, 255, 136, 0.3);
+            letter-spacing: -0.02em;
+        }}
+
+        .header-section .subtitle {{
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            max-width: 500px;
+            margin: 0 auto;
+        }}
+
+        .stats-bar {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }}
+
+        .stat-item {{
+            background: var(--bg-glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }}
+
+        .stat-item::before {{
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: var(--gradient-glow);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }}
+
+        .stat-item:hover {{
+            transform: translateY(-4px);
+            border-color: var(--border-accent);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 255, 136, 0.1);
+        }}
+
+        .stat-item:hover::before {{ opacity: 1; }}
+
+        .stat-item .stat-value {{
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 0.25rem;
+            position: relative;
+            z-index: 1;
+        }}
+
+        .stat-item .stat-label {{
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }}
+
+        .controls-wrapper {{
+            display: flex;
+            justify-content: center;
+            margin-bottom: 3rem;
+            position: relative;
+            z-index: 100;
+        }}
+
+        .button-panel {{
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 60px rgba(0, 255, 136, 0.05);
+        }}
+
+        .timers-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }}
+
+        .timers-grid.list-view {{ grid-template-columns: 1fr; }}
+
+        .timer-card {{
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 1.5rem;
+            backdrop-filter: blur(20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }}
+
+        .timer-card::before {{
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }}
+
+        .timer-card:hover {{
+            transform: translateY(-8px) scale(1.02);
+            border-color: var(--border-accent);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 255, 136, 0.15);
+        }}
+
+        .timer-card:hover::before {{ opacity: 1; }}
+
+        .timer-card.hidden {{ display: none; }}
+
+        .card-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }}
+
+        .card-header h3 {{
+            color: var(--text-primary);
+            font-size: 1.4rem;
+            font-weight: 700;
+        }}
+
+        .status-badge {{
+            padding: 0.4rem 0.9rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }}
+
+        .status-running {{
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--accent-primary);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }}
+
+        .status-running::before {{
+            content: '';
+            position: absolute;
+            top: 50%; left: 8px;
+            width: 6px; height: 6px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            transform: translateY(-50%);
+            animation: pulse 2s ease-in-out infinite;
+        }}
+
+        @keyframes pulse {{
+            0%, 100% {{ opacity: 1; transform: translateY(-50%) scale(1); }}
+            50% {{ opacity: 0.5; transform: translateY(-50%) scale(1.2); }}
+        }}
+
+        .status-upcoming {{
+            background: rgba(156, 39, 176, 0.15);
+            color: #e040fb;
+            border: 1px solid rgba(224, 64, 251, 0.3);
+        }}
+
+        .status-ended {{
+            background: rgba(244, 67, 54, 0.15);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }}
+
+        .timer-preview {{
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 1.25rem;
+            border: 1px solid var(--border-subtle);
+            position: relative;
+        }}
+
+        .timer-preview::after {{
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(0, 255, 136, 0.02) 100%);
+            pointer-events: none;
+        }}
+
+        .timer-preview iframe {{
+            width: 100%;
+            height: 140px;
+            border: none;
+            display: block;
+            pointer-events: none;
+        }}
+
+        .progress-container {{
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }}
+
+        .progress-bar {{
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }}
+
+        .progress-bar::before {{
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 2s infinite;
+        }}
+
+        @keyframes shimmer {{
+            0% {{ transform: translateX(-100%); }}
+            100% {{ transform: translateX(100%); }}
+        }}
+
+        .progress-fill {{
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+        }}
+
+        .progress-text {{
+            color: var(--accent-primary);
+            font-weight: 700;
+            min-width: 65px;
+            text-align: right;
+            font-size: 0.9rem;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+        }}
+
+        .time-info {{
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: var(--bg-glass);
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+        }}
+
+        .time-info span {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+
+        .card-actions {{
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }}
+
+        .timer-link {{
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+            text-decoration: none;
+            padding: 0.875rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }}
+
+        .timer-link::before {{
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }}
+
+        .timer-link:hover {{
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4), 0 0 20px rgba(0, 255, 136, 0.2);
+            transform: translateY(-2px);
+        }}
+
+        .timer-link:hover::before {{ opacity: 1; }}
+
+        .download-link {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: var(--bg-glass);
+            border-radius: 12px;
+            text-decoration: none;
+            font-size: 1.3rem;
+            transition: all 0.3s;
+            border: 1px solid var(--border-subtle);
+        }}
+
+        .download-link:hover {{
+            background: rgba(0, 255, 136, 0.15);
+            border-color: var(--border-accent);
+            transform: translateY(-2px);
+        }}
+
+        .footer {{
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }}
+
+        @media (max-width: 1024px) {{
+            .timers-grid {{ grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); }}
+        }}
+
+        @media (max-width: 768px) {{
+            .container {{ padding: 2rem 1rem; }}
+            .header-section h1 {{ font-size: 2.5rem; }}
+            .stats-bar {{ grid-template-columns: repeat(2, 1fr); gap: 1rem; }}
+            .stat-item {{ padding: 1rem; }}
+            .stat-item .stat-value {{ font-size: 2rem; }}
+            .timers-grid {{ grid-template-columns: 1fr; gap: 1.5rem; }}
+            .timer-preview iframe {{ height: 100px; }}
+        }}
+
+        @media (max-width: 480px) {{
+            .header-section h1 {{ font-size: 2rem; }}
+            .stats-bar {{ grid-template-columns: 1fr; }}
+            .button-panel {{ width: calc(100% - 2rem) !important; overflow-x: auto; }}
+        }}
+
+        ::-webkit-scrollbar {{ width: 10px; height: 10px; }}
+        ::-webkit-scrollbar-track {{ background: var(--bg-secondary); }}
+        ::-webkit-scrollbar-thumb {{ background: rgba(0, 255, 136, 0.3); border-radius: 5px; }}
+        ::-webkit-scrollbar-thumb:hover {{ background: rgba(0, 255, 136, 0.5); }}
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>⏱️ Timer Selector</h1>
-        <p class="subtitle">Select a countdown timer to view</p>
+        <header class="header-section">
+            <h1>⏱️ Timer Selector</h1>
+            <p class="subtitle">Monitor and manage your countdown timers in real-time</p>
+        </header>
 
-        <!-- Stats Bar -->
         <div class="stats-bar">
             <div class="stat-item">
                 <div class="stat-value">{total_timers}</div>
-                <div class="stat-label">Total</div>
+                <div class="stat-label">Total Timers</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value" style="color: #00ff88;">{running_count}</div>
-                <div class="stat-label">Running</div>
+                <div class="stat-label">Active</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value" style="color: #ffc107;">{upcoming_count}</div>
@@ -744,41 +1205,49 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
             </div>
         </div>
 
-        <!-- Controls -->
-        <div class="controls">
-            <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search timers...">
-            <select class="filter-select" id="statusFilter">
-                <option value="all">Show All</option>
-                <option value="running">Running</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="ended">Ended</option>
-            </select>
-            <select class="control-btn" id="sortSelect">
-                <option value="status">Sort: Status</option>
-                <option value="name">Sort: Name</option>
-                <option value="progress">Sort: Progress</option>
-                <option value="target">Sort: Target Date</option>
-            </select>
-            <button class="control-btn active" id="gridBtn" title="Grid View">▦</button>
-            <button class="control-btn" id="listBtn" title="List View">☰</button>
+        <div class="controls-wrapper">
+            <div class="button-panel button-panel-animate" id="controls">
+                <input type="text" class="panel-input" id="searchBox" placeholder="🔍 Search...">
+                <div class="panel-divider"></div>
+                <select class="panel-select" id="statusFilter">
+                    <option value="all">All Status</option>
+                    <option value="running">Running</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ended">Ended</option>
+                </select>
+                <select class="panel-select" id="sortSelect">
+                    <option value="status">Sort: Status</option>
+                    <option value="name">Sort: Name</option>
+                    <option value="progress">Sort: Progress</option>
+                    <option value="target">Sort: Target</option>
+                </select>
+                <div class="panel-divider"></div>
+                <button class="panel-btn panel-btn-primary active" id="gridBtn" title="Grid View" data-toggle="view" data-action="grid">
+                    <span class="btn-icon">▦</span>
+                    <span class="btn-text">Grid</span>
+                </button>
+                <button class="panel-btn" id="listBtn" title="List View" data-toggle="view" data-action="list">
+                    <span class="btn-icon">☰</span>
+                    <span class="btn-text">List</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Timers Grid -->
         <div class="timers-grid" id="timersGrid">
             {timer_cards}
         </div>
 
-        <div class="footer">
-            <p>7 Segment Display Timer System</p>
-        </div>
+        <footer class="footer">
+            <p>7 Segment Display Timer System &copy; 2026</p>
+        </footer>
     </div>
 
-    <!-- Version Watermark -->
     <div class="version-watermark-selector" data-version="__VERSION_TYPE__" data-build="__BUILD_DATE__">
         <span class="version-label">__VERSION_TYPE__</span>
         <span class="version-date">__BUILD_DATE__</span>
     </div>
 
+    <script src="src/components/scripts/button-panel.js"></script>
     <script src="src/index/script.js"></script>
 </body>
 </html>'''

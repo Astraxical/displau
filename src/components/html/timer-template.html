@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en" data-config-url="{{CONFIG_URL}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7 Segment Display</title>
+    <link rel="stylesheet" href="../src/components/styles/button-panel.css">
+    <style>
+        * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #1a1a2e;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Display Name */
+.timer-display-name {
+    position: fixed;
+    top: 5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #00ff88;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    z-index: 999;
+    text-align: center;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+/* Fullscreen styles */
+:fullscreen body {
+    background: #0a0a15;
+}
+
+.display {
+    display: flex;
+    gap: 1vw;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ============================================
+   VERSION WATERMARK
+   ============================================ */
+
+.version-watermark {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10000;
+    transition: opacity 0.3s;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.version-watermark.visible {
+    opacity: 0.5;
+}
+
+.version-watermark:hover {
+    opacity: 0.9 !important;
+}
+
+.version-label {
+    font-weight: bold;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.version-date {
+    font-size: 9px;
+    opacity: 0.5;
+}
+
+.version-watermark[data-version="STABLE"] {
+    border-color: rgba(0, 255, 136, 0.3);
+    color: rgba(0, 255, 136, 0.5);
+}
+
+.version-watermark[data-version="STABLE"] .version-label {
+    color: rgba(0, 255, 136, 0.7);
+}
+
+.version-watermark[data-version="EXPERIMENTAL"] {
+    border-color: rgba(255, 165, 0, 0.3);
+    color: rgba(255, 165, 0, 0.5);
+}
+
+.version-watermark[data-version="EXPERIMENTAL"] .version-label {
+    color: rgba(255, 165, 0, 0.7);
+}
+
+.version-watermark[data-age="fresh"] {
+    border-color: rgba(0, 255, 200, 0.5) !important;
+    color: rgba(0, 255, 200, 0.8) !important;
+    opacity: 0.7;
+}
+
+.version-watermark[data-age="fresh"] .version-label {
+    color: rgba(0, 255, 200, 1) !important;
+}
+
+.version-watermark[data-age="old"] {
+    border-color: rgba(255, 69, 0, 0.5) !important;
+    color: rgba(255, 69, 0, 0.8) !important;
+    opacity: 0.7;
+}
+
+.version-watermark[data-age="old"] .version-label {
+    color: rgba(255, 69, 0, 1) !important;
+}
+
+@media (max-width: 768px) {
+    .version-watermark {
+        bottom: 5px;
+        right: 5px;
+        padding: 4px 8px;
+        font-size: 9px;
+    }
+
+    .version-label {
+        font-size: 10px;
+    }
+
+    .version-date {
+        font-size: 8px;
+    }
+}
+
+/* ============================================
+   EXPIRED STATE STYLES
+   ============================================ */
+
+body.expired {
+    animation: expiredPulse 2s ease-in-out infinite;
+}
+
+@keyframes expiredPulse {
+    0%, 100% {
+        background: #1a1a2e;
+    }
+    50% {
+        background: #2a1a1e;
+    }
+}
+
+body.expired .segment-part.on {
+    animation: expiredFlash 1s ease-in-out infinite;
+}
+
+@keyframes expiredFlash {
+    0%, 100% {
+        background: #ff0000;
+        box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000, 0 0 45px #ff0000;
+    }
+    50% {
+        background: #ff4444;
+        box-shadow: 0 0 25px #ff0000, 0 0 50px #ff0000, 0 0 75px #ff0000;
+    }
+}
+
+body.expired .colon-dot.on {
+    animation: expiredFlash 1s ease-in-out infinite;
+}
+
+.expired-message {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    animation: expiredMessagePulse 2s ease-in-out infinite;
+}
+
+.expired-text {
+    font-size: 8vw;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    color: #ff0000;
+    text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000;
+    letter-spacing: 0.5rem;
+    animation: expiredTextFlash 1.5s ease-in-out infinite;
+}
+
+.expired-subtext {
+    font-size: 2vw;
+    color: #ff6666;
+    text-shadow: 0 0 10px #ff0000;
+    letter-spacing: 0.2rem;
+}
+
+@keyframes expiredMessagePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+@keyframes expiredTextFlash {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000;
+    }
+    50% {
+        opacity: 0.7;
+        text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000, 0 0 90px #ff0000;
+    }
+}
+
+.minus-sign {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 0.5vw;
+}
+
+.minus-bar {
+    width: 3vw;
+    height: 0.8vw;
+    background: #ff1493;
+    border-radius: 2px;
+    box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
+    animation: minusPulse 2s ease-in-out infinite;
+}
+
+@keyframes minusPulse {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
+    }
+    50% {
+        opacity: 0.8;
+        box-shadow: 0 0 15px #ff1493, 0 0 30px #ff1493;
+    }
+}
+
+@media (max-width: 768px) {
+    .expired-text {
+        font-size: 12vw;
+    }
+
+    .expired-subtext {
+        font-size: 4vw;
+    }
+
+    .minus-bar {
+        width: 5vw;
+        height: 1.2vw;
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #1a1a2e;
+    overflow: hidden;
+}
+
+.display {
+    display: flex;
+    gap: 1vw;
+    justify-content: center;
+    align-items: center;
+}
+
+.segment {
+    width: 8vw;
+    height: 14vw;
+    position: relative;
+}
+
+.segment-part {
+    position: absolute;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.segment-part.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+.seg-a, .seg-d, .seg-g {
+    width: 5.5vw;
+    height: 1vw;
+    left: 1.25vw;
+    clip-path: polygon(0.6vw 0, 100% 0, 100% 100%, 0.6vw 100%, 0 50%);
+}
+
+.seg-a { top: 0; }
+.seg-d { bottom: 0; }
+.seg-g { top: 6.5vw; }
+
+.seg-b, .seg-c, .seg-e, .seg-f {
+    width: 1vw;
+    height: 5.5vw;
+    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+}
+
+.seg-b { top: 0.6vw; right: 0; }
+.seg-c { bottom: 0.6vw; right: 0; }
+.seg-e { bottom: 0.6vw; left: 0; }
+.seg-f { top: 0.6vw; left: 0; }
+
+.colon {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2vw;
+}
+
+.colon-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.colon-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+.decimal {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 2vw;
+}
+
+.decimal-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.decimal-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+.seg-a, .seg-d, .seg-g {
+    width: 5.5vw;
+    height: 1vw;
+    left: 1.25vw;
+    clip-path: polygon(0.6vw 0, 100% 0, 100% 100%, 0.6vw 100%, 0 50%);
+}
+
+.seg-a { top: 0; }
+.seg-d { bottom: 0; }
+.seg-g { top: 6.5vw; }
+
+.seg-b, .seg-c, .seg-e, .seg-f {
+    width: 1vw;
+    height: 5.5vw;
+    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+}
+
+.seg-b { top: 0.6vw; right: 0; }
+.seg-c { bottom: 0.6vw; right: 0; }
+.seg-e { bottom: 0.6vw; left: 0; }
+.seg-f { top: 0.6vw; left: 0; }
+
+.colon {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2vw;
+}
+
+.colon-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.colon-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+.decimal {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 1vw;
+}
+
+.decimal .colon-dot {
+    margin-bottom: 0.5vw;
+}
+
+    </style>
+</head>
+<body>
+    <!-- Display Name Overlay -->
+    <div class="timer-display-name" id="displayName" title="{{DISPLAY_NAME}}">
+        {{DISPLAY_NAME}}
+    </div>
+
+    <!-- 7-Segment Display -->
+    <div class="display" id="display">
+        <!-- Dynamic countdown display -->
+    </div>
+
+    <!-- Control Buttons - Unified Button Panel -->
+    <div class="button-panel button-panel-bottom button-panel-animate" id="controls">
+        <button class="panel-btn panel-btn-primary" id="pauseBtn" title="Pause/Resume (Space)" data-shortcut=" " data-action="pause">
+            <span class="btn-icon">⏸️</span>
+            <span class="btn-text">Pause</span>
+        </button>
+        <button class="panel-btn" id="fullscreenBtn" title="Fullscreen (F)" data-shortcut="f" data-action="fullscreen">
+            <span class="btn-icon">⛶</span>
+            <span class="btn-text">Fullscreen</span>
+        </button>
+    </div>
+
+    <!-- Version Watermark -->
+    <div class="version-watermark" data-version="STABLE" data-build="{{VERSION}}">
+        <span class="version-label">STABLE</span>
+        <span class="version-date">{{VERSION}}</span>
+    </div>
+
+    <script>

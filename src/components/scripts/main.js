@@ -108,31 +108,12 @@ function updateCountdown() {
     document.title = `${timeStr.split('.')[0]} - ${displayName}`;
 }
 
-function toggleFullscreen() {
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-            console.log('Fullscreen error:', err);
-        });
-        if (fullscreenBtn) {
-            fullscreenBtn.textContent = '⛶ Exit Fullscreen';
-            fullscreenBtn.title = 'Exit fullscreen';
-        }
-    } else {
-        document.exitFullscreen();
-        if (fullscreenBtn) {
-            fullscreenBtn.textContent = '⛶ Fullscreen';
-            fullscreenBtn.title = 'Enter fullscreen';
-        }
-    }
-}
-
 // Listen for fullscreen changes
 document.addEventListener('fullscreenchange', () => {
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     if (!document.fullscreenElement) {
         if (fullscreenBtn) {
-            fullscreenBtn.textContent = '⛶ Fullscreen';
+            fullscreenBtn.textContent = '⛶';
             fullscreenBtn.title = 'Enter fullscreen';
         }
     }
@@ -194,23 +175,35 @@ async function init() {
 function addControlButtons() {
     const controls = document.createElement('div');
     controls.className = 'timer-controls';
-    
+
     // Check initial notification permission
     const notifPermission = getNotificationPermission();
     const notifBtnTitle = notifPermission === 'granted' ? 'Notifications enabled' : 'Enable notifications';
     const notifBtnIcon = notifPermission === 'granted' ? '🔔' : '🔕';
-    
+
     controls.innerHTML = `
-        <button id="pauseBtn" class="control-btn" title="Pause timer">⏸️ Pause</button>
-        <button id="notifBtn" class="control-btn" title="${notifBtnTitle}">${notifBtnIcon} Notify</button>
-        <button id="fullscreenBtn" class="control-btn" title="Enter fullscreen">⛶ Fullscreen</button>
+        <button id="pauseBtn" class="control-btn" title="Pause/Resume (Space)">⏸️</button>
+        <button id="hideBtn" class="control-btn" title="Hide/Show (H)">🙈</button>
+        <button id="fullscreenBtn" class="control-btn" title="Fullscreen (F)">⛶</button>
     `;
     document.body.appendChild(controls);
 
     // Add event listeners
-    document.getElementById('pauseBtn').addEventListener('click', togglePause);
-    document.getElementById('notifBtn').addEventListener('click', toggleNotifications);
-    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+    const pauseBtn = document.getElementById('pauseBtn');
+    const hideBtn = document.getElementById('hideBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+    if (pauseBtn) {
+        pauseBtn.addEventListener('click', togglePause);
+    }
+
+    if (hideBtn) {
+        hideBtn.addEventListener('click', toggleHide);
+    }
+
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+    }
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -221,8 +214,8 @@ function addControlButtons() {
         if (e.code === 'KeyF') {
             toggleFullscreen();
         }
-        if (e.code === 'KeyN') {
-            toggleNotifications();
+        if (e.code === 'KeyH') {
+            toggleHide();
         }
     });
 }
@@ -334,50 +327,12 @@ function setupWatermarkVisibility() {
 }
 
 /**
- * Setup keyboard shortcuts
- */
-function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', (e) => {
-        // Space: Pause/Resume
-        if (e.code === 'Space' && e.target === document.body) {
-            e.preventDefault();
-            togglePause();
-        }
-        // F: Fullscreen
-        if (e.code === 'KeyF') {
-            e.preventDefault();
-            toggleFullscreen();
-        }
-        // M: Toggle notifications (future feature)
-        if (e.code === 'KeyM') {
-            e.preventDefault();
-            console.log('[Keyboard] M pressed - notifications toggle (future feature)');
-        }
-    });
-}
-
-/**
- * Setup control button handlers
- */
-function setupControlButtons() {
-    const pauseBtn = document.getElementById('pauseBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-
-    if (pauseBtn) {
-        pauseBtn.addEventListener('click', togglePause);
-    }
-
-    if (fullscreenBtn) {
-        fullscreenBtn.addEventListener('click', toggleFullscreen);
-    }
-}
-
-/**
  * Toggle pause/resume
  */
 function togglePause() {
     isPaused = !isPaused;
-    
+    const pauseBtn = document.getElementById('pauseBtn');
+
     if (isPaused) {
         pausedAt = Date.now();
         console.log('[Timer] Paused');
@@ -392,20 +347,46 @@ function togglePause() {
 }
 
 /**
+ * Toggle hide/show controls
+ */
+let controlsVisible = true;
+function toggleHide() {
+    const controls = document.querySelector('.timer-controls');
+    const displayName = document.querySelector('.timer-display-name');
+
+    controlsVisible = !controlsVisible;
+
+    if (controls) {
+        controls.style.opacity = controlsVisible ? '1' : '0';
+        controls.style.pointerEvents = controlsVisible ? 'auto' : 'none';
+    }
+
+    if (displayName) {
+        displayName.style.opacity = controlsVisible ? '1' : '0';
+    }
+
+    console.log('[Timer] Controls', controlsVisible ? 'shown' : 'hidden');
+}
+
+/**
  * Toggle fullscreen
  */
 function toggleFullscreen() {
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
             console.log('[Fullscreen] Error:', err);
         });
+        if (fullscreenBtn) {
+            fullscreenBtn.textContent = '⛶ Exit';
+        }
     } else {
         document.exitFullscreen();
+        if (fullscreenBtn) {
+            fullscreenBtn.textContent = '⛶';
+        }
     }
 }
-
-// Get pause button reference
-const pauseBtn = document.getElementById('pauseBtn');
 
 // Start initialization
 init();
@@ -414,6 +395,4 @@ init();
 setTimeout(() => {
     updateWatermarkAge();
     setupWatermarkVisibility();
-    setupKeyboardShortcuts();
-    setupControlButtons();
 }, 500);

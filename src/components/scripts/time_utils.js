@@ -6,36 +6,39 @@ function getCurrentTimeValue() {
     const start = new Date(START_TIME).getTime();
     const target = new Date(TARGET_TIME).getTime();
     const now = Date.now();
-    
+
+    // Apply pause offset (for catchup after pause)
+    const adjustedNow = now - pauseOffset;
+
     if (DIRECTION === 'up') {
         // Counting up from start_time (stopwatch mode)
-        const elapsed = now - start;
-        
+        const elapsed = adjustedNow - start;
+
         // Apply max_value limit if set
         if (MAX_VALUE !== null && elapsed > MAX_VALUE) {
             return MAX_VALUE;
         }
-        
+
         // Apply min_value limit if set
         if (MIN_VALUE !== null && elapsed < MIN_VALUE) {
             return MIN_VALUE;
         }
-        
+
         return elapsed;
     } else {
         // Counting down to target_time (classic mode)
-        const remaining = target - now;
-        
+        const remaining = target - adjustedNow;
+
         // Apply min_value limit if set
         if (MIN_VALUE !== null && remaining < MIN_VALUE) {
             return MIN_VALUE;
         }
-        
+
         // Apply max_value limit if set
         if (MAX_VALUE !== null && remaining > MAX_VALUE) {
             return MAX_VALUE;
         }
-        
+
         return remaining;
     }
 }

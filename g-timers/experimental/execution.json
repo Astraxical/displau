@@ -2,8 +2,8 @@
     "id": "execution",
     "display_name": "Execution",
     "description": "Project execution phase",
-    "target_time": "2026-04-15T00:00:00",
-    "start_time": "2026-03-15T00:00:00",
+    "target_time": "2026-04-15T08:00:00",
+    "start_time": "2026-03-15T08:00:00",
     "direction": "down",
     "min_value": 0,
     "max_value": null,
@@ -13,5 +13,5 @@
     "category": "work",
     "color_theme": "progress",
     "show_milliseconds": true,
-    "timezone": "UTC"
+    "timezone": "UTC+8"
 }

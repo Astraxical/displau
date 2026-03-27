@@ -2,8 +2,8 @@
     "id": "assembly",
     "display_name": "Assembly Countdown",
     "description": "Countdown to assembly event",
-    "target_time": "2026-03-24T05:30:00",
-    "start_time": "2026-03-21T23:54:57",
+    "target_time": "2026-03-24T13:30:00",
+    "start_time": "2026-03-22T07:54:57",
     "direction": "down",
     "min_value": 0,
     "max_value": null,
@@ -13,5 +13,5 @@
     "category": "work",
     "color_theme": "progress",
     "show_milliseconds": true,
-    "timezone": "UTC"
+    "timezone": "UTC+8"
 }

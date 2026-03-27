@@ -14,11 +14,11 @@
         <!-- Stats Bar -->
         <div class="stats-bar">
             <div class="stat-item">
-                <div class="stat-value">3</div>
+                <div class="stat-value">4</div>
                 <div class="stat-label">Total</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" style="color: #00ff88;">2</div>
+                <div class="stat-value" style="color: #00ff88;">3</div>
                 <div class="stat-label">Running</div>
             </div>
             <div class="stat-item">
@@ -53,6 +53,29 @@
         <!-- Timers Grid -->
         <div class="timers-grid" id="timersGrid">
             
+        <div class="timer-card" data-status="running" data-name="recognision">
+            <div class="card-header">
+                <h3>Recognision Day</h3>
+                <span class="status-badge status-running">Running</span>
+            </div>
+            <div class="timer-preview">
+                <iframe src="output/recognision.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 77.6%"></div>
+                </div>
+                <span class="progress-text">077.62%</span>
+            </div>
+            <p class="time-info">
+                <span class="start">📅 Start: 2026-03-27T00:00:00</span>
+                <span class="target">🎯 Target: 2026-03-27T14:30:00</span>
+            </p>
+            <div class="card-actions">
+                <a href="output/recognision.html" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="output/recognision.html" class="download-link" download="recognision.html" title="Download">⬇️</a>
+            </div>
+        </div>
         <div class="timer-card" data-status="running" data-name="graduation">
             <div class="card-header">
                 <h3>Graduation Day</h3>
@@ -130,9 +153,9 @@
     </div>
 
     <!-- Version Watermark -->
-    <div class="version-watermark-selector" data-version="STABLE" data-build="2.0.0.20260327111449.stable">
+    <div class="version-watermark-selector" data-version="STABLE" data-build="2.0.0.20260327111518.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260327111449.stable</span>
+        <span class="version-date">2.0.0.20260327111518.stable</span>
     </div>
 
     <script src="src/index/script.js"></script>

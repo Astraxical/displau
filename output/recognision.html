@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/execution.json">
+<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/recognision.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -565,9 +565,9 @@ body {
     </div>
 
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327111517.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327111518.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260327111517.stable</span>
+        <span class="version-date">2.0.0.20260327111518.stable</span>
     </div>
 
     <script>
@@ -575,8 +575,8 @@ body {
         // ============ CONFIGURATION ============
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
-    target_time: '2026-04-15T00:00:00',
-    start_time: '2026-03-15T08:00:00',
+    target_time: '2026-03-27T14:30:00',
+    start_time: '2026-03-27T08:00:00',
     display_name: '',
     config_id: 'default',
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
@@ -603,8 +603,8 @@ const DEFAULTS = {
         { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 1601082164;
-const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/execution.json'; // Injected by build script
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 11682021;
+const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/recognision.json'; // Injected by build script
 // =======================================
 
 // Cache configuration
@@ -652,7 +652,7 @@ async function loadConfig() {
     }
     
     // Try fetch from GitHub
-    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/execution.json') {
+    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/recognision.json') {
         try {
             console.log('[Config] Fetching config from:', CONFIG_URL);
             const response = await fetch(CONFIG_URL, {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/limerance-dead.json">
+<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/inactive/limerance-dead.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -561,8 +561,8 @@ body {
 </head>
 <body>
     <!-- Display Name Overlay -->
-    <div class="timer-display-name" id="displayName" title="">
-        
+    <div class="timer-display-name" id="displayName" title="Limerance Dead">
+        Limerance Dead
     </div>
 
     <!-- 7-Segment Display -->
@@ -577,9 +577,9 @@ body {
     </div>
 
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327122219.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327122444.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260327122219.stable</span>
+        <span class="version-date">2.0.0.20260327122444.stable</span>
     </div>
 
     <script>
@@ -588,7 +588,7 @@ body {
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
     target_time: '2026-03-24T00:00:00',
-    start_time: '2026-03-27T12:22:18',
+    start_time: '2026-03-17T00:00:00',
     display_name: '',
     config_id: 'default',
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
@@ -616,7 +616,7 @@ const DEFAULTS = {
     ]
 };
 const MILLISECONDS_AT_FULL_BRIGHTNESS = 0;
-const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/limerance-dead.json'; // Injected by build script
+const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/inactive/limerance-dead.json'; // Injected by build script
 // =======================================
 
 // Cache configuration
@@ -664,7 +664,7 @@ async function loadConfig() {
     }
     
     // Try fetch from GitHub
-    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/limerance-dead.json') {
+    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/inactive/limerance-dead.json') {
         try {
             console.log('[Config] Fetching config from:', CONFIG_URL);
             const response = await fetch(CONFIG_URL, {

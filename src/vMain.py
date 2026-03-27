@@ -218,8 +218,10 @@ def replace_placeholders(
     return content
 
 
-def get_config_url(config_id: str) -> str:
+def get_config_url(config_id: str, relative_path: str = None) -> str:
     """Generate GitHub raw URL for a config file."""
+    if relative_path:
+        return f"https://raw.githubusercontent.com/{GITHUB_REPO}/refs/heads/{GITHUB_BRANCH}/{relative_path}"
     return f"https://raw.githubusercontent.com/{GITHUB_REPO}/refs/heads/{GITHUB_BRANCH}/{TIMERS_PATH}/{config_id}.json"
 
 
@@ -258,14 +260,15 @@ def build_html(
     config_id: str = 'default',
     auto_config: bool = True,
     start_time_str: Optional[str] = None,
-    use_local_config: bool = False
+    use_local_config: bool = False,
+    config_relative_path: str = None
 ) -> None:
     """Generate the HTML file from components."""
     if target_time_str is None:
         target_time_str = DEFAULT_TARGET_TIME
 
     if auto_config and not config_url:
-        config_url = get_config_url(config_id)
+        config_url = get_config_url(config_id, config_relative_path)
         logger.info(f"Auto-generated config URL: {config_url}")
 
     if config_url and not use_local_config:
@@ -517,13 +520,22 @@ def build_timers_folder(generate_selector_page: bool = False, organize: bool = T
 
         config_id = timer.get('id', timer_file.stem)
         target_time = timer.get('target_time', None)
+        
+        # Calculate relative path from TIMERS_DIR for GitHub URL
+        try:
+            relative_path = timer_file.relative_to(TIMERS_DIR)
+            config_relative_path = f"{TIMERS_PATH}/{relative_path}"
+        except ValueError:
+            config_relative_path = None
+        
         timer_ids.add(config_id)
 
         logger.info(f"[{i}/{len(timer_files)}] Building {config_id}...")
         build_html(
             target_time_str=target_time,
             config_id=config_id,
-            auto_config=True
+            auto_config=True,
+            config_relative_path=config_relative_path
         )
 
         timers_list.append(timer)

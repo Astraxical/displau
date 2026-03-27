@@ -11,6 +11,7 @@ let speedFactor = 1.0;
 let catchupRemaining = 0; // Time left to catch up (in ms)
 let catchupDuration = 5000; // Total catchup duration (5 seconds)
 let catchupStartTime = 0; // When catchup started
+let pauseDurationAtResume = 0; // How long we were paused
 
 // Expiry state
 let hasExpired = false;
@@ -76,31 +77,30 @@ function updateCountdown() {
     // Skip update if paused
     if (isPaused) return;
 
-    // Apply catchup speed with smooth fade in/out
+    // Apply catchup with smooth fade - gradually reduce pauseOffset over 5 seconds
     if (catchupRemaining > 0) {
         const elapsed = Date.now() - catchupStartTime;
         const progress = Math.min(1, elapsed / catchupDuration);
         
-        // Smooth ease-in-out curve for speed fade
-        // Starts slow, peaks in middle, ends slow
+        // Smooth ease-in-out curve: starts slow, peaks in middle, ends slow
+        // Using sine curve for smooth acceleration/deceleration
         const speedCurve = Math.sin(progress * Math.PI);
         
-        // Calculate catchup amount based on curve
-        // Total catchup over 5s with ~10ms updates = ~500 updates
-        // Average speed = catchupRemaining / 500, peak = ~3x average
+        // Calculate how much offset to remove this update
+        // Total catchupRemaining spread over 5 seconds with sine curve
         const baseAmount = catchupRemaining / (catchupDuration / 10);
-        const catchupAmount = baseAmount * speedCurve * 1.5; // Scale to ensure we catch up in time
+        const removeAmount = baseAmount * speedCurve * 1.5;
         
-        pauseOffset += catchupAmount;
-        catchupRemaining -= catchupAmount;
+        pauseOffset = Math.max(0, pauseOffset - removeAmount);
+        catchupRemaining -= removeAmount;
         
         if (catchupRemaining <= 0 || progress >= 1) {
             console.log('[Timer] Catchup complete');
             catchupRemaining = 0;
+            pauseOffset = 0;
             speedFactor = 1.0;
         } else {
-            // Update speed factor for display/debug
-            speedFactor = 1 + (speedCurve * 2); // 1x to 3x speed
+            speedFactor = 1 + (speedCurve * 2);
         }
     }
 
@@ -351,16 +351,18 @@ function togglePause() {
         document.body.classList.add('paused');
         document.title = '⏸️ PAUSED';
     } else {
-        const pauseDuration = Date.now() - pausedAt;
+        pauseDurationAtResume = Date.now() - pausedAt;
         
         // Calculate catchup: make up lost time over 5 seconds with smooth fade
-        if (pauseDuration > 1000) { // Only catchup if paused for more than 1 second
-            catchupRemaining = pauseDuration;
+        if (pauseDurationAtResume > 1000) { // Only catchup if paused for more than 1 second
+            catchupRemaining = pauseDurationAtResume;
             catchupStartTime = Date.now();
+            // Add the pause duration immediately so there's no jump on resume
+            pauseOffset += pauseDurationAtResume;
             console.log(`[Timer] Resumed, catching up ${catchupRemaining}ms over 5s with fade`);
         } else {
             // For short pauses, just add the offset directly
-            pauseOffset += pauseDuration;
+            pauseOffset += pauseDurationAtResume;
             console.log('[Timer] Resumed');
         }
         

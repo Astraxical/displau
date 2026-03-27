@@ -23,10 +23,6 @@ ENV/
 env/
 .pytest_cache/
 
-# Build artifacts (output is generated)
-output/*.html
-src/index.html
-
 # Qwen settings
 .qwen/
 

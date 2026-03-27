@@ -334,13 +334,15 @@ function togglePause() {
         document.title = '⏸️ PAUSED';
     } else {
         const pauseDuration = Date.now() - pausedAt;
-        pauseOffset += pauseDuration;
         
         // Calculate catchup: make up lost time over 5 seconds
+        // Don't add pauseOffset immediately - let catchup handle it gradually
         if (pauseDuration > 1000) { // Only catchup if paused for more than 1 second
             catchupRemaining = pauseDuration;
             console.log(`[Timer] Resumed, catching up ${catchupRemaining}ms over 5s`);
         } else {
+            // For short pauses, just add the offset directly
+            pauseOffset += pauseDuration;
             console.log('[Timer] Resumed');
         }
         

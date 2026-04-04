@@ -21,45 +21,6 @@ body {
     position: relative;
 }
 
-/* Control Buttons */
-.timer-controls {
-    position: fixed;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 1rem;
-    z-index: 1000;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.control-btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 8px;
-    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 204, 106, 0.2) 100%);
-    color: #00ff88;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s;
-    border: 1px solid rgba(0, 255, 136, 0.3);
-}
-
-.control-btn:hover {
-    background: linear-gradient(135deg, rgba(0, 255, 136, 0.4) 0%, rgba(0, 204, 106, 0.4) 100%);
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
-    transform: translateY(-2px);
-}
-
-.control-btn:active {
-    transform: translateY(0);
-}
-
 /* Display Name */
 .timer-display-name {
     position: fixed;
@@ -76,56 +37,12 @@ body {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
     border: 1px solid rgba(0, 255, 136, 0.2);
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .timer-controls {
-        bottom: 1rem;
-        gap: 0.5rem;
-        padding: 0.75rem;
-    }
-
-    .control-btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.9rem;
-    }
-
-    .timer-display-name {
-        top: 1rem;
-        font-size: 1.2rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .timer-controls {
-        left: 50%;
-        transform: translateX(-50%);
-        width: calc(100% - 2rem);
-        justify-content: center;
-    }
-
-    .control-btn {
-        flex: 1;
-        max-width: 120px;
-    }
-
-    .timer-display-name {
-        font-size: 1rem;
-        max-width: calc(100% - 2rem);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
+    transition: opacity 0.3s;
 }
 
 /* Fullscreen styles */
 :fullscreen body {
     background: #0a0a15;
-}
-
-:fullscreen .timer-controls {
-    bottom: 3rem;
 }
 
 .display {
@@ -560,8 +477,8 @@ body {
     </style>
 </head>
 <body>
-    <!-- Display Name Overlay -->
-    <div class="timer-display-name" id="displayName" title="Execution">
+    <!-- Display Name Overlay (hidden by default) -->
+    <div class="timer-display-name" id="displayName" title="Execution" style="opacity: 0;">
         Execution
     </div>
 
@@ -570,16 +487,10 @@ body {
         <!-- Dynamic countdown display -->
     </div>
 
-    <!-- Control Buttons -->
-    <div class="timer-controls" id="controls">
-        <button class="control-btn" id="pauseBtn" title="Pause/Resume (Space)">⏸️</button>
-        <button class="control-btn" id="fullscreenBtn" title="Fullscreen (F)">⛶</button>
-    </div>
-
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260327123003.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260404214502.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260327123003.stable</span>
+        <span class="version-date">2.0.0.20260404214502.stable</span>
     </div>
 
     <script>
@@ -615,7 +526,7 @@ const DEFAULTS = {
         { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 1596596410;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 872097498;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/execution.json'; // Injected by build script
 // =======================================
 
@@ -827,36 +738,36 @@ function getCurrentTimeValue() {
     const start = new Date(START_TIME).getTime();
     const target = new Date(TARGET_TIME).getTime();
     const now = Date.now();
-    
+
     if (DIRECTION === 'up') {
         // Counting up from start_time (stopwatch mode)
         const elapsed = now - start;
-        
+
         // Apply max_value limit if set
         if (MAX_VALUE !== null && elapsed > MAX_VALUE) {
             return MAX_VALUE;
         }
-        
+
         // Apply min_value limit if set
         if (MIN_VALUE !== null && elapsed < MIN_VALUE) {
             return MIN_VALUE;
         }
-        
+
         return elapsed;
     } else {
         // Counting down to target_time (classic mode)
         const remaining = target - now;
-        
+
         // Apply min_value limit if set
         if (MIN_VALUE !== null && remaining < MIN_VALUE) {
             return MIN_VALUE;
         }
-        
+
         // Apply max_value limit if set
         if (MAX_VALUE !== null && remaining > MAX_VALUE) {
             return MAX_VALUE;
         }
-        
+
         return remaining;
     }
 }
@@ -1399,13 +1310,19 @@ function getNotificationPermission() {
 // Timer state
 let isPaused = false;
 let pausedAt = null;
-let pauseOffset = 0;
 let updateInterval;
 let colorInterval;
 let lastRealTime = Date.now();
 
-// Speed adjustment for sync
-let speedFactor = 1.0;
+// Three-time model for smooth pause/catchup
+let displayTime = 0;   // What's being displayed (freezes on pause)
+let actualTime = 0;    // Real time value (always updates)
+let maximumTime = 0;   // Original remaining when timer started
+
+// Catchup state
+let catchupRemaining = 0; // Time gap to close (display vs actual)
+let catchupDuration = 5000; // Total catchup duration (5 seconds)
+let catchupStartTime = 0; // When catchup started
 
 // Expiry state
 let hasExpired = false;
@@ -1419,6 +1336,14 @@ let colorIntervalMs = 30;
 
 // Check if embedded in iframe
 const isEmbedded = window.self !== window.top;
+
+// Add embedded class to body if in iframe
+if (isEmbedded) {
+    document.body.classList.add('embedded');
+}
+
+// Hide display name by default
+let displayNameVisible = false;
 
 /**
  * Handle timer expiry - called once when timer reaches zero
@@ -1463,47 +1388,48 @@ function updateCountdown() {
     // Skip update if paused
     if (isPaused) return;
 
-    // Use the new direction-aware time value function
-    const currentTimeValue = getCurrentTimeValue();
-    
-    // For down direction, check if expired
-    if (DIRECTION === 'down' && isExpired()) {
-        if (!hasExpired) {
-            handleExpiry();
-        }
+    // Update actual time (always runs, even during catchup)
+    actualTime = getCurrentTimeValue();
 
-        // Handle different expiry behaviors
-        const onExpire = ON_EXPIRE || 'stop';
-
-        if (onExpire === 'continue') {
-            // Show negative time
-            const elapsed = getTimeSinceExpiry();
-            const timeStr = formatNegativeTime(elapsed);
-            updateDisplay(timeStr);
-            document.title = `${timeStr.split('.')[0]} - ${DISPLAY_NAME || 'Timer'}`;
-        } else if (onExpire !== 'hide') {
-            // Stop at zero (default behavior)
-            updateDisplay('00:00:00:00');
+    // Apply catchup with smooth fade - display catches up to actual
+    if (catchupRemaining > 0) {
+        const elapsed = Date.now() - catchupStartTime;
+        const progress = Math.min(1, elapsed / catchupDuration);
+        
+        // Smooth ease-in-out curve: starts slow, peaks in middle, ends slow
+        const speedCurve = Math.sin(progress * Math.PI);
+        
+        // Calculate how much to reduce the remaining catchup
+        const baseAmount = catchupRemaining / (catchupDuration / 10);
+        const reduceAmount = baseAmount * speedCurve * 1.5;
+        
+        catchupRemaining = Math.max(0, catchupRemaining - reduceAmount);
+        
+        if (catchupRemaining <= 0 || progress >= 1) {
+            console.log('[Timer] Catchup complete');
+            catchupRemaining = 0;
+            displayTime = actualTime;
+        } else {
+            // Display time is actual minus remaining gap
+            displayTime = actualTime - catchupRemaining;
         }
-        // 'hide' is handled by showExpiredMessage()
-        return;
+    } else {
+        // No catchup, display follows actual
+        displayTime = actualTime;
     }
 
-    // For up direction, just display elapsed time
-    if (DIRECTION === 'up') {
-        const timeStr = formatTime(currentTimeValue);
-        updateDisplay(timeStr);
-        document.title = `${timeStr.split('.')[0]} - ${DISPLAY_NAME || 'Timer'}`;
-        return;
-    }
-
-    // For down direction (not expired yet)
-    const timeStr = formatTime(Math.max(0, currentTimeValue));
+    // Use displayTime for visual output
+    const timeStr = formatTime(Math.max(0, displayTime));
     updateDisplay(timeStr);
 
     // Update document title
     const displayName = DISPLAY_NAME || '7 Segment Timer';
     document.title = `${timeStr.split('.')[0]} - ${displayName}`;
+
+    // Handle expiry (down direction only)
+    if (DIRECTION === 'down' && isExpired() && !hasExpired) {
+        handleExpiry();
+    }
 }
 
 // Listen for fullscreen changes
@@ -1552,6 +1478,11 @@ async function init() {
     // Wait for config to load
     await loadConfig();
 
+    // Initialize three-time model
+    actualTime = getCurrentTimeValue();
+    displayTime = actualTime;
+    maximumTime = actualTime;
+
     const remainingRatio = calculateRemainingRatio();
     currentColor = getColorForRemainingRatio(remainingRatio);
     targetColor = currentColor;
@@ -1563,56 +1494,29 @@ async function init() {
     colorInterval = setInterval(updateColorTransition, colorIntervalMs);
     lastRealTime = Date.now();
 
-    // Add control buttons (only if not embedded)
-    if (!isEmbedded) {
-        addControlButtons();
-        addDisplayName();
-    }
+    // Add display name
+    addDisplayName();
+
+    // Keyboard shortcuts (no visible buttons)
+    setupKeyboardShortcuts();
 }
 
-function addControlButtons() {
-    const controls = document.createElement('div');
-    controls.className = 'timer-controls';
-
-    // Check initial notification permission
-    const notifPermission = getNotificationPermission();
-    const notifBtnTitle = notifPermission === 'granted' ? 'Notifications enabled' : 'Enable notifications';
-    const notifBtnIcon = notifPermission === 'granted' ? '🔔' : '🔕';
-
-    controls.innerHTML = `
-        <button id="pauseBtn" class="control-btn" title="Pause/Resume (Space)">⏸️</button>
-        <button id="hideBtn" class="control-btn" title="Hide/Show (H)">🙈</button>
-        <button id="fullscreenBtn" class="control-btn" title="Fullscreen (F)">⛶</button>
-    `;
-    document.body.appendChild(controls);
-
-    // Add event listeners
-    const pauseBtn = document.getElementById('pauseBtn');
-    const hideBtn = document.getElementById('hideBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-
-    if (pauseBtn) {
-        pauseBtn.addEventListener('click', togglePause);
-    }
-
-    if (hideBtn) {
-        hideBtn.addEventListener('click', toggleHide);
-    }
-
-    if (fullscreenBtn) {
-        fullscreenBtn.addEventListener('click', toggleFullscreen);
-    }
-
+function setupKeyboardShortcuts() {
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
+        // Space - Pause/Resume (only if not typing in input)
         if (e.code === 'Space' && e.target === document.body) {
             e.preventDefault();
             togglePause();
         }
+        // F - Fullscreen
         if (e.code === 'KeyF') {
+            e.preventDefault();
             toggleFullscreen();
         }
+        // H - Hide/Show display name
         if (e.code === 'KeyH') {
+            e.preventDefault();
             toggleHide();
         }
     });
@@ -1654,12 +1558,13 @@ async function toggleNotifications() {
 }
 
 function addDisplayName() {
+    // Display name is already in HTML template, just update visibility
     if (!DISPLAY_NAME) return;
-
-    const nameEl = document.createElement('div');
-    nameEl.className = 'timer-display-name';
-    nameEl.textContent = DISPLAY_NAME;
-    document.body.appendChild(nameEl);
+    
+    const nameEl = document.getElementById('displayName');
+    if (nameEl) {
+        nameEl.style.opacity = displayNameVisible ? '1' : '0';
+    }
 }
 
 /**
@@ -1729,60 +1634,62 @@ function setupWatermarkVisibility() {
  */
 function togglePause() {
     isPaused = !isPaused;
-    const pauseBtn = document.getElementById('pauseBtn');
 
     if (isPaused) {
         pausedAt = Date.now();
         console.log('[Timer] Paused');
         document.body.classList.add('paused');
-        if (pauseBtn) pauseBtn.textContent = '▶️';
+        document.title = '⏸️ PAUSED';
     } else {
-        pauseOffset += Date.now() - pausedAt;
-        console.log('[Timer] Resumed');
+        const pauseDuration = Date.now() - pausedAt;
+        
+        // Calculate gap between display (frozen) and actual (kept running)
+        const currentActual = getCurrentTimeValue();
+        catchupRemaining = Math.max(0, currentActual - displayTime);
+        
+        if (catchupRemaining > 1000 && pauseDuration > 1000) {
+            // Smooth catchup over 5 seconds
+            catchupStartTime = Date.now();
+            console.log(`[Timer] Resumed, catching up ${catchupRemaining}ms over 5s`);
+        } else {
+            // Short pause, sync immediately
+            displayTime = currentActual;
+            catchupRemaining = 0;
+            console.log('[Timer] Resumed');
+        }
+        
         document.body.classList.remove('paused');
-        if (pauseBtn) pauseBtn.textContent = '⏸️';
+        // Restore title with display name
+        const displayName = DISPLAY_NAME || '7 Segment Timer';
+        document.title = displayName;
     }
 }
 
 /**
- * Toggle hide/show controls
+ * Toggle hide/show display name
  */
-let controlsVisible = true;
 function toggleHide() {
-    const controls = document.querySelector('.timer-controls');
     const displayName = document.querySelector('.timer-display-name');
 
-    controlsVisible = !controlsVisible;
-
-    if (controls) {
-        controls.style.opacity = controlsVisible ? '1' : '0';
-        controls.style.pointerEvents = controlsVisible ? 'auto' : 'none';
-    }
+    displayNameVisible = !displayNameVisible;
 
     if (displayName) {
-        displayName.style.opacity = controlsVisible ? '1' : '0';
+        displayName.style.opacity = displayNameVisible ? '1' : '0';
     }
 
-    console.log('[Timer] Controls', controlsVisible ? 'shown' : 'hidden');
+    console.log('[Timer] Display name', displayNameVisible ? 'shown' : 'hidden');
 }
 
 /**
  * Toggle fullscreen
  */
 function toggleFullscreen() {
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {
             console.log('[Fullscreen] Error:', err);
         });
-        if (fullscreenBtn) {
-            fullscreenBtn.textContent = '⛶ Exit';
-        }
     } else {
         document.exitFullscreen();
-        if (fullscreenBtn) {
-            fullscreenBtn.textContent = '⛶';
-        }
     }
 }
 

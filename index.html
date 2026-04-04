@@ -4,22 +4,391 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>7 Segment Display - Timer Selector</title>
-    <link rel="stylesheet" href="src/index/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(20, 20, 30, 0.6);
+            --bg-glass: rgba(255, 255, 255, 0.03);
+            --accent-primary: #00ff88;
+            --accent-secondary: #00cc6a;
+            --accent-glow: rgba(0, 255, 136, 0.3);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-accent: rgba(0, 255, 136, 0.2);
+            --gradient-primary: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            --gradient-glow: linear-gradient(135deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 204, 106, 0.05) 100%);
+        }
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 3rem;
+        }
+
+        /* ===== HEADER ===== */
+        .header-section {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding-top: 2rem;
+        }
+
+        .header-section h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent-primary) 50%, #00cc6a 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header-section .subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* ===== STATS BAR ===== */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-item {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 1.25rem 1rem;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-accent);
+        }
+
+        .stat-item .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin-bottom: 0.25rem;
+            line-height: 1.2;
+        }
+
+        .stat-item .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+
+        /* ===== TIMER GRID ===== */
+        .timers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        @media (max-width: 480px) {
+            .timers-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== TIMER CARD ===== */
+        .timer-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        .timer-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-accent);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .timer-card.hidden {
+            display: none;
+        }
+
+        /* Card Header */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .card-header h3 {
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 700;
+            line-height: 1.3;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .status-running {
+            background: rgba(0, 255, 136, 0.12);
+            color: var(--accent-primary);
+            border: 1px solid rgba(0, 255, 136, 0.25);
+        }
+
+        .status-running::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .status-upcoming {
+            background: rgba(156, 39, 176, 0.12);
+            color: #e040fb;
+            border: 1px solid rgba(224, 64, 251, 0.25);
+        }
+
+        .status-ended {
+            background: rgba(244, 67, 54, 0.12);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.25);
+        }
+
+        /* Timer Preview */
+        .timer-preview {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .timer-preview iframe {
+            width: 100%;
+            height: 120px;
+            border: none;
+            display: block;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .timer-preview iframe {
+                height: 90px;
+            }
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 999px;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
+        }
+
+        .progress-text {
+            color: var(--accent-primary);
+            font-weight: 600;
+            min-width: 60px;
+            text-align: right;
+            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+        }
+
+        /* Time Info */
+        .time-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: var(--bg-glass);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .time-info span {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Card Actions */
+        .card-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .timer-link {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            background: var(--gradient-primary);
+            color: var(--bg-primary);
+            text-decoration: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        .timer-link:hover {
+            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .download-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            background: var(--bg-glass);
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: background 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
+            border: 1px solid var(--border-subtle);
+            flex-shrink: 0;
+        }
+
+        .download-link:hover {
+            background: rgba(0, 255, 136, 0.12);
+            border-color: var(--border-accent);
+            transform: translateY(-1px);
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 136, 0.25);
+            border-radius: 999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 136, 0.4);
+        }
+
+        /* ===== REDUCED MOTION ===== */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>⏱️ Timer Selector</h1>
-        <p class="subtitle">Select a countdown timer to view</p>
+        <header class="header-section">
+            <h1>⏱️ Timer Selector</h1>
+            <p class="subtitle">Monitor and manage your countdown timers in real-time</p>
+        </header>
 
-        <!-- Stats Bar -->
         <div class="stats-bar">
             <div class="stat-item">
-                <div class="stat-value">4</div>
-                <div class="stat-label">Total</div>
+                <div class="stat-value">2</div>
+                <div class="stat-label">Total Timers</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value" style="color: #00ff88;">3</div>
-                <div class="stat-label">Running</div>
+                <div class="stat-value" style="color: #00ff88;">1</div>
+                <div class="stat-label">Active</div>
             </div>
             <div class="stat-item">
                 <div class="stat-value" style="color: #ffc107;">1</div>
@@ -31,74 +400,8 @@
             </div>
         </div>
 
-        <!-- Controls -->
-        <div class="controls">
-            <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search timers...">
-            <select class="filter-select" id="statusFilter">
-                <option value="all">Show All</option>
-                <option value="running">Running</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="ended">Ended</option>
-            </select>
-            <select class="control-btn" id="sortSelect">
-                <option value="status">Sort: Status</option>
-                <option value="name">Sort: Name</option>
-                <option value="progress">Sort: Progress</option>
-                <option value="target">Sort: Target Date</option>
-            </select>
-            <button class="control-btn active" id="gridBtn" title="Grid View">▦</button>
-            <button class="control-btn" id="listBtn" title="List View">☰</button>
-        </div>
-
-        <!-- Timers Grid -->
         <div class="timers-grid" id="timersGrid">
             
-        <div class="timer-card" data-status="running" data-name="recognision">
-            <div class="card-header">
-                <h3>Recognision Day</h3>
-                <span class="status-badge status-running">Running</span>
-            </div>
-            <div class="timer-preview">
-                <iframe src="output/recognision.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
-            </div>
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 86.2%"></div>
-                </div>
-                <span class="progress-text">086.22%</span>
-            </div>
-            <p class="time-info">
-                <span class="start">📅 Start: 2026-03-27T00:00:00</span>
-                <span class="target">🎯 Target: 2026-03-27T14:30:00</span>
-            </p>
-            <div class="card-actions">
-                <a href="output/recognision.html" class="timer-link" target="_blank">Open Full Timer →</a>
-                <a href="output/recognision.html" class="download-link" download="recognision.html" title="Download">⬇️</a>
-            </div>
-        </div>
-        <div class="timer-card" data-status="running" data-name="graduation">
-            <div class="card-header">
-                <h3>Graduation Day</h3>
-                <span class="status-badge status-running">Running</span>
-            </div>
-            <div class="timer-preview">
-                <iframe src="output/graduation.html" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>
-            </div>
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: 66.9%"></div>
-                </div>
-                <span class="progress-text">066.93%</span>
-            </div>
-            <p class="time-info">
-                <span class="start">📅 Start: 2026-03-21T23:55:38</span>
-                <span class="target">🎯 Target: 2026-03-30T06:00:00</span>
-            </p>
-            <div class="card-actions">
-                <a href="output/graduation.html" class="timer-link" target="_blank">Open Full Timer →</a>
-                <a href="output/graduation.html" class="download-link" download="graduation.html" title="Download">⬇️</a>
-            </div>
-        </div>
         <div class="timer-card" data-status="running" data-name="execution">
             <div class="card-header">
                 <h3>Execution</h3>
@@ -109,16 +412,19 @@
             </div>
             <div class="progress-container">
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: 40.4%"></div>
+                    <div class="progress-fill" style="width: 67.4%"></div>
                 </div>
-                <span class="progress-text">040.39%</span>
+                <span class="progress-text">067.44%</span>
             </div>
             <p class="time-info">
                 <span class="start">📅 Start: 2026-03-15T00:00:00</span>
                 <span class="target">🎯 Target: 2026-04-15T00:00:00</span>
             </p>
             <div class="card-actions">
-                <a href="output/execution.html" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="output/execution.html" class="timer-link" target="_blank">
+                    <span>Open Timer</span>
+                    <span>→</span>
+                </a>
                 <a href="output/execution.html" class="download-link" download="execution.html" title="Download">⬇️</a>
             </div>
         </div>
@@ -141,21 +447,23 @@
                 <span class="target">🎯 Target: 2026-05-16T00:00:00</span>
             </p>
             <div class="card-actions">
-                <a href="output/birthday.html" class="timer-link" target="_blank">Open Full Timer →</a>
+                <a href="output/birthday.html" class="timer-link" target="_blank">
+                    <span>Open Timer</span>
+                    <span>→</span>
+                </a>
                 <a href="output/birthday.html" class="download-link" download="birthday.html" title="Download">⬇️</a>
             </div>
         </div>
         </div>
 
-        <div class="footer">
-            <p>7 Segment Display Timer System</p>
-        </div>
+        <footer class="footer">
+            <p>7 Segment Display Timer System &copy; 2026</p>
+        </footer>
     </div>
 
-    <!-- Version Watermark -->
-    <div class="version-watermark-selector" data-version="STABLE" data-build="2.0.0.20260327123006.stable">
+    <div class="version-watermark-selector" data-version="STABLE" data-build="2.0.0.20260404214502.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260327123006.stable</span>
+        <span class="version-date">2.0.0.20260404214502.stable</span>
     </div>
 
     <script src="src/index/script.js"></script>

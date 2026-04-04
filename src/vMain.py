@@ -838,14 +838,6 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
             z-index: 1;
         }}
 
-        .controls-wrapper {{
-            display: flex;
-            justify-content: center;
-            margin-bottom: 3rem;
-            position: relative;
-            z-index: 100;
-        }}
-
         .timers-grid {{
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));

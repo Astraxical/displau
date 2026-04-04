@@ -7,13 +7,9 @@ function getCurrentTimeValue() {
     const target = new Date(TARGET_TIME).getTime();
     const now = Date.now();
 
-    // Apply pause offset (for catchup after pause)
-    // Adding offset makes "now" appear later, so countdown goes faster
-    const adjustedNow = now + pauseOffset;
-
     if (DIRECTION === 'up') {
         // Counting up from start_time (stopwatch mode)
-        const elapsed = adjustedNow - start;
+        const elapsed = now - start;
 
         // Apply max_value limit if set
         if (MAX_VALUE !== null && elapsed > MAX_VALUE) {
@@ -28,7 +24,7 @@ function getCurrentTimeValue() {
         return elapsed;
     } else {
         // Counting down to target_time (classic mode)
-        const remaining = target - adjustedNow;
+        const remaining = target - now;
 
         // Apply min_value limit if set
         if (MIN_VALUE !== null && remaining < MIN_VALUE) {

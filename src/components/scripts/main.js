@@ -1,17 +1,19 @@
 // Timer state
 let isPaused = false;
 let pausedAt = null;
-let pauseOffset = 0;
 let updateInterval;
 let colorInterval;
 let lastRealTime = Date.now();
 
-// Speed adjustment for sync
-let speedFactor = 1.0;
-let catchupRemaining = 0; // Time left to catch up (in ms)
+// Three-time model for smooth pause/catchup
+let displayTime = 0;   // What's being displayed (freezes on pause)
+let actualTime = 0;    // Real time value (always updates)
+let maximumTime = 0;   // Original remaining when timer started
+
+// Catchup state
+let catchupRemaining = 0; // Time gap to close (display vs actual)
 let catchupDuration = 5000; // Total catchup duration (5 seconds)
 let catchupStartTime = 0; // When catchup started
-let pauseDurationAtResume = 0; // How long we were paused
 
 // Expiry state
 let hasExpired = false;
@@ -77,7 +79,10 @@ function updateCountdown() {
     // Skip update if paused
     if (isPaused) return;
 
-    // Apply catchup with smooth fade - gradually increase pauseOffset from negative to 0
+    // Update actual time (always runs, even during catchup)
+    actualTime = getCurrentTimeValue();
+
+    // Apply catchup with smooth fade - display catches up to actual
     if (catchupRemaining > 0) {
         const elapsed = Date.now() - catchupStartTime;
         const progress = Math.min(1, elapsed / catchupDuration);
@@ -89,61 +94,33 @@ function updateCountdown() {
         const baseAmount = catchupRemaining / (catchupDuration / 10);
         const reduceAmount = baseAmount * speedCurve * 1.5;
         
-        catchupRemaining -= reduceAmount;
-        // Increase pauseOffset toward 0 (from negative value)
-        pauseOffset = -catchupRemaining;
+        catchupRemaining = Math.max(0, catchupRemaining - reduceAmount);
         
         if (catchupRemaining <= 0 || progress >= 1) {
             console.log('[Timer] Catchup complete');
             catchupRemaining = 0;
-            pauseOffset = 0;
-            speedFactor = 1.0;
+            displayTime = actualTime;
         } else {
-            speedFactor = 1 + (speedCurve * 2);
+            // Display time is actual minus remaining gap
+            displayTime = actualTime - catchupRemaining;
         }
+    } else {
+        // No catchup, display follows actual
+        displayTime = actualTime;
     }
 
-    // Use the new direction-aware time value function
-    const currentTimeValue = getCurrentTimeValue();
-    
-    // For down direction, check if expired
-    if (DIRECTION === 'down' && isExpired()) {
-        if (!hasExpired) {
-            handleExpiry();
-        }
-
-        // Handle different expiry behaviors
-        const onExpire = ON_EXPIRE || 'stop';
-
-        if (onExpire === 'continue') {
-            // Show negative time
-            const elapsed = getTimeSinceExpiry();
-            const timeStr = formatNegativeTime(elapsed);
-            updateDisplay(timeStr);
-            document.title = `${timeStr.split('.')[0]} - ${DISPLAY_NAME || 'Timer'}`;
-        } else if (onExpire !== 'hide') {
-            // Stop at zero (default behavior)
-            updateDisplay('00:00:00:00');
-        }
-        // 'hide' is handled by showExpiredMessage()
-        return;
-    }
-
-    // For up direction, just display elapsed time
-    if (DIRECTION === 'up') {
-        const timeStr = formatTime(currentTimeValue);
-        updateDisplay(timeStr);
-        document.title = `${timeStr.split('.')[0]} - ${DISPLAY_NAME || 'Timer'}`;
-        return;
-    }
-
-    // For down direction (not expired yet)
-    const timeStr = formatTime(Math.max(0, currentTimeValue));
+    // Use displayTime for visual output
+    const timeStr = formatTime(Math.max(0, displayTime));
     updateDisplay(timeStr);
 
     // Update document title
     const displayName = DISPLAY_NAME || '7 Segment Timer';
     document.title = `${timeStr.split('.')[0]} - ${displayName}`;
+
+    // Handle expiry (down direction only)
+    if (DIRECTION === 'down' && isExpired() && !hasExpired) {
+        handleExpiry();
+    }
 }
 
 // Listen for fullscreen changes
@@ -191,6 +168,11 @@ document.addEventListener('visibilitychange', () => {
 async function init() {
     // Wait for config to load
     await loadConfig();
+
+    // Initialize three-time model
+    actualTime = getCurrentTimeValue();
+    displayTime = actualTime;
+    maximumTime = actualTime;
 
     const remainingRatio = calculateRemainingRatio();
     currentColor = getColorForRemainingRatio(remainingRatio);
@@ -352,16 +334,18 @@ function togglePause() {
     } else {
         const pauseDuration = Date.now() - pausedAt;
         
-        // For catchup: compensate for paused time, then gradually remove compensation
-        if (pauseDuration > 1000) { // Only catchup if paused for more than 1 second
-            // Set offset to NEGATIVE pause duration so display continues from paused value
-            // Then gradually increase to 0 over 5 seconds (catching up)
-            pauseOffset = -pauseDuration;
-            catchupRemaining = pauseDuration;
+        // Calculate gap between display (frozen) and actual (kept running)
+        const currentActual = getCurrentTimeValue();
+        catchupRemaining = Math.max(0, currentActual - displayTime);
+        
+        if (catchupRemaining > 1000 && pauseDuration > 1000) {
+            // Smooth catchup over 5 seconds
             catchupStartTime = Date.now();
-            console.log(`[Timer] Resumed, catching up ${catchupRemaining}ms over 5s with fade`);
+            console.log(`[Timer] Resumed, catching up ${catchupRemaining}ms over 5s`);
         } else {
-            // For short pauses, no compensation needed
+            // Short pause, sync immediately
+            displayTime = currentActual;
+            catchupRemaining = 0;
             console.log('[Timer] Resumed');
         }
         

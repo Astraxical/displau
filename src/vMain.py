@@ -577,13 +577,15 @@ def deploy(generate_selector_page: bool = True) -> None:
 
     logger.info("Pushing to GitHub...")
 
+    # Check if there are any changes (including deletions)
     result = subprocess.run(
         ['git', '-C', str(SCRIPT_DIR), 'status', '--porcelain'],
         capture_output=True, text=True
     )
 
     if result.stdout.strip():
-        subprocess.run(['git', '-C', str(SCRIPT_DIR), 'add', '.'], check=True)
+        # Use git add -A to stage all changes including deletions
+        subprocess.run(['git', '-C', str(SCRIPT_DIR), 'add', '-A', '.'], check=True)
 
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         subprocess.run(

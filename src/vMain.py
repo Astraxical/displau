@@ -520,14 +520,26 @@ def build_timers_folder(generate_selector_page: bool = False, organize: bool = T
 
         config_id = timer.get('id', timer_file.stem)
         target_time = timer.get('target_time', None)
-        
+
+        # Skip expired timers with display_on_expire=false
+        display_on_expire = timer.get('display_on_expire', True)
+        if target_time:
+            try:
+                target_dt = datetime.fromisoformat(target_time)
+                now = datetime.now()
+                if now >= target_dt and not display_on_expire:
+                    logger.info(f"Skipping {config_id} (expired, display_on_expire=false)")
+                    continue
+            except (ValueError, TypeError):
+                pass
+
         # Calculate relative path from TIMERS_DIR for GitHub URL
         try:
             relative_path = timer_file.relative_to(TIMERS_DIR)
             config_relative_path = f"{TIMERS_PATH}/{relative_path}"
         except ValueError:
             config_relative_path = None
-        
+
         timer_ids.add(config_id)
 
         logger.info(f"[{i}/{len(timer_files)}] Building {config_id}...")

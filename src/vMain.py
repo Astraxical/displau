@@ -721,7 +721,6 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>7 Segment Display - Timer Selector</title>
     <link rel="stylesheet" href="src/index/styles.css">
-    <link rel="stylesheet" href="src/components/styles/button-panel.css">
     <style>
         :root {{
             --bg-primary: #0a0a0f;
@@ -845,10 +844,6 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
             margin-bottom: 3rem;
             position: relative;
             z-index: 100;
-        }}
-
-        .button-panel {{
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 60px rgba(0, 255, 136, 0.05);
         }}
 
         .timers-grid {{
@@ -1128,7 +1123,6 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
         @media (max-width: 480px) {{
             .header-section h1 {{ font-size: 2rem; }}
             .stats-bar {{ grid-template-columns: 1fr; }}
-            .button-panel {{ width: calc(100% - 2rem) !important; overflow-x: auto; }}
         }}
 
         ::-webkit-scrollbar {{ width: 10px; height: 10px; }}
@@ -1163,34 +1157,6 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
             </div>
         </div>
 
-        <div class="controls-wrapper">
-            <div class="button-panel button-panel-animate" id="controls">
-                <input type="text" class="panel-input" id="searchBox" placeholder="🔍 Search...">
-                <div class="panel-divider"></div>
-                <select class="panel-select" id="statusFilter">
-                    <option value="all">All Status</option>
-                    <option value="running">Running</option>
-                    <option value="upcoming">Upcoming</option>
-                    <option value="ended">Ended</option>
-                </select>
-                <select class="panel-select" id="sortSelect">
-                    <option value="status">Sort: Status</option>
-                    <option value="name">Sort: Name</option>
-                    <option value="progress">Sort: Progress</option>
-                    <option value="target">Sort: Target</option>
-                </select>
-                <div class="panel-divider"></div>
-                <button class="panel-btn panel-btn-primary active" id="gridBtn" title="Grid View" data-toggle="view" data-action="grid">
-                    <span class="btn-icon">▦</span>
-                    <span class="btn-text">Grid</span>
-                </button>
-                <button class="panel-btn" id="listBtn" title="List View" data-toggle="view" data-action="list">
-                    <span class="btn-icon">☰</span>
-                    <span class="btn-text">List</span>
-                </button>
-            </div>
-        </div>
-
         <div class="timers-grid" id="timersGrid">
             {timer_cards}
         </div>
@@ -1205,7 +1171,6 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
         <span class="version-date">__BUILD_DATE__</span>
     </div>
 
-    <script src="src/components/scripts/button-panel.js"></script>
     <script src="src/index/script.js"></script>
 </body>
 </html>'''

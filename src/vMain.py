@@ -24,6 +24,7 @@ from urllib.request import Request, urlopen
 
 # Script directory
 SCRIPT_DIR = Path(__file__).parent
+REPO_ROOT = SCRIPT_DIR.parent
 
 # Load build configuration
 CONFIG_FILE = SCRIPT_DIR / '../config/build.json'
@@ -579,21 +580,21 @@ def deploy(generate_selector_page: bool = True) -> None:
 
     # Check if there are any changes (including deletions)
     result = subprocess.run(
-        ['git', '-C', str(SCRIPT_DIR), 'status', '--porcelain'],
+        ['git', '-C', str(REPO_ROOT), 'status', '--porcelain'],
         capture_output=True, text=True
     )
 
     if result.stdout.strip():
         # Use git add -A to stage all changes including deletions
-        subprocess.run(['git', '-C', str(SCRIPT_DIR), 'add', '-A', '.'], check=True)
+        subprocess.run(['git', '-C', str(REPO_ROOT), 'add', '-A', '.'], check=True)
 
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         subprocess.run(
-            ['git', '-C', str(SCRIPT_DIR), 'commit', '-m', f'Auto-deploy: {timestamp}'],
+            ['git', '-C', str(REPO_ROOT), 'commit', '-m', f'Auto-deploy: {timestamp}'],
             check=True
         )
 
-        subprocess.run(['git', '-C', str(SCRIPT_DIR), 'push'], check=True)
+        subprocess.run(['git', '-C', str(REPO_ROOT), 'push'], check=True)
 
         logger.info("✅ Deployed successfully!")
     else:

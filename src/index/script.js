@@ -1,76 +1,3 @@
-// Search functionality
-const searchBox = document.getElementById('searchBox');
-const timersGrid = document.getElementById('timersGrid');
-const sortSelect = document.getElementById('sortSelect');
-const gridBtn = document.getElementById('gridBtn');
-const listBtn = document.getElementById('listBtn');
-const statusFilter = document.getElementById('statusFilter');
-
-// Search
-searchBox.addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase();
-    document.querySelectorAll('.timer-card').forEach(card => {
-        const name = card.dataset.name;
-        if (name.includes(query)) {
-            card.classList.remove('hidden');
-        } else {
-            card.classList.add('hidden');
-        }
-    });
-});
-
-// Sort
-sortSelect.addEventListener('change', (e) => {
-    const cards = Array.from(timersGrid.querySelectorAll('.timer-card'));
-    const sortType = e.target.value;
-
-    cards.sort((a, b) => {
-        if (sortType === 'name') {
-            return a.dataset.name.localeCompare(b.dataset.name);
-        } else if (sortType === 'progress') {
-            const aProgress = parseFloat(a.querySelector('.progress-text').textContent) || 0;
-            const bProgress = parseFloat(b.querySelector('.progress-text').textContent) || 0;
-            return bProgress - aProgress;
-        } else if (sortType === 'target') {
-            const aTarget = a.querySelector('.target').textContent;
-            const bTarget = b.querySelector('.target').textContent;
-            return aTarget.localeCompare(bTarget);
-        }
-        const statusOrder = {'running': 0, 'upcoming': 1, 'ended': 2};
-        return (statusOrder[a.dataset.status] || 3) - (statusOrder[b.dataset.status] || 3);
-    });
-
-    cards.forEach(card => timersGrid.appendChild(card));
-});
-
-// Grid/List toggle
-gridBtn.addEventListener('click', () => {
-    timersGrid.classList.remove('list-view');
-    gridBtn.classList.add('active');
-    listBtn.classList.remove('active');
-});
-
-listBtn.addEventListener('click', () => {
-    timersGrid.classList.add('list-view');
-    listBtn.classList.add('active');
-    gridBtn.classList.remove('active');
-});
-
-// Status filter
-if (statusFilter) {
-    statusFilter.addEventListener('change', (e) => {
-        const filterValue = e.target.value;
-        document.querySelectorAll('.timer-card').forEach(card => {
-            const status = card.dataset.status;
-            if (filterValue === 'all' || status === filterValue) {
-                card.classList.remove('hidden');
-            } else {
-                card.classList.add('hidden');
-            }
-        });
-    });
-}
-
 // ============================================
 // REAL-TIME PROGRESS BAR UPDATES
 // ============================================
@@ -80,28 +7,28 @@ if (statusFilter) {
  */
 function updateProgressBars() {
     const now = new Date();
-    
+
     document.querySelectorAll('.timer-card').forEach(card => {
         const timeInfo = card.querySelector('.time-info');
         if (!timeInfo) return;
-        
+
         const startText = timeInfo.querySelector('.start')?.textContent;
         const targetText = timeInfo.querySelector('.target')?.textContent;
-        
+
         if (!startText || !targetText) return;
-        
+
         // Parse times (remove emojis and labels)
         const start = new Date(startText.replace('📅 Start: ', '').trim());
         const target = new Date(targetText.replace('🎯 Target: ', '').trim());
-        
+
         // Calculate progress and update display
         let progress, progressText;
-        
+
         if (now > target) {
             // Timer has ended
             progress = 100;
             progressText = '100.00%';
-            
+
             // Update status if needed
             if (card.dataset.status !== 'ended') {
                 card.dataset.status = 'ended';
@@ -123,11 +50,11 @@ function updateProgressBars() {
             // Format as ###.##% (e.g., 033.00%, 100.00%)
             progressText = `${progress.toFixed(2).toString().padStart(6, '0')}%`;
         }
-        
+
         // Update progress bar and text
         const progressFill = card.querySelector('.progress-fill');
         const progressTextEl = card.querySelector('.progress-text');
-        
+
         if (progressFill) {
             progressFill.style.width = `${progress}%`;
         }
@@ -150,28 +77,28 @@ updateProgressBars();
 function updateWatermarkAge() {
     const watermark = document.querySelector('.version-watermark-selector');
     if (!watermark) return;
-    
+
     const buildDate = watermark.dataset.build;
     if (!buildDate) return;
-    
+
     // Parse: 2.0.0.20260325123452.stable
     const parts = buildDate.split('.');
     if (parts.length < 3) return;
-    
+
     const timestamp = parts[2]; // 20260325123452
     try {
         // Parse timestamp: YYYYMMDDHHMMSS
         const year = parseInt(timestamp.slice(0, 4));
         const month = parseInt(timestamp.slice(4, 6));
         const day = parseInt(timestamp.slice(6, 8));
-        
+
         const now = new Date();
-        
+
         // Check if built today (same calendar day)
-        const isToday = (day === now.getDate() && 
-                        month === (now.getMonth() + 1) && 
+        const isToday = (day === now.getDate() &&
+                        month === (now.getMonth() + 1) &&
                         year === now.getFullYear());
-        
+
         if (isToday) {
             watermark.dataset.age = 'fresh';
         } else {
@@ -188,14 +115,14 @@ function updateWatermarkAge() {
 function setupWatermarkVisibility() {
     const watermark = document.querySelector('.version-watermark-selector');
     if (!watermark) return;
-    
+
     const showThreshold = 200; // pixels from corner
-    
+
     document.addEventListener('mousemove', (e) => {
         const rect = watermark.getBoundingClientRect();
         const distX = Math.abs(e.clientX - rect.left);
         const distY = Math.abs(e.clientY - rect.top);
-        
+
         // Show if cursor is near the watermark
         if (distX < showThreshold && distY < showThreshold) {
             watermark.classList.add('visible');

@@ -732,7 +732,9 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>7 Segment Display - Timer Selector</title>
-    <link rel="stylesheet" href="src/index/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {{
             --bg-primary: #0a0a0f;
@@ -745,294 +747,268 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
             --text-primary: #ffffff;
             --text-secondary: #a0a0b0;
             --text-muted: #606070;
-            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-subtle: rgba(255, 255, 255, 0.08);
             --border-accent: rgba(0, 255, 136, 0.2);
             --gradient-primary: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
             --gradient-glow: linear-gradient(135deg, rgba(0, 255, 136, 0.15) 0%, rgba(0, 204, 106, 0.05) 100%);
         }}
 
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        *, *::before, *::after {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+
+        html {{
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }}
 
         body {{
-            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background: var(--bg-primary);
             min-height: 100vh;
             color: var(--text-primary);
+            line-height: 1.5;
         }}
 
         .container {{
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 3rem 2rem;
-            position: relative;
-            z-index: 1;
+            padding: 2rem 1.5rem 3rem;
         }}
 
+        /* ===== HEADER ===== */
         .header-section {{
             text-align: center;
-            margin-bottom: 3rem;
-            position: relative;
+            margin-bottom: 2.5rem;
+            padding-top: 2rem;
         }}
 
         .header-section h1 {{
-            font-size: 3.5rem;
+            font-size: clamp(2rem, 5vw, 3rem);
             font-weight: 800;
             background: linear-gradient(135deg, #ffffff 0%, var(--accent-primary) 50%, #00cc6a 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 0.75rem;
-            text-shadow: 0 0 60px rgba(0, 255, 136, 0.3);
+            margin-bottom: 0.5rem;
             letter-spacing: -0.02em;
         }}
 
         .header-section .subtitle {{
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: var(--text-secondary);
             font-weight: 400;
-            max-width: 500px;
-            margin: 0 auto;
         }}
 
+        /* ===== STATS BAR ===== */
         .stats-bar {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 3rem;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2.5rem;
         }}
 
         .stat-item {{
             background: var(--bg-glass);
             border: 1px solid var(--border-subtle);
-            border-radius: 20px;
-            padding: 1.5rem;
+            border-radius: 16px;
+            padding: 1.25rem 1rem;
             text-align: center;
             backdrop-filter: blur(20px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }}
-
-        .stat-item::before {{
-            content: '';
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: var(--gradient-glow);
-            opacity: 0;
-            transition: opacity 0.4s;
+            -webkit-backdrop-filter: blur(20px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
         }}
 
         .stat-item:hover {{
-            transform: translateY(-4px);
+            transform: translateY(-2px);
             border-color: var(--border-accent);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 255, 136, 0.1);
         }}
 
-        .stat-item:hover::before {{ opacity: 1; }}
-
         .stat-item .stat-value {{
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 700;
             color: var(--accent-primary);
             margin-bottom: 0.25rem;
-            position: relative;
-            z-index: 1;
+            line-height: 1.2;
         }}
 
         .stat-item .stat-label {{
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.08em;
             font-weight: 600;
-            position: relative;
-            z-index: 1;
         }}
 
+        /* ===== TIMER GRID ===== */
         .timers-grid {{
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 2rem;
-            margin-bottom: 4rem;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
         }}
 
-        .timers-grid.list-view {{ grid-template-columns: 1fr; }}
+        @media (max-width: 480px) {{
+            .timers-grid {{
+                grid-template-columns: 1fr;
+            }}
+        }}
 
+        /* ===== TIMER CARD ===== */
         .timer-card {{
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
-            border-radius: 24px;
+            border-radius: 16px;
             padding: 1.5rem;
             backdrop-filter: blur(20px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }}
-
-        .timer-card::before {{
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            background: var(--gradient-primary);
-            opacity: 0;
-            transition: opacity 0.4s;
+            -webkit-backdrop-filter: blur(20px);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         }}
 
         .timer-card:hover {{
-            transform: translateY(-8px) scale(1.02);
+            transform: translateY(-4px);
             border-color: var(--border-accent);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 255, 136, 0.15);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
         }}
 
-        .timer-card:hover::before {{ opacity: 1; }}
+        .timer-card.hidden {{
+            display: none;
+        }}
 
-        .timer-card.hidden {{ display: none; }}
-
+        /* Card Header */
         .card-header {{
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.25rem;
-            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
             border-bottom: 1px solid var(--border-subtle);
         }}
 
         .card-header h3 {{
             color: var(--text-primary);
-            font-size: 1.4rem;
+            font-size: 1.25rem;
             font-weight: 700;
+            line-height: 1.3;
         }}
 
+        /* Status Badge */
         .status-badge {{
-            padding: 0.4rem 0.9rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            border: none;
-            position: relative;
-            overflow: hidden;
+            letter-spacing: 0.06em;
+            white-space: nowrap;
+            flex-shrink: 0;
         }}
 
         .status-running {{
-            background: rgba(0, 255, 136, 0.15);
+            background: rgba(0, 255, 136, 0.12);
             color: var(--accent-primary);
-            border: 1px solid rgba(0, 255, 136, 0.3);
+            border: 1px solid rgba(0, 255, 136, 0.25);
         }}
 
         .status-running::before {{
             content: '';
-            position: absolute;
-            top: 50%; left: 8px;
-            width: 6px; height: 6px;
+            width: 6px;
+            height: 6px;
             background: var(--accent-primary);
             border-radius: 50%;
-            transform: translateY(-50%);
             animation: pulse 2s ease-in-out infinite;
         }}
 
         @keyframes pulse {{
-            0%, 100% {{ opacity: 1; transform: translateY(-50%) scale(1); }}
-            50% {{ opacity: 0.5; transform: translateY(-50%) scale(1.2); }}
+            0%, 100% {{ opacity: 1; }}
+            50% {{ opacity: 0.4; }}
         }}
 
         .status-upcoming {{
-            background: rgba(156, 39, 176, 0.15);
+            background: rgba(156, 39, 176, 0.12);
             color: #e040fb;
-            border: 1px solid rgba(224, 64, 251, 0.3);
+            border: 1px solid rgba(224, 64, 251, 0.25);
         }}
 
         .status-ended {{
-            background: rgba(244, 67, 54, 0.15);
+            background: rgba(244, 67, 54, 0.12);
             color: #f44336;
-            border: 1px solid rgba(244, 67, 54, 0.3);
+            border: 1px solid rgba(244, 67, 54, 0.25);
         }}
 
+        /* Timer Preview */
         .timer-preview {{
             background: rgba(0, 0, 0, 0.4);
-            border-radius: 16px;
+            border-radius: 12px;
             overflow: hidden;
-            margin-bottom: 1.25rem;
+            margin-bottom: 1rem;
             border: 1px solid var(--border-subtle);
-            position: relative;
-        }}
-
-        .timer-preview::after {{
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, transparent 0%, rgba(0, 255, 136, 0.02) 100%);
-            pointer-events: none;
         }}
 
         .timer-preview iframe {{
             width: 100%;
-            height: 140px;
+            height: 120px;
             border: none;
             display: block;
             pointer-events: none;
         }}
 
+        @media (max-width: 768px) {{
+            .timer-preview iframe {{
+                height: 90px;
+            }}
+        }}
+
+        /* Progress Bar */
         .progress-container {{
             display: flex;
             align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.25rem;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
         }}
 
         .progress-bar {{
             flex: 1;
             height: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 999px;
             overflow: hidden;
-            position: relative;
-        }}
-
-        .progress-bar::before {{
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            animation: shimmer 2s infinite;
-        }}
-
-        @keyframes shimmer {{
-            0% {{ transform: translateX(-100%); }}
-            100% {{ transform: translateX(100%); }}
         }}
 
         .progress-fill {{
             height: 100%;
             background: var(--gradient-primary);
-            border-radius: 10px;
+            border-radius: 999px;
             transition: width 0.5s ease;
-            position: relative;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+            box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
         }}
 
         .progress-text {{
             color: var(--accent-primary);
-            font-weight: 700;
-            min-width: 65px;
+            font-weight: 600;
+            min-width: 60px;
             text-align: right;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-family: 'JetBrains Mono', 'Courier New', monospace;
         }}
 
+        /* Time Info */
         .time-info {{
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.85rem;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.8rem;
             color: var(--text-secondary);
             background: var(--bg-glass);
-            padding: 1rem;
-            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
             border: 1px solid var(--border-subtle);
         }}
 
@@ -1042,9 +1018,10 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
             align-items: center;
         }}
 
+        /* Card Actions */
         .card-actions {{
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
             align-items: center;
         }}
 
@@ -1053,86 +1030,76 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
             background: var(--gradient-primary);
             color: var(--bg-primary);
             text-decoration: none;
-            padding: 0.875rem 1.5rem;
-            border-radius: 12px;
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
             font-weight: 700;
-            font-size: 0.9rem;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }}
-
-        .timer-link::before {{
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
-            opacity: 0;
-            transition: opacity 0.3s;
+            font-size: 0.85rem;
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
         }}
 
         .timer-link:hover {{
-            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4), 0 0 20px rgba(0, 255, 136, 0.2);
-            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.35);
+            transform: translateY(-1px);
         }}
-
-        .timer-link:hover::before {{ opacity: 1; }}
 
         .download-link {{
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 48px;
-            height: 48px;
+            width: 42px;
+            height: 42px;
             background: var(--bg-glass);
-            border-radius: 12px;
+            border-radius: 10px;
             text-decoration: none;
-            font-size: 1.3rem;
-            transition: all 0.3s;
+            font-size: 1.2rem;
+            transition: background 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
             border: 1px solid var(--border-subtle);
+            flex-shrink: 0;
         }}
 
         .download-link:hover {{
-            background: rgba(0, 255, 136, 0.15);
+            background: rgba(0, 255, 136, 0.12);
             border-color: var(--border-accent);
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }}
 
+        /* ===== FOOTER ===== */
         .footer {{
             text-align: center;
-            padding: 2rem;
+            padding: 1.5rem;
             border-top: 1px solid var(--border-subtle);
             color: var(--text-muted);
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }}
 
-        @media (max-width: 1024px) {{
-            .timers-grid {{ grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); }}
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {{
+            width: 8px;
+            height: 8px;
+        }}
+        ::-webkit-scrollbar-track {{
+            background: var(--bg-secondary);
+        }}
+        ::-webkit-scrollbar-thumb {{
+            background: rgba(0, 255, 136, 0.25);
+            border-radius: 999px;
+        }}
+        ::-webkit-scrollbar-thumb:hover {{
+            background: rgba(0, 255, 136, 0.4);
         }}
 
-        @media (max-width: 768px) {{
-            .container {{ padding: 2rem 1rem; }}
-            .header-section h1 {{ font-size: 2.5rem; }}
-            .stats-bar {{ grid-template-columns: repeat(2, 1fr); gap: 1rem; }}
-            .stat-item {{ padding: 1rem; }}
-            .stat-item .stat-value {{ font-size: 2rem; }}
-            .timers-grid {{ grid-template-columns: 1fr; gap: 1.5rem; }}
-            .timer-preview iframe {{ height: 100px; }}
+        /* ===== REDUCED MOTION ===== */
+        @media (prefers-reduced-motion: reduce) {{
+            *, *::before, *::after {{
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }}
         }}
-
-        @media (max-width: 480px) {{
-            .header-section h1 {{ font-size: 2rem; }}
-            .stats-bar {{ grid-template-columns: 1fr; }}
-        }}
-
-        ::-webkit-scrollbar {{ width: 10px; height: 10px; }}
-        ::-webkit-scrollbar-track {{ background: var(--bg-secondary); }}
-        ::-webkit-scrollbar-thumb {{ background: rgba(0, 255, 136, 0.3); border-radius: 5px; }}
-        ::-webkit-scrollbar-thumb:hover {{ background: rgba(0, 255, 136, 0.5); }}
     </style>
 </head>
 <body>

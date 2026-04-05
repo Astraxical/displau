@@ -9,6 +9,8 @@ const DEFAULTS = {
     direction: '{{DIRECTION}}',  // Options: 'down', 'up'
     min_value: {{MIN_VALUE}},       // Minimum value in milliseconds (null for no limit)
     max_value: {{MAX_VALUE}},     // Maximum value in milliseconds (null for no limit)
+    display_mode: '{{DISPLAY_MODE}}',  // Options: 'countdown', 'static'
+    static_time_ms: {{STATIC_TIME_MS}},  // Fixed time value in ms for static display mode
     // Smooth color transition: Blue→Cyan→Green→Yellow→Orange→Red→Violet→Deep Violet
     color_transition_table: [
         { ratio: 1.0, color: '#0088ff' },   // Blue: 100% remaining
@@ -54,6 +56,8 @@ let DIRECTION = DEFAULTS.direction;
 let MIN_VALUE = DEFAULTS.min_value;
 let MAX_VALUE = DEFAULTS.max_value;
 let COLOR_TRANSITION_TABLE = DEFAULTS.color_transition_table;
+let DISPLAY_MODE = DEFAULTS.display_mode || 'countdown';
+let STATIC_TIME_MS = DEFAULTS.static_time_ms || 0;
 
 /**
  * Load config from GitHub with localStorage caching
@@ -140,6 +144,14 @@ function applyConfig(config) {
     // Use color_transition_table from config if available
     if (config.color_transition_table && Array.isArray(config.color_transition_table)) {
         COLOR_TRANSITION_TABLE = config.color_transition_table;
+    }
+    // Use display_mode from config if available
+    if (config.display_mode) {
+        DISPLAY_MODE = config.display_mode;
+    }
+    // Use static_time_ms from config if available
+    if (config.static_time_ms !== undefined) {
+        STATIC_TIME_MS = config.static_time_ms;
     }
 }
 

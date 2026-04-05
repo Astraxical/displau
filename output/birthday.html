@@ -488,9 +488,9 @@ body {
     </div>
 
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260404215703.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260405142052.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260404215703.stable</span>
+        <span class="version-date">2.0.0.20260405142052.stable</span>
     </div>
 
     <script>
@@ -506,6 +506,8 @@ const DEFAULTS = {
     direction: 'down',  // Options: 'down', 'up'
     min_value: 0,       // Minimum value in milliseconds (null for no limit)
     max_value: null,     // Maximum value in milliseconds (null for no limit)
+    display_mode: 'countdown',  // Options: 'countdown', 'static'
+    static_time_ms: 0,  // Fixed time value in ms for static display mode
     // Smooth color transition: Blue→Cyan→Green→Yellow→Orange→Red→Violet→Deep Violet
     color_transition_table: [
         { ratio: 1.0, color: '#0088ff' },   // Blue: 100% remaining
@@ -526,7 +528,7 @@ const DEFAULTS = {
         { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 3549776427;
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 3490747251;
 const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/unknown/birthday.json'; // Injected by build script
 // =======================================
 
@@ -551,6 +553,8 @@ let DIRECTION = DEFAULTS.direction;
 let MIN_VALUE = DEFAULTS.min_value;
 let MAX_VALUE = DEFAULTS.max_value;
 let COLOR_TRANSITION_TABLE = DEFAULTS.color_transition_table;
+let DISPLAY_MODE = DEFAULTS.display_mode || 'countdown';
+let STATIC_TIME_MS = DEFAULTS.static_time_ms || 0;
 
 /**
  * Load config from GitHub with localStorage caching
@@ -637,6 +641,14 @@ function applyConfig(config) {
     // Use color_transition_table from config if available
     if (config.color_transition_table && Array.isArray(config.color_transition_table)) {
         COLOR_TRANSITION_TABLE = config.color_transition_table;
+    }
+    // Use display_mode from config if available
+    if (config.display_mode) {
+        DISPLAY_MODE = config.display_mode;
+    }
+    // Use static_time_ms from config if available
+    if (config.static_time_ms !== undefined) {
+        STATIC_TIME_MS = config.static_time_ms;
     }
 }
 
@@ -1482,6 +1494,33 @@ async function init() {
     actualTime = getCurrentTimeValue();
     displayTime = actualTime;
     maximumTime = actualTime;
+
+    // For static display mode, just show the static_time_ms value and skip countdown
+    if (DISPLAY_MODE === 'static') {
+        console.log(`[Timer] Static display mode - showing ${STATIC_TIME_MS}ms`);
+        displayTime = STATIC_TIME_MS;
+        actualTime = STATIC_TIME_MS;
+        
+        const timeStr = formatTime(Math.max(0, displayTime));
+        updateDisplay(timeStr);
+        
+        // Update document title
+        const displayName = DISPLAY_NAME || '7 Segment Timer';
+        document.title = `${timeStr.split('.')[0]} - ${displayName}`;
+        
+        // Apply initial color (use 1.0 ratio since it's static)
+        currentColor = getColorForRemainingRatio(1.0);
+        targetColor = currentColor;
+        applyColor(currentColor);
+        
+        // Add display name
+        addDisplayName();
+        
+        // Setup keyboard shortcuts
+        setupKeyboardShortcuts();
+        
+        return; // Don't start countdown intervals
+    }
 
     const remainingRatio = calculateRemainingRatio();
     currentColor = getColorForRemainingRatio(remainingRatio);

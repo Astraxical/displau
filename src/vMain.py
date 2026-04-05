@@ -192,7 +192,9 @@ def replace_placeholders(
     max_value: Optional[int | str] = 'null',
     version_type: str = 'STABLE',
     build_date: Optional[str] = None,
-    display_name: str = ''
+    display_name: str = '',
+    display_mode: str = 'countdown',
+    static_time_ms: int = 0
 ) -> str:
     """Replace configuration placeholders in content."""
     if build_date is None:
@@ -211,6 +213,8 @@ def replace_placeholders(
         '{{VERSION_TYPE}}': version_type,
         '{{BUILD_DATE}}': build_date,
         '{{DISPLAY_NAME}}': display_name,
+        '{{DISPLAY_MODE}}': display_mode,
+        '{{STATIC_TIME_MS}}': str(static_time_ms),
     }
 
     for placeholder, value in replacements.items():
@@ -262,7 +266,8 @@ def build_html(
     auto_config: bool = True,
     start_time_str: Optional[str] = None,
     use_local_config: bool = False,
-    config_relative_path: str = None
+    config_relative_path: str = None,
+    local_config: Optional[dict] = None
 ) -> None:
     """Generate the HTML file from components."""
     if target_time_str is None:
@@ -299,8 +304,11 @@ def build_html(
     max_value = 'null'
     version_type = 'STABLE'
     display_name = ''
+    display_mode = 'countdown'
+    static_time_ms = 0
 
-    if config_url:
+    # Try fetching from URL first
+    if config_url and not use_local_config:
         config = fetch_config_from_url(config_url)
         if config:
             direction = config.get('direction', 'down')
@@ -308,14 +316,26 @@ def build_html(
             max_val = config.get('max_value', None)
             max_value = 'null' if max_val is None else str(max_val)
             display_name = config.get('display_name', '')
+            display_mode = config.get('display_mode', 'countdown')
+            static_time_ms = config.get('static_time_ms', 0)
+
+    # Fall back to local config if provided (e.g., when building from timers folder)
+    if local_config:
+        direction = local_config.get('direction', direction)
+        min_value = local_config.get('min_value', min_value)
+        max_val = local_config.get('max_value', None)
+        max_value = 'null' if max_val is None else str(max_val)
+        display_name = local_config.get('display_name', display_name)
+        display_mode = local_config.get('display_mode', display_mode)
+        static_time_ms = local_config.get('static_time_ms', static_time_ms)
 
     scripts = replace_placeholders(
         scripts, target_time_str, milliseconds_at_full_brightness,
-        config_url, start_time_str, direction, min_value, max_value, version_type, display_name=display_name
+        config_url, start_time_str, direction, min_value, max_value, version_type, display_name=display_name, display_mode=display_mode, static_time_ms=static_time_ms
     )
     html['body'] = replace_placeholders(
         html['body'], target_time_str, milliseconds_at_full_brightness,
-        config_url, start_time_str, direction, min_value, max_value, version_type, display_name=display_name
+        config_url, start_time_str, direction, min_value, max_value, version_type, display_name=display_name, display_mode=display_mode, static_time_ms=static_time_ms
     )
     html['html_open'] = html['html_open'].replace('{{CONFIG_URL}}', config_url)
 
@@ -548,7 +568,8 @@ def build_timers_folder(generate_selector_page: bool = False, organize: bool = T
             target_time_str=target_time,
             config_id=config_id,
             auto_config=True,
-            config_relative_path=config_relative_path
+            config_relative_path=config_relative_path,
+            local_config=timer
         )
 
         timers_list.append(timer)

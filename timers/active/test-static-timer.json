@@ -1,0 +1,11 @@
+{
+    "id": "test-static-timer",
+    "display_name": "Static Timer Test",
+    "description": "Test timer that displays a fixed time value in milliseconds",
+    "target_time": "2026-04-15T00:00:00",
+    "start_time": "2026-04-05T00:00:00",
+    "direction": "down",
+    "display_mode": "static",
+    "static_time_ms": 9000000,
+    "enabled": true
+}

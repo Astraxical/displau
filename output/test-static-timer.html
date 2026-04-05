@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/execution.json">
+<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/test-static-timer.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -478,8 +478,8 @@ body {
 </head>
 <body>
     <!-- Display Name Overlay (hidden by default) -->
-    <div class="timer-display-name" id="displayName" title="Execution" style="opacity: 0;">
-        Execution
+    <div class="timer-display-name" id="displayName" title="Static Timer Test" style="opacity: 0;">
+        Static Timer Test
     </div>
 
     <!-- 7-Segment Display -->
@@ -488,9 +488,9 @@ body {
     </div>
 
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260405142051.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260405142052.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260405142051.stable</span>
+        <span class="version-date">2.0.0.20260405142052.stable</span>
     </div>
 
     <script>
@@ -499,15 +499,15 @@ body {
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
     target_time: '2026-04-15T00:00:00',
-    start_time: '2026-03-15T00:00:00',
+    start_time: '2026-04-05T14:20:52',
     display_name: '',
     config_id: 'default',
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
     direction: 'down',  // Options: 'down', 'up'
     min_value: 0,       // Minimum value in milliseconds (null for no limit)
     max_value: null,     // Maximum value in milliseconds (null for no limit)
-    display_mode: 'countdown',  // Options: 'countdown', 'static'
-    static_time_ms: 0,  // Fixed time value in ms for static display mode
+    display_mode: 'static',  // Options: 'countdown', 'static'
+    static_time_ms: 9000000,  // Fixed time value in ms for static display mode
     // Smooth color transition: Blue→Cyan→Green→Yellow→Orange→Red→Violet→Deep Violet
     color_transition_table: [
         { ratio: 1.0, color: '#0088ff' },   // Blue: 100% remaining
@@ -528,8 +528,8 @@ const DEFAULTS = {
         { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 812348022;
-const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/execution.json'; // Injected by build script
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 812347613;
+const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/test-static-timer.json'; // Injected by build script
 // =======================================
 
 // Cache configuration
@@ -579,7 +579,7 @@ async function loadConfig() {
     }
     
     // Try fetch from GitHub
-    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/execution.json') {
+    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/test-static-timer.json') {
         try {
             console.log('[Config] Fetching config from:', CONFIG_URL);
             const response = await fetch(CONFIG_URL, {

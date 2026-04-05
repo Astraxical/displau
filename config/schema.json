@@ -140,6 +140,16 @@
             "type": "string",
             "description": "Timezone identifier",
             "default": "UTC"
+        },
+        "display_mode": {
+            "type": "string",
+            "description": "Display mode: 'countdown' for normal countdown, 'static' to show a fixed time value without countdown",
+            "enum": ["countdown", "static"],
+            "default": "countdown"
+        },
+        "static_time_ms": {
+            "type": "number",
+            "description": "Time value in milliseconds to display when display_mode is 'static' (e.g., 9000000 for 2.5 hours)"
         }
     },
     "additionalProperties": false

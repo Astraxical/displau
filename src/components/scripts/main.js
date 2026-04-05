@@ -174,6 +174,33 @@ async function init() {
     displayTime = actualTime;
     maximumTime = actualTime;
 
+    // For static display mode, just show the static_time_ms value and skip countdown
+    if (DISPLAY_MODE === 'static') {
+        console.log(`[Timer] Static display mode - showing ${STATIC_TIME_MS}ms`);
+        displayTime = STATIC_TIME_MS;
+        actualTime = STATIC_TIME_MS;
+        
+        const timeStr = formatTime(Math.max(0, displayTime));
+        updateDisplay(timeStr);
+        
+        // Update document title
+        const displayName = DISPLAY_NAME || '7 Segment Timer';
+        document.title = `${timeStr.split('.')[0]} - ${displayName}`;
+        
+        // Apply initial color (use 1.0 ratio since it's static)
+        currentColor = getColorForRemainingRatio(1.0);
+        targetColor = currentColor;
+        applyColor(currentColor);
+        
+        // Add display name
+        addDisplayName();
+        
+        // Setup keyboard shortcuts
+        setupKeyboardShortcuts();
+        
+        return; // Don't start countdown intervals
+    }
+
     const remainingRatio = calculateRemainingRatio();
     currentColor = getColorForRemainingRatio(remainingRatio);
     targetColor = currentColor;

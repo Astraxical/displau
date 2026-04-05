@@ -75,5 +75,7 @@
     //     {"ratio": 0.1, "format": "SSs.mmm"}          // 451845.123 (total seconds)
     // ]
     "show_milliseconds": true,
-    "timezone": "UTC"
+    "timezone": "UTC",
+    "display_mode": "countdown",
+    "static_time_ms": 0
 }

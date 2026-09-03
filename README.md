@@ -110,12 +110,58 @@ Each timer is defined by a JSON file in `timers/`:
 | `max_value` | number | Maximum value (null for unlimited, default: `null`) |
 | `on_expire` | string | Action on expiry: `"stop"`, `"continue"`, `"hide"` (default: `stop`) |
 | `display_on_expire` | boolean | Whether to show in selector after expiry (default: `true`) |
+| `recur` | boolean | Enable recurring mode (default: `false`) |
+| `recur_rule` | string | `"weekly"` (weekday slots), `"daily"` (time-of-day slots), `"interval"` (every N minutes) |
+| `recur_schedule` | array | Multi-slot schedule: `[{"weekday": "Monday", "start": "08:30", "end": "12:30", "label": "Lecture"}]`. `"time"` works as an alias of `"start"`. Legacy `recur_weekday`/`recur_time`/`recur_end` still work as a single slot |
+| `recur_interval_minutes` | number | Interval in minutes (required when `recur_rule` is `"interval"`) |
+| `recur_anchor` | string | ISO 8601 anchor datetime for interval recurrence (defaults to `start_time`) |
 | `tags` | array | Tags for categorization |
 | `category` | string | Category name |
 | `color_theme` | string | Color theme identifier (default: `progress`) |
 | `color_transition_table` | array | Custom color transition table |
 | `show_milliseconds` | boolean | Show milliseconds in display (default: `true`) |
 | `timezone` | string | Timezone identifier (default: `UTC`) |
+
+### Recurring timers
+
+Weekly multi-slot example (counts down to the next class start, and to the
+session end while a class is in session):
+
+```json
+{
+    "id": "mat-202-algebra",
+    "recur": true,
+    "recur_rule": "weekly",
+    "recur_schedule": [
+        {"weekday": "Monday", "start": "08:30", "end": "12:30", "label": "Lecture"},
+        {"weekday": "Thursday", "start": "12:00", "end": "16:00", "label": "Lab"}
+    ]
+}
+```
+
+Daily and interval examples:
+
+```json
+{"id": "standup", "recur": true, "recur_rule": "daily",
+ "recur_schedule": [{"start": "09:00", "end": "09:15", "label": "Standup"}]}
+
+{"id": "water-break", "recur": true, "recur_rule": "interval",
+ "recur_interval_minutes": 90, "recur_anchor": "2026-01-01T08:00:00"}
+```
+
+### Auto clock + API
+
+Every `--timers-dir` build also generates:
+
+- `output/up-next.html` — standalone clock that auto-switches to the closest
+  countdown every second. Supports `?timer=<id>` (lock to one timer),
+  `?embed=1` (minimal view), `?json=1` (raw JSON), and a runtime API at
+  `window.DisplauAPI` (`getTimers()`, `getUpcoming(n)`, `getCurrent()`,
+  `onSwitch(fn)`, `refresh()` + a `displau:switch` DOM event).
+- `output/api/timers.json` — full manifest, closest-first, with precomputed
+  `next_target` / `next_in_s` / `next_phase` per timer.
+- `output/api/up-next.json` — current pick + next 10 upcoming.
+- `output/api/status.json` — counts + build info.
 
 ## Build Script Usage
 

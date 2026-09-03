@@ -9,6 +9,58 @@ function updateProgressBars() {
     const now = new Date();
 
     document.querySelectorAll('.timer-card').forEach(card => {
+        // Recurring weekly timers: compute progress from the weekly schedule
+        if (card.dataset.recur) {
+            const weekday = parseInt(card.dataset.recurWeekday || '0', 10);
+            const [sh, sm] = (card.dataset.recurTime || '00:00').split(':').map(Number);
+            const endParts = (card.dataset.recurEnd || '').split(':');
+            const endSet = endParts.length >= 2;
+
+            const now = new Date();
+            // Build next occurrence in local time (day 0 = Sunday, matching JS getDay)
+            let diff = (weekday - now.getDay() + 7) % 7;
+            const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff, sh, sm, 0, 0);
+            if (next <= now) next.setDate(next.getDate() + 7);
+            const prev = new Date(next.getTime() - 7 * 86400000);
+
+            // Check if currently in class
+            let inClass = false;
+            let classEnd = null;
+            if (endSet) {
+                const [eh, em] = endParts.map(Number);
+                classEnd = new Date(prev.getFullYear(), prev.getMonth(), prev.getDate(), eh, em, 0, 0);
+                inClass = now >= prev && now < classEnd;
+            }
+
+            let progress, progressText;
+            if (inClass && classEnd) {
+                const total = classEnd - prev;
+                const elapsed = now - prev;
+                progress = (elapsed / total) * 100;
+                progressText = `${progress.toFixed(2).toString().padStart(6, '0')}%`;
+            } else {
+                const total = 7 * 86400000;
+                const elapsed = now - prev;
+                progress = (elapsed / total) * 100;
+                progressText = `${progress.toFixed(2).toString().padStart(6, '0')}%`;
+            }
+
+            if (card.dataset.status !== 'running') {
+                card.dataset.status = 'running';
+                const statusBadge = card.querySelector('.status-badge');
+                if (statusBadge) {
+                    statusBadge.textContent = 'Running';
+                    statusBadge.className = 'status-badge status-running';
+                }
+            }
+
+            const progressFill = card.querySelector('.progress-fill');
+            const progressTextEl = card.querySelector('.progress-text');
+            if (progressFill) progressFill.style.width = `${progress}%`;
+            if (progressTextEl) progressTextEl.textContent = progressText;
+            return;
+        }
+
         const timeInfo = card.querySelector('.time-info');
         if (!timeInfo) return;
 

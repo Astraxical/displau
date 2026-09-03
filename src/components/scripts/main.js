@@ -113,6 +113,12 @@ function updateCountdown() {
     const timeStr = formatTime(Math.max(0, displayTime));
     updateDisplay(timeStr);
 
+    // Recurring timers: mark when class is currently in session
+    if (RECUR) {
+        const inClass = getClassEnd() !== null;
+        document.body.classList.toggle('in-class', inClass);
+    }
+
     // Update document title
     const displayName = DISPLAY_NAME || '7 Segment Timer';
     document.title = `${timeStr.split('.')[0]} - ${displayName}`;

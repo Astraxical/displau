@@ -11,6 +11,17 @@ const DEFAULTS = {
     max_value: {{MAX_VALUE}},     // Maximum value in milliseconds (null for no limit)
     display_mode: '{{DISPLAY_MODE}}',  // Options: 'countdown', 'static'
     static_time_ms: {{STATIC_TIME_MS}},  // Fixed time value in ms for static display mode
+    // Recurring mode: weekly multi-slot, daily, or fixed-interval countdowns.
+    // Single-slot legacy fields (recur_weekday/time/end) still work and are
+    // auto-converted into a one-entry recur_schedule.
+    recur: {{RECUR}},                    // true = recurring timer
+    recur_rule: '{{RECUR_RULE}}',        // 'weekly' | 'daily' | 'interval'
+    recur_weekday: {{RECUR_WEEKDAY}},    // legacy single-slot: 0=Sunday ... 6=Saturday
+    recur_time: '{{RECUR_TIME}}',        // legacy single-slot start 'HH:MM:SS'
+    recur_end: {{RECUR_END}},            // legacy single-slot end 'HH:MM:SS' or null
+    recur_schedule: {{RECUR_SCHEDULE_JSON}}, // canonical multi-slot list [{weekday,start,end,label}]
+    recur_interval_minutes: {{RECUR_INTERVAL}}, // interval rule: minutes between occurrences or null
+    recur_anchor: '{{RECUR_ANCHOR}}',    // interval rule anchor ISO datetime ('' = use start_time)
     // Smooth color transition: Blue→Cyan→Green→Yellow→Orange→Red→Violet→Deep Violet
     color_transition_table: [
         { ratio: 1.0, color: '#0088ff' },   // Blue: 100% remaining
@@ -58,6 +69,14 @@ let MAX_VALUE = DEFAULTS.max_value;
 let COLOR_TRANSITION_TABLE = DEFAULTS.color_transition_table;
 let DISPLAY_MODE = DEFAULTS.display_mode || 'countdown';
 let STATIC_TIME_MS = DEFAULTS.static_time_ms || 0;
+let RECUR = DEFAULTS.recur || false;
+let RECUR_RULE = DEFAULTS.recur_rule || 'weekly';
+let RECUR_WEEKDAY = DEFAULTS.recur_weekday;
+let RECUR_TIME = DEFAULTS.recur_time || '00:00:00';
+let RECUR_END = DEFAULTS.recur_end; // 'HH:MM:SS' or null (legacy single-slot)
+let RECUR_SCHEDULE = DEFAULTS.recur_schedule || []; // canonical slots [{weekday,start,end,label}]
+let RECUR_INTERVAL_MINUTES = DEFAULTS.recur_interval_minutes ?? null;
+let RECUR_ANCHOR = DEFAULTS.recur_anchor || '';
 
 /**
  * Load config from GitHub with localStorage caching
@@ -152,6 +171,31 @@ function applyConfig(config) {
     // Use static_time_ms from config if available
     if (config.static_time_ms !== undefined) {
         STATIC_TIME_MS = config.static_time_ms;
+    }
+    // Use recurring settings from config if available (legacy + v2 schedule rules)
+    if (config.recur !== undefined) {
+        RECUR = config.recur;
+    }
+    if (config.recur_rule !== undefined) {
+        RECUR_RULE = config.recur_rule;
+    }
+    if (config.recur_weekday !== undefined) {
+        RECUR_WEEKDAY = config.recur_weekday;
+    }
+    if (config.recur_time !== undefined) {
+        RECUR_TIME = config.recur_time;
+    }
+    if (config.recur_end !== undefined) {
+        RECUR_END = config.recur_end;
+    }
+    if (config.recur_schedule !== undefined) {
+        RECUR_SCHEDULE = config.recur_schedule;
+    }
+    if (config.recur_interval_minutes !== undefined) {
+        RECUR_INTERVAL_MINUTES = config.recur_interval_minutes;
+    }
+    if (config.recur_anchor !== undefined) {
+        RECUR_ANCHOR = config.recur_anchor;
     }
 }
 

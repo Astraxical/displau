@@ -150,7 +150,91 @@
         "static_time_ms": {
             "type": "number",
             "description": "Time value in milliseconds to display when display_mode is 'static' (e.g., 9000000 for 2.5 hours)"
-        }
+        },
+        "recur": {
+            "type": "boolean",
+            "description": "Enable recurring weekly countdown mode - counts down to the next occurrence of a weekly schedule, then rolls over",
+            "default": false
+        },
+        "recur_weekday": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "description": "Weekday name (e.g., 'Monday')"
+                },
+                {
+                    "type": "integer",
+                    "description": "Weekday number (0=Sunday ... 6=Saturday)",
+                    "minimum": 0,
+                    "maximum": 6
+                }
+            ],
+            "description": "Day of week the course/event starts (required when recur is true)"
+        },
+        "recur_time": {
+            "type": "string",
+            "description": "Start time of day in HH:MM or HH:MM:SS format (required when recur is true)",
+            "pattern": "^\\d{2}:\\d{2}(:\\d{2})?$"
+        },
+        "recur_end": {
+            "oneOf": [
+                {
+                    "type": "string",
+                    "description": "End time in HH:MM or HH:MM:SS format - counts down to class end during class"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "description": "Optional end time - while class is in session, counts down to this time (legacy single-slot; prefer recur_schedule)",
+            "default": null
+        },
+        "recur_rule": {
+            "type": "string",
+            "description": "Recurrence rule: 'weekly' (weekday slots), 'daily' (time-of-day slots every day), or 'interval' (every N minutes from anchor)",
+            "enum": ["weekly", "daily", "interval"],
+            "default": "weekly"
+        },
+        "recur_schedule": {
+            "type": "array",
+            "description": "Multi-slot recurrence schedule. Weekly: each slot needs weekday + start. Daily: each slot needs start. 'time' is accepted as an alias of 'start'.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "weekday": {
+                        "oneOf": [
+                            {"type": "string"},
+                            {"type": "integer", "minimum": 0, "maximum": 6}
+                        ],
+                        "description": "Day of week (name or 0=Sunday..6=Saturday). Required for weekly rule."
+                    },
+                    "start": {"type": "string", "pattern": "^\\d{2}:\\d{2}(:\\d{2})?$"},
+                    "time": {"type": "string", "pattern": "^\\d{2}:\\d{2}(:\\d{2})?$"},
+                    "end": {
+                        "oneOf": [
+                            {"type": "string", "pattern": "^\\d{2}:\\d{2}(:\\d{2})?$"},
+                            {"type": "null"}
+                        ]
+                    },
+                    "label": {"type": "string", "maxLength": 100}
+                },
+                "additionalProperties": false
+            }
+        },
+        "recur_interval_minutes": {
+            "oneOf": [
+                {"type": "number", "exclusiveMinimum": 0},
+                {"type": "null"}
+            ],
+            "description": "Interval in minutes between occurrences (required when recur_rule is 'interval')"
+        },
+        "recur_anchor": {
+            "oneOf": [
+                {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?$"},
+                {"type": "null"}
+            ],
+            "description": "ISO 8601 anchor datetime for interval recurrence (defaults to start_time)"
+        },
     },
     "additionalProperties": false
 }

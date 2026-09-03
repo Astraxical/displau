@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Up Next - Auto Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #1a1a2e;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Display Name */
+.timer-display-name {
+    position: fixed;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #00ff88;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    z-index: 1000;
+    text-align: center;
+    padding: 0.5rem 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 136, 0.2);
+    transition: opacity 0.3s;
+}
+
+/* Fullscreen styles */
+:fullscreen body {
+    background: #0a0a15;
+}
+
+.display {
+    display: flex;
+    gap: 1vw;
+    justify-content: center;
+    align-items: center;
+}
+
+/* ============================================
+   VERSION WATERMARK
+   ============================================ */
+
+.version-watermark {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 10000;
+    transition: opacity 0.3s;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Show watermark when hovering near bottom-right corner */
+.version-watermark.visible {
+    opacity: 0.5;
+}
+
+.version-watermark:hover {
+    opacity: 0.9 !important;
+}
+
+.version-label {
+    font-weight: bold;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.version-date {
+    font-size: 9px;
+    opacity: 0.5;
+}
+
+/* Stable version - subtle green tint */
+.version-watermark[data-version="STABLE"] {
+    border-color: rgba(0, 255, 136, 0.3);
+    color: rgba(0, 255, 136, 0.5);
+}
+
+.version-watermark[data-version="STABLE"] .version-label {
+    color: rgba(0, 255, 136, 0.7);
+}
+
+/* Experimental version - subtle orange tint */
+.version-watermark[data-version="EXPERIMENTAL"] {
+    border-color: rgba(255, 165, 0, 0.3);
+    color: rgba(255, 165, 0, 0.5);
+}
+
+.version-watermark[data-version="EXPERIMENTAL"] .version-label {
+    color: rgba(255, 165, 0, 0.7);
+}
+
+/* Fresh build (updated today) - bright cyan/green */
+.version-watermark[data-age="fresh"] {
+    border-color: rgba(0, 255, 200, 0.5) !important;
+    color: rgba(0, 255, 200, 0.8) !important;
+    opacity: 0.7;
+}
+
+.version-watermark[data-age="fresh"] .version-label {
+    color: rgba(0, 255, 200, 1) !important;
+}
+
+/* Old build (not updated today) - warning orange/red */
+.version-watermark[data-age="old"] {
+    border-color: rgba(255, 69, 0, 0.5) !important;
+    color: rgba(255, 69, 0, 0.8) !important;
+    opacity: 0.7;
+}
+
+.version-watermark[data-age="old"] .version-label {
+    color: rgba(255, 69, 0, 1) !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .version-watermark {
+        bottom: 5px;
+        right: 5px;
+        padding: 4px 8px;
+        font-size: 9px;
+    }
+
+    .version-label {
+        font-size: 10px;
+    }
+
+    .version-date {
+        font-size: 8px;
+    }
+}
+
+/* ============================================
+   EXPIRED STATE STYLES
+   ============================================ */
+
+/* Expired body state - triggers pulse animation */
+body.expired {
+    animation: expiredPulse 2s ease-in-out infinite;
+}
+
+@keyframes expiredPulse {
+    0%, 100% {
+        background: #1a1a2e;
+    }
+    50% {
+        background: #2a1a1e;
+    }
+}
+
+/* Expired segments - red flash */
+body.expired .segment-part.on {
+    animation: expiredFlash 1s ease-in-out infinite;
+}
+
+@keyframes expiredFlash {
+    0%, 100% {
+        background: #ff0000;
+        box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000, 0 0 45px #ff0000;
+    }
+    50% {
+        background: #ff4444;
+        box-shadow: 0 0 25px #ff0000, 0 0 50px #ff0000, 0 0 75px #ff0000;
+    }
+}
+
+/* Expired colon dots - red flash */
+body.expired .colon-dot.on {
+    animation: expiredFlash 1s ease-in-out infinite;
+}
+
+/* ============================================
+   IN-CLASS STATE (recurring weekly timers)
+   ============================================ */
+
+/* Class is in session - soft amber glow */
+body.in-class {
+    animation: inClassPulse 2s ease-in-out infinite;
+}
+
+@keyframes inClassPulse {
+    0%, 100% {
+        background: #1a1a2e;
+    }
+    50% {
+        background: #2a2a1e;
+    }
+}
+
+body.in-class .segment-part.on {
+    animation: inClassFlash 1.2s ease-in-out infinite;
+}
+
+@keyframes inClassFlash {
+    0%, 100% {
+        background: #ffaa00;
+        box-shadow: 0 0 12px #ffaa00, 0 0 24px #ffaa00, 0 0 36px #ffaa00;
+    }
+    50% {
+        background: #ffcc44;
+        box-shadow: 0 0 20px #ffaa00, 0 0 40px #ffaa00, 0 0 60px #ffaa00;
+    }
+}
+
+body.in-class .colon-dot.on {
+    animation: inClassFlash 1.2s ease-in-out infinite;
+}
+
+/* ============================================
+   EXPIRED MESSAGE STYLES (for on_expire: hide)
+   ============================================ */
+
+.expired-message {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    animation: expiredMessagePulse 2s ease-in-out infinite;
+}
+
+.expired-text {
+    font-size: 8vw;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+    color: #ff0000;
+    text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000;
+    letter-spacing: 0.5rem;
+    animation: expiredTextFlash 1.5s ease-in-out infinite;
+}
+
+.expired-subtext {
+    font-size: 2vw;
+    color: #ff6666;
+    text-shadow: 0 0 10px #ff0000;
+    letter-spacing: 0.2rem;
+}
+
+@keyframes expiredMessagePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+@keyframes expiredTextFlash {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000;
+    }
+    50% {
+        opacity: 0.7;
+        text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000, 0 0 90px #ff0000;
+    }
+}
+
+/* ============================================
+   MINUS SIGN FOR NEGATIVE TIME (Dark Pink)
+   ============================================ */
+
+.minus-sign {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 0.5vw;
+}
+
+.minus-bar {
+    width: 3vw;
+    height: 0.8vw;
+    background: #ff1493;
+    border-radius: 2px;
+    box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
+    animation: minusPulse 2s ease-in-out infinite;
+}
+
+@keyframes minusPulse {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
+    }
+    50% {
+        opacity: 0.8;
+        box-shadow: 0 0 15px #ff1493, 0 0 30px #ff1493;
+    }
+}
+
+/* ============================================
+   RESPONSIVE STYLES
+   ============================================ */
+
+@media (max-width: 768px) {
+    .expired-text {
+        font-size: 12vw;
+    }
+    
+    .expired-subtext {
+        font-size: 4vw;
+    }
+    
+    .minus-bar {
+        width: 5vw;
+        height: 1.2vw;
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #1a1a2e;
+    overflow: hidden;
+}
+
+.display {
+    display: flex;
+    gap: 1vw;
+    justify-content: center;
+    align-items: center;
+}
+
+.segment {
+    width: 8vw;
+    height: 14vw;
+    position: relative;
+}
+
+.segment-part {
+    position: absolute;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.segment-part.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+/* Horizontal segments (a, d, g) */
+.seg-a, .seg-d, .seg-g {
+    width: 5.5vw;
+    height: 1vw;
+    left: 1.25vw;
+    clip-path: polygon(0.6vw 0, 100% 0, 100% 100%, 0.6vw 100%, 0 50%);
+}
+
+.seg-a { top: 0; }
+.seg-d { bottom: 0; }
+.seg-g { top: 6.5vw; }
+
+/* Vertical segments (b, c, e, f) */
+.seg-b, .seg-c, .seg-e, .seg-f {
+    width: 1vw;
+    height: 5.5vw;
+    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+}
+
+.seg-b { top: 0.6vw; right: 0; }
+.seg-c { bottom: 0.6vw; right: 0; }
+.seg-e { bottom: 0.6vw; left: 0; }
+.seg-f { top: 0.6vw; left: 0; }
+
+/* Colon separator */
+.colon {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2vw;
+}
+
+.colon-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.colon-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+/* Decimal point */
+.decimal {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 2vw;
+}
+
+.decimal-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.decimal-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+/* 7-Segment Display Segments */
+
+/* Horizontal segments (a, d, g) */
+.seg-a, .seg-d, .seg-g {
+    width: 5.5vw;
+    height: 1vw;
+    left: 1.25vw;
+    clip-path: polygon(0.6vw 0, 100% 0, 100% 100%, 0.6vw 100%, 0 50%);
+}
+
+.seg-a { top: 0; }
+.seg-d { bottom: 0; }
+.seg-g { top: 6.5vw; }
+
+/* Vertical segments (b, c, e, f) */
+.seg-b, .seg-c, .seg-e, .seg-f {
+    width: 1vw;
+    height: 5.5vw;
+    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+}
+
+.seg-b { top: 0.6vw; right: 0; }
+.seg-c { bottom: 0.6vw; right: 0; }
+.seg-e { bottom: 0.6vw; left: 0; }
+.seg-f { top: 0.6vw; left: 0; }
+
+/* Colon separator */
+.colon {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2vw;
+}
+
+.colon-dot {
+    width: 1.5vw;
+    height: 1.5vw;
+    border-radius: 50%;
+    background: #331;
+    transition: background 0.1s;
+}
+
+.colon-dot.on {
+    background: #00ff00;
+    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+}
+
+/* Decimal point */
+.decimal {
+    width: 2vw;
+    height: 14vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 1vw;
+}
+
+.decimal .colon-dot {
+    margin-bottom: 0.5vw;
+}
+
+:root { --up-accent: #00ff88; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+.up-wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem; min-height: 100vh; display: flex; flex-direction: column; gap: 1.25rem; }
+.up-eyebrow { text-align: center; color: var(--text-secondary, #a0a0b0); font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; }
+.up-eyebrow a { color: var(--up-accent); text-decoration: none; }
+.up-card { background: var(--bg-card, rgba(20,20,30,0.6)); border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius: 20px; padding: 2rem; backdrop-filter: blur(20px); text-align: center; }
+.up-card.switched { animation: upflash 0.8s ease; }
+@keyframes upflash { 0% { border-color: var(--up-accent); box-shadow: 0 0 0 2px rgba(0,255,136,0.35); } 100% { border-color: var(--border-subtle, rgba(255,255,255,0.08)); box-shadow: none; } }
+#upName { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; margin-bottom: 0.25rem; }
+#upSub { color: var(--text-secondary, #a0a0b0); margin-bottom: 1rem; min-height: 1.2em; }
+#upPhase { display: inline-block; padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); margin-bottom: 1.25rem; }
+#upPhase[data-phase="in-class"] { background: rgba(0,255,136,0.12); color: #00ff88; border-color: rgba(0,255,136,0.3); }
+#upPhase[data-phase="waiting"] { background: rgba(0,170,255,0.12); color: #33bbff; border-color: rgba(0,170,255,0.3); }
+#upPhase[data-phase="one-shot"] { background: rgba(255,193,7,0.12); color: #ffc107; border-color: rgba(255,193,7,0.3); }
+#upMeta { margin-top: 1rem; color: var(--text-secondary, #a0a0b0); font-size: 0.9rem; }
+.up-list-card { background: var(--bg-glass, rgba(255,255,255,0.03)); border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius: 16px; padding: 1.25rem 1.5rem; }
+.up-list-card h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted, #606070); margin-bottom: 0.75rem; }
+#upList { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+.up-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.6rem 0.8rem; border-radius: 10px; background: rgba(255,255,255,0.02); font-size: 0.9rem; }
+.up-row.is-current { border: 1px solid rgba(0,255,136,0.3); }
+.up-in { font-family: 'JetBrains Mono', 'Courier New', monospace; color: var(--up-accent); }
+.up-foot { text-align: center; color: var(--text-muted, #606070); font-size: 0.75rem; }
+.up-foot code { background: rgba(255,255,255,0.06); padding: 0.1rem 0.4rem; border-radius: 6px; }
+body.embed .up-list-card, body.embed .up-foot, body.embed .up-eyebrow { display: none; }
+#api-dump { white-space: pre-wrap; word-break: break-word; padding: 2rem; font-size: 0.85rem; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+</style>
+</head>
+<body>
+<div class="up-wrap">
+<div class="up-eyebrow">Displau &middot; Auto Clock &middot; <a href="api/up-next.json">api/up-next.json</a></div>
+<div class="up-card">
+<div id="upPhase" data-phase="waiting">○ STARTS IN</div>
+<h1 id="upName">Loading…</h1>
+<p id="upSub"></p>
+<div class="display" id="display"></div>
+<p id="upMeta"></p>
+</div>
+<div class="up-list-card">
+<h2>Following</h2>
+<ul id="upList"></ul>
+</div>
+<div class="up-foot">
+<p>Auto-switches to the closest countdown every second. Lock one with <code>?timer=&lt;id&gt;</code> · minimal view with <code>?embed=1</code> · raw JSON with <code>?json=1</code> · runtime API at <code>window.DisplauAPI</code>.</p>
+<p>7 Segment Display Timer System &copy; 2026 · build 2.0.0.20260904002438.stable</p>
+</div>
+</div>
+<script>
+var currentColor = '#00ff00';
+var targetColor = '#00ff00';
+var colorTransitionProgress = 1;
+var COLOR_TRANSITION_TABLE = null;
+</script>
+<script>
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : { r: 0, g: 255, b: 0 };
+}
+
+function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(x => {
+        const hex = Math.round(x).toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    }).join('');
+}
+
+function lerpColor(color1, color2, t) {
+    const c1 = hexToRgb(color1);
+    const c2 = hexToRgb(color2);
+    return rgbToHex(
+        c1.r + (c2.r - c1.r) * t,
+        c1.g + (c2.g - c1.g) * t,
+        c1.b + (c2.b - c1.b) * t
+    );
+}
+
+/**
+ * Get color from transition table based on remaining ratio
+ * Supports negative ratios for negative time (beyond zero)
+ * @param {number} remainingRatio - Ratio of time remaining (can be negative for overtime)
+ * @returns {string} Hex color string
+ */
+function getColorForRemainingRatio(remainingRatio) {
+    // Smooth color transition: Blue→Cyan→Green→Yellow→Orange→Red→Violet→Deep Violet
+    const defaultTable = [
+        { ratio: 1.0, color: '#0088ff' },   // Blue: 100% remaining
+        { ratio: 0.9, color: '#00aaff' },   // Blue-Cyan: 90%
+        { ratio: 0.8, color: '#00ccff' },   // Cyan-Blue: 80%
+        { ratio: 0.75, color: '#00ff00' },  // Green: 75%
+        { ratio: 0.6, color: '#80ff00' },   // Lime-Green: 60%
+        { ratio: 0.5, color: '#ffff00' },   // Yellow: 50%
+        { ratio: 0.4, color: '#ffcc00' },   // Yellow-Orange: 40%
+        { ratio: 0.3, color: '#ffaa00' },   // Orange-Yellow: 30%
+        { ratio: 0.25, color: '#ff8800' },  // Orange: 25%
+        { ratio: 0.2, color: '#ff6600' },   // Orange-Red: 20%
+        { ratio: 0.1, color: '#ff4400' },   // Red-Orange: 10%
+        { ratio: 0.0, color: '#ff0000' },   // Red: 0% (zero)
+        { ratio: -0.25, color: '#ff0080' }, // Red-Magenta: -25%
+        { ratio: -0.5, color: '#ee82ee' },  // Violet: -50%
+        { ratio: -0.75, color: '#c060ff' }, // Violet-Purple: -75%
+        { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
+    ];
+
+    // Use the color transition table from config
+    const table = COLOR_TRANSITION_TABLE || defaultTable;
+
+    // Sort table by ratio (descending)
+    const sortedTable = [...table].sort((a, b) => b.ratio - a.ratio);
+
+    // Find the two entries that bracket our ratio
+    for (let i = 0; i < sortedTable.length - 1; i++) {
+        const entry1 = sortedTable[i];
+        const entry2 = sortedTable[i + 1];
+
+        if (remainingRatio <= entry1.ratio && remainingRatio >= entry2.ratio) {
+            // Calculate interpolation factor (0 to 1)
+            const range = entry1.ratio - entry2.ratio;
+            const t = range === 0 ? 0 : (entry1.ratio - remainingRatio) / range;
+
+            // Interpolate between the two colors
+            return lerpColor(entry1.color, entry2.color, t);
+        }
+    }
+
+    // If ratio is outside all ranges, return the edge color
+    if (remainingRatio > sortedTable[0].ratio) {
+        return sortedTable[0].color;
+    }
+    return sortedTable[sortedTable.length - 1].color;
+}
+
+</script>
+<script>
+// Segment patterns for digits 0-9
+const patterns = {
+    0: [1, 1, 1, 1, 1, 1, 0],
+    1: [0, 1, 1, 0, 0, 0, 0],
+    2: [1, 1, 0, 1, 1, 0, 1],
+    3: [1, 1, 1, 1, 0, 0, 1],
+    4: [0, 1, 1, 0, 0, 1, 1],
+    5: [1, 0, 1, 1, 0, 1, 1],
+    6: [1, 0, 1, 1, 1, 1, 1],
+    7: [1, 1, 1, 0, 0, 0, 0],
+    8: [1, 1, 1, 1, 1, 1, 1],
+    9: [1, 1, 1, 1, 0, 1, 1]
+};
+
+const segmentNames = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+
+function createDigit() {
+    const digit = document.createElement('div');
+    digit.className = 'segment';
+    segmentNames.forEach(name => {
+        const seg = document.createElement('div');
+        seg.className = `segment-part seg-${name}`;
+        digit.appendChild(seg);
+    });
+    return digit;
+}
+
+function createColon() {
+    const colon = document.createElement('div');
+    colon.className = 'colon';
+    const dot1 = document.createElement('div');
+    dot1.className = 'colon-dot on';
+    const dot2 = document.createElement('div');
+    dot2.className = 'colon-dot on';
+    colon.appendChild(dot1);
+    colon.appendChild(dot2);
+    return colon;
+}
+
+function createDecimal() {
+    const decimal = document.createElement('div');
+    decimal.className = 'decimal';
+    const dot = document.createElement('div');
+    dot.className = 'colon-dot on';
+    decimal.appendChild(dot);
+    return decimal;
+}
+
+</script>
+<script>
+
+// ================= UP-NEXT AUTO CLOCK =================
+(function () {
+  'use strict';
+  var MANIFEST = [{"id": "pe-1-pathfit", "name": "PATHFit 1", "description": "PE 1 \u00b7 Sat 8:00\u201311:00am \u00b7 GYM", "html_file": "pe-1-pathfit.html", "target_time": "2026-08-15T08:00:00", "start_time": "2026-08-08T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 6, "start": "08:00:00", "end": "11:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "pe", "fitness"], "category": "courses", "next_target": "2026-09-05T08:00:00", "next_in_s": 113721.737702, "next_phase": "waiting", "next_slot": {"weekday": 6, "start": "08:00:00", "end": "11:00:00", "label": ""}}, {"id": "nstp-101-lts", "name": "NSTP 1 LTS", "description": "NSTP 101 \u00b7 Sat 1:30\u20135:30pm \u00b7 Room 314", "html_file": "nstp-101-lts.html", "target_time": "2026-08-15T13:30:00", "start_time": "2026-08-08T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "nstp"], "category": "courses", "next_target": "2026-09-05T13:30:00", "next_in_s": 133521.737702, "next_phase": "waiting", "next_slot": {"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}}, {"id": "ed-101-child", "name": "Child and Adolescent Learners", "description": "ED 101 \u00b7 Mon 8:30am\u201312:30pm \u00b7 Room 304", "html_file": "ed-101-child.html", "target_time": "2026-08-10T08:30:00", "start_time": "2026-08-03T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 1, "start": "08:30:00", "end": "12:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "education"], "category": "courses", "next_target": "2026-09-07T08:30:00", "next_in_s": 288321.737702, "next_phase": "waiting", "next_slot": {"weekday": 1, "start": "08:30:00", "end": "12:30:00", "label": ""}}, {"id": "ge-005-comm", "name": "Purposive Communication", "description": "GE 005 \u00b7 Mon 2:00\u20136:00pm \u00b7 Room 304", "html_file": "ge-005-comm.html", "target_time": "2026-08-10T14:00:00", "start_time": "2026-08-03T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 1, "start": "14:00:00", "end": "18:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "communication", "ge"], "category": "courses", "next_target": "2026-09-07T14:00:00", "next_in_s": 308121.737702, "next_phase": "waiting", "next_slot": {"weekday": 1, "start": "14:00:00", "end": "18:00:00", "label": ""}}, {"id": "ge-004-math-world", "name": "Mathematics in the Modern World", "description": "GE 004 \u00b7 Tue 7:00\u201311:00am \u00b7 Room 310", "html_file": "ge-004-math-world.html", "target_time": "2026-08-11T07:00:00", "start_time": "2026-08-04T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 2, "start": "07:00:00", "end": "11:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics", "ge"], "category": "courses", "next_target": "2026-09-08T07:00:00", "next_in_s": 369321.737702, "next_phase": "waiting", "next_slot": {"weekday": 2, "start": "07:00:00", "end": "11:00:00", "label": ""}}, {"id": "ge-008-ethics", "name": "Ethics", "description": "GE 008 \u00b7 Tue 12:00nn\u20132:00pm \u00b7 Room 311", "html_file": "ge-008-ethics.html", "target_time": "2026-08-11T12:00:00", "start_time": "2026-08-04T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 2, "start": "12:00:00", "end": "14:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "ethics", "ge"], "category": "courses", "next_target": "2026-09-08T12:00:00", "next_in_s": 387321.737702, "next_phase": "waiting", "next_slot": {"weekday": 2, "start": "12:00:00", "end": "14:00:00", "label": ""}}, {"id": "ge-002-history", "name": "Readings in Philippine History", "description": "GE 002 \u00b7 Wed 7:30\u201311:30am \u00b7 Room 312", "html_file": "ge-002-history.html", "target_time": "2026-08-12T07:30:00", "start_time": "2026-08-05T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 3, "start": "07:30:00", "end": "11:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "history", "ge"], "category": "courses", "next_target": "2026-09-09T07:30:00", "next_in_s": 457521.737702, "next_phase": "waiting", "next_slot": {"weekday": 3, "start": "07:30:00", "end": "11:30:00", "label": ""}}, {"id": "mat-201-history", "name": "History of Mathematics", "description": "MAT 201 \u00b7 Wed 12:00nn\u20134:00pm \u00b7 Room 314", "html_file": "mat-201-history.html", "target_time": "2026-08-12T12:00:00", "start_time": "2026-08-05T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 3, "start": "12:00:00", "end": "16:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics"], "category": "courses", "next_target": "2026-09-09T12:00:00", "next_in_s": 473721.737702, "next_phase": "waiting", "next_slot": {"weekday": 3, "start": "12:00:00", "end": "16:00:00", "label": ""}}, {"id": "mat-202-algebra", "name": "College and Advanced Algebra", "description": "MAT 202 \u00b7 Thu 12:00nn\u20134:00pm \u00b7 Room 312", "html_file": "mat-202-algebra.html", "target_time": "2026-08-13T12:00:00", "start_time": "2026-08-06T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 4, "start": "12:00:00", "end": "16:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics"], "category": "courses", "next_target": "2026-09-10T12:00:00", "next_in_s": 560121.737702, "next_phase": "waiting", "next_slot": {"weekday": 4, "start": "12:00:00", "end": "16:00:00", "label": ""}}, {"id": "test-static-timer", "name": "Static Timer Test", "description": "Test timer that displays a fixed time value in milliseconds", "html_file": "test-static-timer.html", "target_time": "2026-04-15T00:00:00", "start_time": "2026-04-05T00:00:00", "timezone": "UTC", "recur": false, "recur_rule": null, "recur_schedule": [], "recur_interval_minutes": null, "recur_anchor": null, "tags": [], "category": null, "next_target": "2026-04-15T00:00:00", "next_in_s": -12270278.262298, "next_phase": "expired"}];
+  var params = new URLSearchParams(window.location.search || '');
+
+  // ?json=1 -> raw API dump instead of the clock UI.
+  if (params.get('json') === '1') {
+    document.addEventListener('DOMContentLoaded', function () {
+      var up = computeUpcoming(new Date());
+      document.title = 'up-next.json - Displau';
+      document.body.innerHTML = '<pre id="api-dump"></pre>';
+      document.getElementById('api-dump').textContent = JSON.stringify({
+        generated_at: new Date().toISOString(),
+        current: up.length ? up[0] : null,
+        upcoming: up.slice(0, 10)
+      }, null, 2);
+    });
+    window.DisplauAPI = apiSurface([]);
+    return;
+  }
+
+  var WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  function normWeekday(v) {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'number' && isFinite(v)) { v = Math.trunc(v); return (v >= 0 && v <= 6) ? v : null; }
+    var s = String(v).trim().toLowerCase();
+    var i = WEEKDAYS.indexOf(s);
+    if (i !== -1) return i;
+    var n = Number(s);
+    if (isFinite(n)) { n = Math.trunc(n); if (n >= 0 && n <= 6) return n; }
+    return null;
+  }
+  function parseHMS(t) {
+    var p = String(t || '00:00:00').split(':').map(Number);
+    return { h: p[0] || 0, m: p[1] || 0, s: p[2] || 0 };
+  }
+  function atTime(day, t) {
+    var p = parseHMS(t);
+    return new Date(day.getFullYear(), day.getMonth(), day.getDate(), p.h, p.m, p.s, 0);
+  }
+  function nextWeekday(from, wd, t) {
+    var p = parseHMS(t);
+    var diff = (wd - from.getDay() + 7) % 7;
+    var n = new Date(from.getFullYear(), from.getMonth(), from.getDate() + diff, p.h, p.m, p.s, 0);
+    if (n.getTime() <= from.getTime()) n.setDate(n.getDate() + 7);
+    return n;
+  }
+  function prevWeekday(from, wd, t) {
+    var p = parseHMS(t);
+    var diff = (from.getDay() - wd + 7) % 7;
+    var pr = new Date(from.getFullYear(), from.getMonth(), from.getDate() - diff, p.h, p.m, p.s, 0);
+    if (pr.getTime() > from.getTime()) pr.setDate(pr.getDate() - 7);
+    return pr;
+  }
+  // Next boundary for one manifest entry. Returns null when it has no future.
+  function entryState(entry, now) {
+    if (entry.recur) {
+      var rule = entry.recur_rule || 'weekly';
+      if (rule === 'interval') {
+        var mins = Number(entry.recur_interval_minutes);
+        if (!isFinite(mins) || mins <= 0) return null;
+        var iv = mins * 60000;
+        var anchor = entry.recur_anchor ? new Date(entry.recur_anchor)
+          : (entry.start_time ? new Date(entry.start_time) : now);
+        if (isNaN(anchor.getTime())) anchor = now;
+        var target;
+        if (now.getTime() < anchor.getTime()) target = new Date(anchor.getTime());
+        else {
+          var k = Math.ceil((now.getTime() - anchor.getTime()) / iv);
+          target = new Date(anchor.getTime() + k * iv);
+          if (target.getTime() <= now.getTime()) target = new Date(target.getTime() + iv);
+        }
+        return { entry: entry, target: target, prev: new Date(target.getTime() - iv), phase: 'waiting', slot: null };
+      }
+      var slots = (entry.recur_schedule || []).filter(function (s) {
+        return rule === 'weekly' ? normWeekday(s.weekday) !== null : !!s.start;
+      });
+      if (!slots.length) return null;
+      var best = null, prevB = null;
+      if (rule === 'daily') {
+        slots.forEach(function (s) {
+          var st = atTime(now, s.start);
+          var en = s.end ? atTime(now, s.end) : null;
+          if (en && en.getTime() <= st.getTime()) en = new Date(en.getTime() + 86400000);
+          var cand;
+          if (en && now.getTime() >= st.getTime() && now.getTime() < en.getTime()) {
+            cand = { target: en, phase: 'in-class' };
+          } else if (now.getTime() < st.getTime()) {
+            cand = { target: st, phase: 'waiting' };
+          } else {
+            cand = { target: new Date(st.getTime() + 86400000), phase: 'waiting' };
+          }
+          if (!best || cand.target.getTime() < best.target.getTime()) best = { target: cand.target, phase: cand.phase, slot: s };
+          [st, (en && en.getTime() <= now.getTime() ? en : null), new Date(st.getTime() - 86400000)].forEach(function (b) {
+            if (b && b.getTime() <= now.getTime() && (!prevB || b.getTime() > prevB.getTime())) prevB = b;
+          });
+        });
+        if (!best) return null;
+        return { entry: entry, target: best.target, prev: prevB || new Date(best.target.getTime() - 86400000), phase: best.phase, slot: best.slot };
+      }
+      slots.forEach(function (s) {
+        var wd = normWeekday(s.weekday);
+        var nx = nextWeekday(now, wd, s.start);
+        var pr = prevWeekday(now, wd, s.start);
+        var en = s.end ? atTime(pr, s.end) : null;
+        if (en && en.getTime() <= pr.getTime()) en = new Date(en.getTime() + 86400000);
+        var cand;
+        if (en && now.getTime() >= pr.getTime() && now.getTime() < en.getTime()) {
+          cand = { target: en, phase: 'in-class' };
+        } else {
+          cand = { target: nx, phase: 'waiting' };
+        }
+        if (!best || cand.target.getTime() < best.target.getTime()) best = { target: cand.target, phase: cand.phase, slot: s };
+        [pr, (en && en.getTime() <= now.getTime() ? en : null)].forEach(function (b) {
+          if (b && b.getTime() <= now.getTime() && (!prevB || b.getTime() > prevB.getTime())) prevB = b;
+        });
+      });
+      if (!best) return null;
+      return { entry: entry, target: best.target, prev: prevB || new Date(best.target.getTime() - 7 * 86400000), phase: best.phase, slot: best.slot };
+    }
+    if (!entry.target_time) return null;
+    var t = new Date(entry.target_time);
+    if (isNaN(t.getTime())) return null;
+    var d = t.getTime() - now.getTime();
+    if (d <= 0) return null; // one-shot past: not eligible for the auto clock
+    var prevOne = entry.start_time ? new Date(entry.start_time) : new Date(t.getTime() - 86400000);
+    if (isNaN(prevOne.getTime()) || prevOne.getTime() >= t.getTime()) prevOne = new Date(t.getTime() - 86400000);
+    return { entry: entry, target: t, prev: prevOne, phase: 'one-shot', slot: null };
+  }
+  function computeUpcoming(now) {
+    var out = [];
+    MANIFEST.forEach(function (e) {
+      var st = entryState(e, now);
+      if (st) out.push({
+        id: e.id, name: e.name, description: e.description, html_file: e.html_file,
+        target: st.target, prev: st.prev, phase: st.phase, slot: st.slot || null,
+        in_s: (st.target.getTime() - now.getTime()) / 1000
+      });
+    });
+    out.sort(function (a, b) { return a.target - b.target; });
+    return out;
+  }
+  function fmtDur(ms) {
+    if (ms < 0) ms = 0;
+    var s = Math.floor(ms / 1000);
+    var d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
+        m = Math.floor((s % 3600) / 60), sec = s % 60;
+    if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
+    if (h > 0) return h + 'h ' + m + 'm ' + sec + 's';
+    if (m > 0) return m + 'm ' + String(sec).padStart(2, '0') + 's';
+    return sec + '.' + String(Math.floor((ms % 1000) / 100)) + 's';
+  }
+  function fmtClock(ms) {
+    if (ms < 0) ms = 0;
+    var totalS = Math.floor(ms / 1000);
+    var d = Math.floor(totalS / 86400), h = Math.floor((totalS % 86400) / 3600),
+        m = Math.floor((totalS % 3600) / 60), s = totalS % 60, milli = ms % 1000;
+    function p2(n) { return String(n).padStart(2, '0'); }
+    if (d >= 1) return d + ':' + p2(h) + ':' + p2(m) + ':' + p2(s);
+    if (h >= 1) return h + ':' + p2(m) + ':' + p2(s) + '.' + Math.floor(milli / 100);
+    return m + ':' + p2(s) + '.' + String(milli).padStart(3, '0');
+  }
+
+  // ---- runtime JS API ----
+  var switchHandlers = [];
+  var currentId = null;
+  function apiSurface(snapshot) {
+    return {
+      version: '2.1.0',
+      getTimers: function () { return MANIFEST.slice(); },
+      getUpcoming: function (n) { return computeUpcoming(new Date()).slice(0, n || 10); },
+      getCurrent: function () {
+        var up = computeUpcoming(new Date());
+        return up.length ? up[0] : null;
+      },
+      getCurrentId: function () { return currentId; },
+      onSwitch: function (fn) { if (typeof fn === 'function') switchHandlers.push(fn); },
+      refresh: function () { tick(true); }
+    };
+  }
+
+  // ---- UI wiring ----
+  var lockedId = params.get('timer');
+  var locked = lockedId ? MANIFEST.filter(function (e) { return e.id === lockedId; })[0] || null : null;
+  var elName, elPhase, elMeta, elList, elDisplay, elSub;
+  var lastTarget = 0;
+
+  function ratioFor(up) {
+    var total = up.target.getTime() - up.prev.getTime();
+    var el = Date.now() - up.prev.getTime();
+    if (!(total > 0)) return 0;
+    return Math.max(0, Math.min(1, 1 - el / total));
+  }
+  function paintCountdown(up) {
+    var remain = Math.max(0, up.target.getTime() - Date.now());
+    if (typeof updateDisplay === 'function') updateDisplay(fmtClock(remain));
+    if (typeof currentColor !== 'undefined') {
+      try {
+        var c = getColorForRemainingRatio(ratioFor(up));
+        if (c !== targetColor) { targetColor = c; colorTransitionProgress = 0; }
+        colorTransitionProgress = Math.min(1, colorTransitionProgress + 0.1);
+        currentColor = lerpColor(currentColor, targetColor, colorTransitionProgress);
+        if (colorTransitionProgress >= 1) currentColor = targetColor;
+        applyColor(currentColor);
+      } catch (e) { /* non-fatal */ }
+    }
+    return remain;
+  }
+  function describe(up) {
+    var when = up.target.toLocaleString();
+    if (up.phase === 'in-class') {
+      var lbl = up.slot && up.slot.label ? ' · ' + up.slot.label : '';
+      return 'Ends ' + when + lbl;
+    }
+    if (up.phase === 'waiting' && up.slot && up.slot.label) return 'Starts ' + when + ' · ' + up.slot.label;
+    return ((up.phase === 'one-shot') ? 'Target ' : 'Starts ') + when;
+  }
+  function setPhaseBadge(up) {
+    var txt = up.phase === 'in-class' ? '● IN SESSION'
+      : up.phase === 'one-shot' ? '○ ONE-SHOT' : '○ STARTS IN';
+    elPhase.textContent = txt;
+    elPhase.dataset.phase = up.phase;
+  }
+  function renderList(upcoming) {
+    elList.innerHTML = '';
+    upcoming.slice(0, 5).forEach(function (u, i) {
+      var li = document.createElement('li');
+      li.className = 'up-row' + (i === 0 ? ' is-current' : '');
+      var left = document.createElement('span');
+      left.className = 'up-name';
+      left.textContent = (i === 0 ? '▶ ' : '') + u.name;
+      var right = document.createElement('span');
+      right.className = 'up-in';
+      right.textContent = fmtDur(Math.max(0, u.target.getTime() - Date.now()));
+      li.appendChild(left);
+      li.appendChild(right);
+      li.title = describe(u);
+      elList.appendChild(li);
+    });
+  }
+  function fireSwitch(up) {
+    switchHandlers.forEach(function (fn) {
+      try { fn(up); } catch (e) { console.warn('[up-next] onSwitch handler error', e); }
+    });
+    try {
+      window.dispatchEvent(new CustomEvent('displau:switch', { detail: up }));
+    } catch (e) { /* older browsers */ }
+  }
+  function tick(force) {
+    var now = new Date();
+    var upcoming = computeUpcoming(now);
+    var up = upcoming.length ? upcoming[0] : null;
+    if (locked) {
+      var st = entryState(locked, now);
+      up = st ? {
+        id: locked.id, name: locked.name, description: locked.description,
+        html_file: locked.html_file, target: st.target, prev: st.prev,
+        phase: st.phase, slot: st.slot || null, in_s: (st.target - now) / 1000
+      } : null;
+    }
+    if (!up) {
+      elName.textContent = 'No upcoming timers';
+      elPhase.textContent = '○ IDLE';
+      elPhase.dataset.phase = 'idle';
+      elMeta.textContent = 'Add a timer JSON and rebuild.';
+      if (typeof updateDisplay === 'function') updateDisplay('0:00.000');
+      document.title = 'Up Next - idle';
+      renderList([]);
+      return;
+    }
+    if (up.id !== currentId || force) {
+      currentId = up.id;
+      lastTarget = up.target.getTime();
+      elName.textContent = up.name;
+      elSub.textContent = up.description || '';
+      setPhaseBadge(up);
+      var card = document.querySelector('.up-card');
+      if (card) {
+        card.classList.remove('switched');
+        void card.offsetWidth; // restart CSS animation
+        card.classList.add('switched');
+      }
+      fireSwitch(up);
+    } else if (up.target.getTime() !== lastTarget) {
+      lastTarget = up.target.getTime(); // rolled over to next occurrence
+      setPhaseBadge(up);
+    }
+    var remain = paintCountdown(up);
+    elMeta.textContent = describe(up) + ' — ' + fmtDur(remain) + ' left';
+    document.title = fmtClock(remain).split('.')[0] + ' - ' + up.name;
+    renderList(upcoming);
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    elName = document.getElementById('upName');
+    elPhase = document.getElementById('upPhase');
+    elMeta = document.getElementById('upMeta');
+    elList = document.getElementById('upList');
+    elDisplay = document.getElementById('display');
+    elSub = document.getElementById('upSub');
+    if ((params.get('embed') === '1')) document.body.classList.add('embed');
+    if (locked && !lockedId) { /* noop */ }
+    if (lockedId && !locked) {
+      elName.textContent = 'Unknown timer: ' + lockedId;
+      return;
+    }
+    currentColor = getColorForRemainingRatio(1.0);
+    targetColor = currentColor;
+    applyColor(currentColor);
+    tick(true);
+    setInterval(function () { tick(false); }, 1000);
+    // Smooth sub-second display refresh.
+    setInterval(function () {
+      var up = window.DisplauAPI.getCurrent();
+      if (up) paintCountdown(up);
+    }, 53);
+  });
+
+  window.DisplauAPI = apiSurface([]);
+})();
+// =============== /UP-NEXT AUTO CLOCK ===============
+
+</script>
+</body>
+</html>

@@ -16,7 +16,7 @@ import subprocess
 import sys
 import time
 from argparse import ArgumentParser
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 from urllib.error import HTTPError, URLError
@@ -116,6 +116,238 @@ class BuildStats:
 stats = BuildStats()
 
 
+WEEKDAYS = {
+    'sunday': 0,
+    'monday': 1,
+    'tuesday': 2,
+    'wednesday': 3,
+    'thursday': 4,
+    'friday': 5,
+    'saturday': 6,
+}
+
+
+def weekday_to_number(weekday: Any, default: Optional[int] = None) -> Optional[int]:
+    """Convert a weekday name (or 0-6 number) to JS Date.getDay() convention (0=Sunday)."""
+    if weekday is None:
+        return default
+    if isinstance(weekday, bool):
+        return default
+    if isinstance(weekday, int):
+        return weekday if 0 <= weekday <= 6 else default
+    name = str(weekday).strip().lower()
+    if name in WEEKDAYS:
+        return WEEKDAYS[name]
+    try:
+        n = int(name)
+        if 0 <= n <= 6:
+            return n
+    except (ValueError, TypeError):
+        pass
+    return default
+
+
+def normalize_hms(value: Any, fallback: str = '00:00:00') -> str:
+    """Normalize an HH:MM(:SS) string to canonical HH:MM:SS."""
+    raw = value if value not in (None, '') else fallback
+    try:
+        parts = [int(p) for p in str(raw).split(':')]
+    except (ValueError, TypeError):
+        parts = [0, 0, 0]
+    while len(parts) < 3:
+        parts.append(0)
+    h, m, s = parts[0], parts[1], parts[2]
+    return f"{h:02d}:{m:02d}:{s:02d}"
+
+
+def normalize_recur_schedule(timer: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return the canonical multi-slot schedule for a timer.
+
+    Prefers ``recur_schedule``; falls back to legacy
+    ``recur_weekday``/``recur_time``/``recur_end`` as a single slot.
+    """
+    sched = timer.get('recur_schedule')
+    if isinstance(sched, list) and sched:
+        out: list[dict[str, Any]] = []
+        for slot in sched:
+            if not isinstance(slot, dict):
+                continue
+            start = slot.get('start', slot.get('time', '00:00:00'))
+            end = slot.get('end')
+            if end in ('', 'null'):
+                end = None
+            out.append({
+                'weekday': weekday_to_number(slot.get('weekday')),
+                'start': normalize_hms(start),
+                'end': normalize_hms(end) if end else None,
+                'label': str(slot.get('label', '') or ''),
+            })
+        return out
+    wd = weekday_to_number(timer.get('recur_weekday'))
+    rt = timer.get('recur_time', '00:00:00')
+    re_ = timer.get('recur_end')
+    if re_ in ('', 'null'):
+        re_ = None
+    if wd is None and not rt and not re_:
+        return []
+    if wd is None and rt is None:
+        return []
+    return [{
+        'weekday': wd,
+        'start': normalize_hms(rt or '00:00:00'),
+        'end': normalize_hms(re_) if re_ else None,
+        'label': '',
+    }]
+
+
+def _parse_hms_to_time(value: str) -> tuple[int, int, int]:
+    parts = normalize_hms(value).split(':')
+    return int(parts[0]), int(parts[1]), int(parts[2])
+
+
+def compute_recur_state(timer: dict[str, Any], now: datetime) -> Optional[dict[str, Any]]:
+    """Compute the next boundary for a recurring timer (mirrors time_utils.js).
+
+    Returns dict with keys: target, prev_boundary, slot, phase, in_class.
+    """
+    rule = str(timer.get('recur_rule', 'weekly') or 'weekly').lower()
+    if rule not in ('weekly', 'daily', 'interval'):
+        rule = 'weekly'
+
+    if rule == 'interval':
+        try:
+            mins = float(timer.get('recur_interval_minutes') or 0)
+        except (TypeError, ValueError):
+            return None
+        if not mins or mins <= 0:
+            return None
+        interval = timedelta(minutes=mins)
+        anchor_raw = timer.get('recur_anchor') or timer.get('start_time')
+        try:
+            anchor = datetime.fromisoformat(str(anchor_raw)) if anchor_raw else now
+        except (ValueError, TypeError):
+            anchor = now
+        if now < anchor:
+            target = anchor
+        else:
+            elapsed = (now - anchor).total_seconds()
+            step = interval.total_seconds()
+            import math
+            k = math.ceil(elapsed / step)
+            target = anchor + timedelta(seconds=k * step)
+            if target <= now:
+                target += interval
+        return {
+            'target': target,
+            'prev_boundary': target - interval,
+            'slot': {'weekday': None, 'start': '', 'end': None, 'label': 'interval'},
+            'phase': 'waiting',
+            'in_class': False,
+        }
+
+    slots = [s for s in normalize_recur_schedule(timer)
+             if (s['weekday'] is not None if rule == 'weekly' else s['start'])]
+    if not slots:
+        return None
+
+    best: Optional[dict[str, Any]] = None
+    prev_boundary: Optional[datetime] = None
+
+    if rule == 'daily':
+        for slot in slots:
+            h, m, s = _parse_hms_to_time(slot['start'])
+            start_today = now.replace(hour=h, minute=m, second=s, microsecond=0)
+            end_today = None
+            if slot['end']:
+                eh, em, es = _parse_hms_to_time(slot['end'])
+                end_today = now.replace(hour=eh, minute=em, second=es, microsecond=0)
+                if end_today <= start_today:
+                    end_today += timedelta(days=1)
+            if end_today and start_today <= now < end_today:
+                cand = {'target': end_today, 'slot': slot, 'phase': 'in-class', 'in_class': True}
+            elif now < start_today:
+                cand = {'target': start_today, 'slot': slot, 'phase': 'waiting', 'in_class': False}
+            else:
+                cand = {'target': start_today + timedelta(days=1), 'slot': slot,
+                        'phase': 'waiting', 'in_class': False}
+            if best is None or cand['target'] < best['target']:
+                best = cand
+            bounds = [start_today]
+            if end_today and end_today <= now:
+                bounds.append(end_today)
+            bounds.append(start_today - timedelta(days=1))
+            for b in bounds:
+                if b <= now and (prev_boundary is None or b > prev_boundary):
+                    prev_boundary = b
+        if best is None:
+            return None
+        if prev_boundary is None:
+            prev_boundary = best['target'] - timedelta(days=1)
+        best['prev_boundary'] = prev_boundary
+        return best
+
+    # Weekly (default): multi-slot aware.
+    for slot in slots:
+        assert slot['weekday'] is not None
+        py_weekday = (slot['weekday'] + 6) % 7  # datetime.weekday(): Monday=0..Sunday=6
+        h, m, s = _parse_hms_to_time(slot['start'])
+        days_ahead = (py_weekday - now.weekday()) % 7
+        nxt = (now + timedelta(days=days_ahead)).replace(hour=h, minute=m, second=0, microsecond=0)
+        if nxt <= now:
+            nxt += timedelta(days=7)
+        prev = nxt - timedelta(days=7)
+        end_dt = None
+        if slot['end']:
+            eh, em, es = _parse_hms_to_time(slot['end'])
+            end_dt = prev.replace(hour=eh, minute=em, second=es, microsecond=0)
+            if end_dt <= prev:
+                end_dt += timedelta(days=1)
+        if end_dt and prev <= now < end_dt:
+            cand = {'target': end_dt, 'slot': slot, 'phase': 'in-class', 'in_class': True}
+        else:
+            cand = {'target': nxt, 'slot': slot, 'phase': 'waiting', 'in_class': False}
+        if best is None or cand['target'] < best['target']:
+            best = cand
+        for b in ([prev] + ([end_dt] if end_dt and end_dt <= now else [])):
+            if b <= now and (prev_boundary is None or b > prev_boundary):
+                prev_boundary = b
+    if best is None:
+        return None
+    if prev_boundary is None:
+        prev_boundary = best['target'] - timedelta(days=7)
+    best['prev_boundary'] = prev_boundary
+    return best
+
+
+def next_event_for_timer(timer: dict[str, Any], now: datetime) -> Optional[dict[str, Any]]:
+    """Next upcoming event for any timer (recurring slot/end or one-shot target).
+
+    Returns dict with keys: target, phase ('in-class'|'waiting'|'one-shot'|'expired'),
+    slot (or None), time_until_s.
+    """
+    if timer.get('recur', False):
+        st = compute_recur_state(timer, now)
+        if not st:
+            return None
+        return {
+            'target': st['target'],
+            'phase': st['phase'],
+            'slot': st['slot'],
+            'time_until_s': (st['target'] - now).total_seconds(),
+        }
+    try:
+        target = datetime.fromisoformat(str(timer.get('target_time', '')))
+    except (ValueError, TypeError):
+        return None
+    delta = (target - now).total_seconds()
+    return {
+        'target': target,
+        'phase': 'one-shot' if delta > 0 else 'expired',
+        'slot': None,
+        'time_until_s': delta,
+    }
+
+
 def load_component(filepath: Path) -> str:
     """Load a component file and return its content."""
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -194,13 +426,26 @@ def replace_placeholders(
     build_date: Optional[str] = None,
     display_name: str = '',
     display_mode: str = 'countdown',
-    static_time_ms: int = 0
+    static_time_ms: int = 0,
+    recur: bool = False,
+    recur_weekday: Optional[int] = None,
+    recur_time: str = '00:00:00',
+    recur_end: Optional[str] = None,
+    recur_rule: str = 'weekly',
+    recur_schedule_json: str = '[]',
+    recur_interval: Optional[Any] = None,
+    recur_anchor: str = ''
 ) -> str:
     """Replace configuration placeholders in content."""
     if build_date is None:
         now = datetime.now()
         timestamp = now.strftime('%Y%m%d%H%M%S')
         build_date = f"{VERSION}.{timestamp}.{version_type.lower()}"
+
+    if recur_end is None:
+        recur_end_js = 'null'
+    else:
+        recur_end_js = f"'{recur_end}'"
 
     replacements = {
         '{{TARGET_TIME}}': target_time,
@@ -215,6 +460,14 @@ def replace_placeholders(
         '{{DISPLAY_NAME}}': display_name,
         '{{DISPLAY_MODE}}': display_mode,
         '{{STATIC_TIME_MS}}': str(static_time_ms),
+        '{{RECUR}}': 'true' if recur else 'false',
+        '{{RECUR_RULE}}': recur_rule or 'weekly',
+        '{{RECUR_WEEKDAY}}': str(recur_weekday if recur_weekday is not None else 0),
+        '{{RECUR_TIME}}': recur_time,
+        '{{RECUR_END}}': recur_end_js,
+        '{{RECUR_SCHEDULE_JSON}}': recur_schedule_json or '[]',
+        '{{RECUR_INTERVAL}}': 'null' if recur_interval is None else str(recur_interval),
+        '{{RECUR_ANCHOR}}': recur_anchor or '',
     }
 
     for placeholder, value in replacements.items():
@@ -306,36 +559,76 @@ def build_html(
     display_name = ''
     display_mode = 'countdown'
     static_time_ms = 0
+    recur = False
+    recur_weekday = None
+    recur_time = '00:00:00'
+    recur_end = None
+    recur_rule = 'weekly'
+    recur_schedule: list[dict[str, Any]] = []
+    recur_interval = None
+    recur_anchor = ''
+
+    def apply_timer_config(config: dict[str, Any]) -> None:
+        """Extract runtime settings from a timer config."""
+        nonlocal direction, min_value, max_value, display_name, display_mode, static_time_ms
+        nonlocal recur, recur_weekday, recur_time, recur_end
+        nonlocal recur_rule, recur_schedule, recur_interval, recur_anchor
+        direction = config.get('direction', direction)
+        min_value = config.get('min_value', min_value)
+        max_val = config.get('max_value', None)
+        max_value = 'null' if max_val is None else str(max_val)
+        display_name = config.get('display_name', display_name)
+        display_mode = config.get('display_mode', display_mode)
+        static_time_ms = config.get('static_time_ms', static_time_ms)
+        recur = config.get('recur', recur)
+        recur_weekday = weekday_to_number(config.get('recur_weekday'), recur_weekday)
+        recur_time = normalize_hms(config.get('recur_time', recur_time))
+        recur_end_raw = config.get('recur_end', recur_end)
+        if recur_end_raw in (None, '', 'null'):
+            recur_end = None
+        else:
+            recur_end = normalize_hms(recur_end_raw)
+        recur_rule = str(config.get('recur_rule', recur_rule) or 'weekly').lower()
+        if recur_rule not in ('weekly', 'daily', 'interval'):
+            recur_rule = 'weekly'
+        if isinstance(config.get('recur_schedule'), list):
+            recur_schedule = normalize_recur_schedule(config)
+        elif recur:
+            # Materialize the canonical schedule from legacy fields so the
+            # built page embeds the same slots the builder computed with.
+            recur_schedule = normalize_recur_schedule({
+                'recur_weekday': recur_weekday,
+                'recur_time': recur_time,
+                'recur_end': recur_end,
+            })
+        recur_interval = config.get('recur_interval_minutes', recur_interval)
+        recur_anchor = config.get('recur_anchor', recur_anchor) or ''
 
     # Try fetching from URL first
     if config_url and not use_local_config:
         config = fetch_config_from_url(config_url)
         if config:
-            direction = config.get('direction', 'down')
-            min_value = config.get('min_value', 0)
-            max_val = config.get('max_value', None)
-            max_value = 'null' if max_val is None else str(max_val)
-            display_name = config.get('display_name', '')
-            display_mode = config.get('display_mode', 'countdown')
-            static_time_ms = config.get('static_time_ms', 0)
+            apply_timer_config(config)
 
     # Fall back to local config if provided (e.g., when building from timers folder)
     if local_config:
-        direction = local_config.get('direction', direction)
-        min_value = local_config.get('min_value', min_value)
-        max_val = local_config.get('max_value', None)
-        max_value = 'null' if max_val is None else str(max_val)
-        display_name = local_config.get('display_name', display_name)
-        display_mode = local_config.get('display_mode', display_mode)
-        static_time_ms = local_config.get('static_time_ms', static_time_ms)
+        apply_timer_config(local_config)
 
     scripts = replace_placeholders(
         scripts, target_time_str, milliseconds_at_full_brightness,
-        config_url, start_time_str, direction, min_value, max_value, version_type, display_name=display_name, display_mode=display_mode, static_time_ms=static_time_ms
+        config_url, start_time_str, direction, min_value, max_value, version_type,
+        display_name=display_name, display_mode=display_mode, static_time_ms=static_time_ms,
+        recur=recur, recur_weekday=recur_weekday, recur_time=recur_time, recur_end=recur_end,
+        recur_rule=recur_rule, recur_schedule_json=json.dumps(recur_schedule),
+        recur_interval=recur_interval, recur_anchor=recur_anchor
     )
     html['body'] = replace_placeholders(
         html['body'], target_time_str, milliseconds_at_full_brightness,
-        config_url, start_time_str, direction, min_value, max_value, version_type, display_name=display_name, display_mode=display_mode, static_time_ms=static_time_ms
+        config_url, start_time_str, direction, min_value, max_value, version_type,
+        display_name=display_name, display_mode=display_mode, static_time_ms=static_time_ms,
+        recur=recur, recur_weekday=recur_weekday, recur_time=recur_time, recur_end=recur_end,
+        recur_rule=recur_rule, recur_schedule_json=json.dumps(recur_schedule),
+        recur_interval=recur_interval, recur_anchor=recur_anchor
     )
     html['html_open'] = html['html_open'].replace('{{CONFIG_URL}}', config_url)
 
@@ -434,7 +727,11 @@ def classify_timer(timer: dict[str, Any], now: datetime) -> str:
     # Check if disabled
     if not timer.get('enabled', True):
         return 'inactive'
-    
+
+    # Recurring weekly timers are always active (they roll over each week)
+    if timer.get('recur', False):
+        return 'active'
+
     target_time_str = timer.get('target_time', '')
     start_time_str = timer.get('start_time', '')
     display_on_expire = timer.get('display_on_expire', True)
@@ -542,9 +839,10 @@ def build_timers_folder(generate_selector_page: bool = False, organize: bool = T
         config_id = timer.get('id', timer_file.stem)
         target_time = timer.get('target_time', None)
 
-        # Skip expired timers with display_on_expire=false
+        # Skip expired timers with display_on_expire=false (recurring timers never expire)
         display_on_expire = timer.get('display_on_expire', True)
-        if target_time:
+        is_recurring = timer.get('recur', False)
+        if target_time and not is_recurring:
             try:
                 target_dt = datetime.fromisoformat(target_time)
                 now = datetime.now()
@@ -575,6 +873,12 @@ def build_timers_folder(generate_selector_page: bool = False, organize: bool = T
         timers_list.append(timer)
 
     clean_orphaned_outputs(timer_ids)
+
+    # Manifest powers the standalone auto-switching clock + JSON API.
+    manifest_now = datetime.now()
+    manifest = build_timer_manifest(timers_list, manifest_now)
+    write_json_api(manifest, manifest_now)
+    build_up_next_page(manifest, manifest_now)
 
     # Organize timers into status folders
     if organize:
@@ -627,13 +931,16 @@ def clean_orphaned_outputs(timer_ids: set[str]) -> None:
     if not OUTPUT_DIR.exists():
         return
 
+    # Generated pages that have no timer JSON but must be kept.
+    keep = {'index', 'up-next'}
+
     html_files = list(OUTPUT_DIR.glob('*.html'))
 
     deleted_count = 0
     for html_file in html_files:
         config_id = html_file.stem
 
-        if config_id == 'index':
+        if config_id in keep:
             continue
 
         if config_id not in timer_ids:
@@ -643,6 +950,78 @@ def clean_orphaned_outputs(timer_ids: set[str]) -> None:
 
     if deleted_count > 0:
         logger.info(f"Cleaned {deleted_count} orphaned HTML file(s)")
+
+
+def recurring_timer_stats(timer: dict[str, Any], now: datetime) -> dict[str, Any]:
+    """Compute selector stats for a recurring timer (weekly/daily/interval).
+
+    Returns progress (0-100), status, and display strings for the card.
+    """
+    rule = str(timer.get('recur_rule', 'weekly') or 'weekly').lower()
+    if rule not in ('weekly', 'daily', 'interval'):
+        rule = 'weekly'
+    slots = normalize_recur_schedule(timer)
+
+    status = 'running'
+    status_label = 'Running'
+    progress = 0.0
+    state = compute_recur_state(timer, now)
+
+    if state is None:
+        return {
+            'status': status,
+            'status_label': status_label,
+            'progress': 0.0,
+            'progress_text': '000.00%',
+            'start_display': f"Recurring · {rule.title()}",
+            'target_display': 'Next occurrence unknown',
+        }
+
+    target = state['target']
+    prev = state['prev_boundary']
+    total = (target - prev).total_seconds()
+    elapsed = (now - prev).total_seconds()
+    if total > 0:
+        progress = min(100, max(0, (elapsed / total) * 100))
+    progress_text = f'{progress:06.2f}%'
+
+    day_name = ''
+    slot = state.get('slot') or {}
+    if slot.get('weekday') is not None:
+        day_name = next((name for name, num in WEEKDAYS.items() if num == slot['weekday']), '')
+
+    if rule == 'interval':
+        mins = timer.get('recur_interval_minutes')
+        try:
+            mins_f = float(mins)
+            start_display = f"Every {mins_f:g} min"
+        except (TypeError, ValueError):
+            start_display = 'Recurring · Interval'
+    elif rule == 'daily':
+        if len(slots) > 1:
+            start_display = f"Daily · {slot.get('start', '')} +{len(slots) - 1} more"
+        else:
+            start_display = f"Daily · {slot.get('start', '')}"
+    else:
+        label = slot.get('label') or ''
+        base = f"{day_name.title() + ' ' if day_name else ''}{slot.get('start', '')}"
+        if len(slots) > 1:
+            base += f" +{len(slots) - 1} more"
+        if label:
+            base += f" · {label}"
+        start_display = f"Recurring · {base}"
+
+    verb = 'Ends' if state.get('in_class') else 'Next'
+    target_display = f"{verb} · {target.isoformat(timespec='minutes')}"
+
+    return {
+        'status': status,
+        'status_label': status_label,
+        'progress': progress,
+        'progress_text': progress_text,
+        'start_display': start_display,
+        'target_display': target_display,
+    }
 
 
 def generate_selector(timers_list: list[dict[str, Any]]) -> None:
@@ -663,32 +1042,43 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
         start_time = timer.get('start_time', 'Unknown')
         display_name = timer.get('display_name', config_id.replace('-', ' ').title())
 
-        try:
-            start_dt = datetime.fromisoformat(start_time)
-            target_dt = datetime.fromisoformat(target_time)
-            total_duration = (target_dt - start_dt).total_seconds()
-            elapsed = (now - start_dt).total_seconds()
+        is_recurring = timer.get('recur', False)
 
-            if now > target_dt:
-                status = 'ended'
-                status_label = 'Ended'
-                progress = 100
-                progress_text = '100.00%'
-            elif now < start_dt:
-                status = 'upcoming'
-                status_label = 'Upcoming'
+        if is_recurring:
+            recur_stats = recurring_timer_stats(timer, now)
+            status = recur_stats['status']
+            status_label = recur_stats['status_label']
+            progress = recur_stats['progress']
+            progress_text = recur_stats['progress_text']
+            start_time = recur_stats['start_display']
+            target_time = recur_stats['target_display']
+        else:
+            try:
+                start_dt = datetime.fromisoformat(start_time)
+                target_dt = datetime.fromisoformat(target_time)
+                total_duration = (target_dt - start_dt).total_seconds()
+                elapsed = (now - start_dt).total_seconds()
+
+                if now > target_dt:
+                    status = 'ended'
+                    status_label = 'Ended'
+                    progress = 100
+                    progress_text = '100.00%'
+                elif now < start_dt:
+                    status = 'upcoming'
+                    status_label = 'Upcoming'
+                    progress = 0
+                    progress_text = '???.??%'
+                else:
+                    status = 'running'
+                    status_label = 'Running'
+                    progress = min(100, max(0, (elapsed / total_duration) * 100)) if total_duration > 0 else 0
+                    progress_text = f'{progress:06.2f}%'
+            except Exception:
                 progress = 0
-                progress_text = '???.??%'
-            else:
                 status = 'running'
                 status_label = 'Running'
-                progress = min(100, max(0, (elapsed / total_duration) * 100)) if total_duration > 0 else 0
-                progress_text = f'{progress:06.2f}%'
-        except Exception:
-            progress = 0
-            status = 'running'
-            status_label = 'Running'
-            progress_text = '???.??%'
+                progress_text = '???.??%'
 
         html_file = f'{config_id}.html'
         html_path = OUTPUT_DIR / html_file
@@ -699,7 +1089,7 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
             continue
 
         if html_path.exists():
-            timers_data.append({
+            timer_entry = {
                 'id': config_id,
                 'name': display_name,
                 'target_time': target_time,
@@ -709,8 +1099,14 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
                 'status': status,
                 'status_label': status_label,
                 'html_file': html_file,
-                'display_on_expire': display_on_expire
-            })
+                'display_on_expire': display_on_expire,
+                'recur': is_recurring,
+            }
+            if is_recurring:
+                timer_entry['recur_weekday'] = weekday_to_number(timer.get('recur_weekday'))
+                timer_entry['recur_time'] = timer.get('recur_time', '00:00')
+                timer_entry['recur_end'] = timer.get('recur_end')
+            timers_data.append(timer_entry)
 
     status_order = {'running': 0, 'upcoming': 1, 'ended': 2}
     timers_data.sort(key=lambda x: (status_order.get(x['status'], 3), -x['progress'], x['name']))
@@ -722,8 +1118,16 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
 
     timer_cards = ''
     for timer in timers_data:
+        recur_attrs = ''
+        if timer.get('recur'):
+            recur_attrs = (
+                f' data-recur="1"'
+                f' data-recur-weekday="{timer.get("recur_weekday", 0)}"'
+                f' data-recur-time="{timer.get("recur_time", "00:00")}"'
+                f' data-recur-end="{timer.get("recur_end") or ""}"'
+            )
         timer_cards += f'''
-        <div class="timer-card" data-status="{timer['status']}" data-name="{timer['id']}">
+        <div class="timer-card" data-status="{timer['status']}" data-name="{timer['id']}"{recur_attrs}>
             <div class="card-header">
                 <h3>{timer['name']}</h3>
                 <span class="status-badge status-{timer['status']}">{timer['status_label']}</span>
@@ -1175,6 +1579,524 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
         f.write(html_content)
 
     logger.info(f"Generated selector page: {output_path}")
+
+
+def build_timer_manifest(timers_list: list[dict[str, Any]], now: datetime) -> list[dict[str, Any]]:
+    """Build a sorted manifest of all timers with their next event precomputed.
+
+    Sorted closest-first (expired one-shot timers sink to the bottom).
+    This manifest powers the standalone up-next clock and the JSON API.
+    """
+    entries: list[dict[str, Any]] = []
+    for timer in timers_list:
+        config_id = timer.get('id', 'unknown')
+        is_recur = bool(timer.get('recur', False))
+        rule = str(timer.get('recur_rule', 'weekly') or 'weekly').lower()
+        if rule not in ('weekly', 'daily', 'interval'):
+            rule = 'weekly'
+        entry: dict[str, Any] = {
+            'id': config_id,
+            'name': timer.get('display_name', config_id.replace('-', ' ').title()),
+            'description': timer.get('description', ''),
+            'html_file': f'{config_id}.html',
+            'target_time': timer.get('target_time'),
+            'start_time': timer.get('start_time'),
+            'timezone': timer.get('timezone', 'UTC'),
+            'recur': is_recur,
+            'recur_rule': rule if is_recur else None,
+            'recur_schedule': normalize_recur_schedule(timer) if is_recur else [],
+            'recur_interval_minutes': timer.get('recur_interval_minutes') if is_recur else None,
+            'recur_anchor': timer.get('recur_anchor') if is_recur else None,
+            'tags': timer.get('tags', []),
+            'category': timer.get('category'),
+        }
+        ev = next_event_for_timer(timer, now)
+        if ev and ev['target'] is not None:
+            entry['next_target'] = ev['target'].isoformat(timespec='seconds')
+            entry['next_in_s'] = ev['time_until_s']
+            entry['next_phase'] = ev['phase']
+            if ev.get('slot'):
+                entry['next_slot'] = ev['slot']
+        entries.append(entry)
+
+    def _sort_key(e: dict[str, Any]) -> tuple[int, float]:
+        s = e.get('next_in_s')
+        if s is None:
+            return (2, 0.0)
+        if s < 0:
+            return (1, abs(float(s)))
+        return (0, float(s))
+
+    entries.sort(key=_sort_key)
+    return entries
+
+
+def write_json_api(manifest: list[dict[str, Any]], now: datetime) -> None:
+    """Write the static JSON API under output/api/.
+
+    - api/timers.json  — full manifest, closest-first
+    - api/up-next.json — current pick + next 10 upcoming
+    - api/status.json  — counts + build info
+    """
+    api_dir = OUTPUT_DIR / 'api'
+    api_dir.mkdir(parents=True, exist_ok=True)
+    generated_at = now.isoformat(timespec='seconds')
+
+    upcoming = [e for e in manifest if e.get('next_in_s') is not None and e['next_in_s'] >= 0]
+    expired = [e for e in manifest if e.get('next_in_s') is not None and e['next_in_s'] < 0]
+    recurring = [e for e in manifest if e.get('recur')]
+
+    with open(api_dir / 'timers.json', 'w', encoding='utf-8') as f:
+        json.dump({'generated_at': generated_at, 'count': len(manifest), 'timers': manifest}, f, indent=2)
+
+    with open(api_dir / 'up-next.json', 'w', encoding='utf-8') as f:
+        json.dump({
+            'generated_at': generated_at,
+            'current': upcoming[0] if upcoming else None,
+            'upcoming': upcoming[:10],
+        }, f, indent=2)
+
+    with open(api_dir / 'status.json', 'w', encoding='utf-8') as f:
+        json.dump({
+            'generated_at': generated_at,
+            'version': VERSION,
+            'total': len(manifest),
+            'recurring': len(recurring),
+            'one_shot': len(manifest) - len(recurring),
+            'upcoming': len(upcoming),
+            'expired': len(expired),
+        }, f, indent=2)
+
+    logger.info(f"Generated JSON API: {api_dir}/timers.json, up-next.json, status.json")
+
+
+def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
+    """Generate output/up-next.html — the standalone auto-switching clock.
+
+    Picks the closest upcoming countdown across all timers (recurring slots,
+    session ends, and one-shot targets) and auto-switches when the lead
+    changes. Exposes a runtime JS API as ``window.DisplauAPI`` and supports
+    ``?timer=<id>`` (lock), ``?embed=1`` (minimal chrome), ``?json=1`` (raw).
+    """
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = OUTPUT_DIR / 'up-next.html'
+
+    version_type = 'STABLE'
+    timestamp = now.strftime('%Y%m%d%H%M%S')
+    build_date = f"{VERSION}.{timestamp}.{version_type.lower()}"
+
+    styles = load_style_components()
+    scripts_dir = COMPONENTS_DIR / 'scripts'
+    color_js = load_component(scripts_dir / 'color_utils.js')
+    dom_js = load_component(scripts_dir / 'dom_utils.js')
+    manifest_json = json.dumps(manifest)
+
+    auto_js = r'''
+// ================= UP-NEXT AUTO CLOCK =================
+(function () {
+  'use strict';
+  var MANIFEST = /*__MANIFEST__*/[];
+  var params = new URLSearchParams(window.location.search || '');
+
+  // ?json=1 -> raw API dump instead of the clock UI.
+  if (params.get('json') === '1') {
+    document.addEventListener('DOMContentLoaded', function () {
+      var up = computeUpcoming(new Date());
+      document.title = 'up-next.json - Displau';
+      document.body.innerHTML = '<pre id="api-dump"></pre>';
+      document.getElementById('api-dump').textContent = JSON.stringify({
+        generated_at: new Date().toISOString(),
+        current: up.length ? up[0] : null,
+        upcoming: up.slice(0, 10)
+      }, null, 2);
+    });
+    window.DisplauAPI = apiSurface([]);
+    return;
+  }
+
+  var WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  function normWeekday(v) {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'number' && isFinite(v)) { v = Math.trunc(v); return (v >= 0 && v <= 6) ? v : null; }
+    var s = String(v).trim().toLowerCase();
+    var i = WEEKDAYS.indexOf(s);
+    if (i !== -1) return i;
+    var n = Number(s);
+    if (isFinite(n)) { n = Math.trunc(n); if (n >= 0 && n <= 6) return n; }
+    return null;
+  }
+  function parseHMS(t) {
+    var p = String(t || '00:00:00').split(':').map(Number);
+    return { h: p[0] || 0, m: p[1] || 0, s: p[2] || 0 };
+  }
+  function atTime(day, t) {
+    var p = parseHMS(t);
+    return new Date(day.getFullYear(), day.getMonth(), day.getDate(), p.h, p.m, p.s, 0);
+  }
+  function nextWeekday(from, wd, t) {
+    var p = parseHMS(t);
+    var diff = (wd - from.getDay() + 7) % 7;
+    var n = new Date(from.getFullYear(), from.getMonth(), from.getDate() + diff, p.h, p.m, p.s, 0);
+    if (n.getTime() <= from.getTime()) n.setDate(n.getDate() + 7);
+    return n;
+  }
+  function prevWeekday(from, wd, t) {
+    var p = parseHMS(t);
+    var diff = (from.getDay() - wd + 7) % 7;
+    var pr = new Date(from.getFullYear(), from.getMonth(), from.getDate() - diff, p.h, p.m, p.s, 0);
+    if (pr.getTime() > from.getTime()) pr.setDate(pr.getDate() - 7);
+    return pr;
+  }
+  // Next boundary for one manifest entry. Returns null when it has no future.
+  function entryState(entry, now) {
+    if (entry.recur) {
+      var rule = entry.recur_rule || 'weekly';
+      if (rule === 'interval') {
+        var mins = Number(entry.recur_interval_minutes);
+        if (!isFinite(mins) || mins <= 0) return null;
+        var iv = mins * 60000;
+        var anchor = entry.recur_anchor ? new Date(entry.recur_anchor)
+          : (entry.start_time ? new Date(entry.start_time) : now);
+        if (isNaN(anchor.getTime())) anchor = now;
+        var target;
+        if (now.getTime() < anchor.getTime()) target = new Date(anchor.getTime());
+        else {
+          var k = Math.ceil((now.getTime() - anchor.getTime()) / iv);
+          target = new Date(anchor.getTime() + k * iv);
+          if (target.getTime() <= now.getTime()) target = new Date(target.getTime() + iv);
+        }
+        return { entry: entry, target: target, prev: new Date(target.getTime() - iv), phase: 'waiting', slot: null };
+      }
+      var slots = (entry.recur_schedule || []).filter(function (s) {
+        return rule === 'weekly' ? normWeekday(s.weekday) !== null : !!s.start;
+      });
+      if (!slots.length) return null;
+      var best = null, prevB = null;
+      if (rule === 'daily') {
+        slots.forEach(function (s) {
+          var st = atTime(now, s.start);
+          var en = s.end ? atTime(now, s.end) : null;
+          if (en && en.getTime() <= st.getTime()) en = new Date(en.getTime() + 86400000);
+          var cand;
+          if (en && now.getTime() >= st.getTime() && now.getTime() < en.getTime()) {
+            cand = { target: en, phase: 'in-class' };
+          } else if (now.getTime() < st.getTime()) {
+            cand = { target: st, phase: 'waiting' };
+          } else {
+            cand = { target: new Date(st.getTime() + 86400000), phase: 'waiting' };
+          }
+          if (!best || cand.target.getTime() < best.target.getTime()) best = { target: cand.target, phase: cand.phase, slot: s };
+          [st, (en && en.getTime() <= now.getTime() ? en : null), new Date(st.getTime() - 86400000)].forEach(function (b) {
+            if (b && b.getTime() <= now.getTime() && (!prevB || b.getTime() > prevB.getTime())) prevB = b;
+          });
+        });
+        if (!best) return null;
+        return { entry: entry, target: best.target, prev: prevB || new Date(best.target.getTime() - 86400000), phase: best.phase, slot: best.slot };
+      }
+      slots.forEach(function (s) {
+        var wd = normWeekday(s.weekday);
+        var nx = nextWeekday(now, wd, s.start);
+        var pr = prevWeekday(now, wd, s.start);
+        var en = s.end ? atTime(pr, s.end) : null;
+        if (en && en.getTime() <= pr.getTime()) en = new Date(en.getTime() + 86400000);
+        var cand;
+        if (en && now.getTime() >= pr.getTime() && now.getTime() < en.getTime()) {
+          cand = { target: en, phase: 'in-class' };
+        } else {
+          cand = { target: nx, phase: 'waiting' };
+        }
+        if (!best || cand.target.getTime() < best.target.getTime()) best = { target: cand.target, phase: cand.phase, slot: s };
+        [pr, (en && en.getTime() <= now.getTime() ? en : null)].forEach(function (b) {
+          if (b && b.getTime() <= now.getTime() && (!prevB || b.getTime() > prevB.getTime())) prevB = b;
+        });
+      });
+      if (!best) return null;
+      return { entry: entry, target: best.target, prev: prevB || new Date(best.target.getTime() - 7 * 86400000), phase: best.phase, slot: best.slot };
+    }
+    if (!entry.target_time) return null;
+    var t = new Date(entry.target_time);
+    if (isNaN(t.getTime())) return null;
+    var d = t.getTime() - now.getTime();
+    if (d <= 0) return null; // one-shot past: not eligible for the auto clock
+    var prevOne = entry.start_time ? new Date(entry.start_time) : new Date(t.getTime() - 86400000);
+    if (isNaN(prevOne.getTime()) || prevOne.getTime() >= t.getTime()) prevOne = new Date(t.getTime() - 86400000);
+    return { entry: entry, target: t, prev: prevOne, phase: 'one-shot', slot: null };
+  }
+  function computeUpcoming(now) {
+    var out = [];
+    MANIFEST.forEach(function (e) {
+      var st = entryState(e, now);
+      if (st) out.push({
+        id: e.id, name: e.name, description: e.description, html_file: e.html_file,
+        target: st.target, prev: st.prev, phase: st.phase, slot: st.slot || null,
+        in_s: (st.target.getTime() - now.getTime()) / 1000
+      });
+    });
+    out.sort(function (a, b) { return a.target - b.target; });
+    return out;
+  }
+  function fmtDur(ms) {
+    if (ms < 0) ms = 0;
+    var s = Math.floor(ms / 1000);
+    var d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
+        m = Math.floor((s % 3600) / 60), sec = s % 60;
+    if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
+    if (h > 0) return h + 'h ' + m + 'm ' + sec + 's';
+    if (m > 0) return m + 'm ' + String(sec).padStart(2, '0') + 's';
+    return sec + '.' + String(Math.floor((ms % 1000) / 100)) + 's';
+  }
+  function fmtClock(ms) {
+    if (ms < 0) ms = 0;
+    var totalS = Math.floor(ms / 1000);
+    var d = Math.floor(totalS / 86400), h = Math.floor((totalS % 86400) / 3600),
+        m = Math.floor((totalS % 3600) / 60), s = totalS % 60, milli = ms % 1000;
+    function p2(n) { return String(n).padStart(2, '0'); }
+    if (d >= 1) return d + ':' + p2(h) + ':' + p2(m) + ':' + p2(s);
+    if (h >= 1) return h + ':' + p2(m) + ':' + p2(s) + '.' + Math.floor(milli / 100);
+    return m + ':' + p2(s) + '.' + String(milli).padStart(3, '0');
+  }
+
+  // ---- runtime JS API ----
+  var switchHandlers = [];
+  var currentId = null;
+  function apiSurface(snapshot) {
+    return {
+      version: '2.1.0',
+      getTimers: function () { return MANIFEST.slice(); },
+      getUpcoming: function (n) { return computeUpcoming(new Date()).slice(0, n || 10); },
+      getCurrent: function () {
+        var up = computeUpcoming(new Date());
+        return up.length ? up[0] : null;
+      },
+      getCurrentId: function () { return currentId; },
+      onSwitch: function (fn) { if (typeof fn === 'function') switchHandlers.push(fn); },
+      refresh: function () { tick(true); }
+    };
+  }
+
+  // ---- UI wiring ----
+  var lockedId = params.get('timer');
+  var locked = lockedId ? MANIFEST.filter(function (e) { return e.id === lockedId; })[0] || null : null;
+  var elName, elPhase, elMeta, elList, elDisplay, elSub;
+  var lastTarget = 0;
+
+  function ratioFor(up) {
+    var total = up.target.getTime() - up.prev.getTime();
+    var el = Date.now() - up.prev.getTime();
+    if (!(total > 0)) return 0;
+    return Math.max(0, Math.min(1, 1 - el / total));
+  }
+  function paintCountdown(up) {
+    var remain = Math.max(0, up.target.getTime() - Date.now());
+    if (typeof updateDisplay === 'function') updateDisplay(fmtClock(remain));
+    if (typeof currentColor !== 'undefined') {
+      try {
+        var c = getColorForRemainingRatio(ratioFor(up));
+        if (c !== targetColor) { targetColor = c; colorTransitionProgress = 0; }
+        colorTransitionProgress = Math.min(1, colorTransitionProgress + 0.1);
+        currentColor = lerpColor(currentColor, targetColor, colorTransitionProgress);
+        if (colorTransitionProgress >= 1) currentColor = targetColor;
+        applyColor(currentColor);
+      } catch (e) { /* non-fatal */ }
+    }
+    return remain;
+  }
+  function describe(up) {
+    var when = up.target.toLocaleString();
+    if (up.phase === 'in-class') {
+      var lbl = up.slot && up.slot.label ? ' · ' + up.slot.label : '';
+      return 'Ends ' + when + lbl;
+    }
+    if (up.phase === 'waiting' && up.slot && up.slot.label) return 'Starts ' + when + ' · ' + up.slot.label;
+    return ((up.phase === 'one-shot') ? 'Target ' : 'Starts ') + when;
+  }
+  function setPhaseBadge(up) {
+    var txt = up.phase === 'in-class' ? '● IN SESSION'
+      : up.phase === 'one-shot' ? '○ ONE-SHOT' : '○ STARTS IN';
+    elPhase.textContent = txt;
+    elPhase.dataset.phase = up.phase;
+  }
+  function renderList(upcoming) {
+    elList.innerHTML = '';
+    upcoming.slice(0, 5).forEach(function (u, i) {
+      var li = document.createElement('li');
+      li.className = 'up-row' + (i === 0 ? ' is-current' : '');
+      var left = document.createElement('span');
+      left.className = 'up-name';
+      left.textContent = (i === 0 ? '▶ ' : '') + u.name;
+      var right = document.createElement('span');
+      right.className = 'up-in';
+      right.textContent = fmtDur(Math.max(0, u.target.getTime() - Date.now()));
+      li.appendChild(left);
+      li.appendChild(right);
+      li.title = describe(u);
+      elList.appendChild(li);
+    });
+  }
+  function fireSwitch(up) {
+    switchHandlers.forEach(function (fn) {
+      try { fn(up); } catch (e) { console.warn('[up-next] onSwitch handler error', e); }
+    });
+    try {
+      window.dispatchEvent(new CustomEvent('displau:switch', { detail: up }));
+    } catch (e) { /* older browsers */ }
+  }
+  function tick(force) {
+    var now = new Date();
+    var upcoming = computeUpcoming(now);
+    var up = upcoming.length ? upcoming[0] : null;
+    if (locked) {
+      var st = entryState(locked, now);
+      up = st ? {
+        id: locked.id, name: locked.name, description: locked.description,
+        html_file: locked.html_file, target: st.target, prev: st.prev,
+        phase: st.phase, slot: st.slot || null, in_s: (st.target - now) / 1000
+      } : null;
+    }
+    if (!up) {
+      elName.textContent = 'No upcoming timers';
+      elPhase.textContent = '○ IDLE';
+      elPhase.dataset.phase = 'idle';
+      elMeta.textContent = 'Add a timer JSON and rebuild.';
+      if (typeof updateDisplay === 'function') updateDisplay('0:00.000');
+      document.title = 'Up Next - idle';
+      renderList([]);
+      return;
+    }
+    if (up.id !== currentId || force) {
+      currentId = up.id;
+      lastTarget = up.target.getTime();
+      elName.textContent = up.name;
+      elSub.textContent = up.description || '';
+      setPhaseBadge(up);
+      var card = document.querySelector('.up-card');
+      if (card) {
+        card.classList.remove('switched');
+        void card.offsetWidth; // restart CSS animation
+        card.classList.add('switched');
+      }
+      fireSwitch(up);
+    } else if (up.target.getTime() !== lastTarget) {
+      lastTarget = up.target.getTime(); // rolled over to next occurrence
+      setPhaseBadge(up);
+    }
+    var remain = paintCountdown(up);
+    elMeta.textContent = describe(up) + ' — ' + fmtDur(remain) + ' left';
+    document.title = fmtClock(remain).split('.')[0] + ' - ' + up.name;
+    renderList(upcoming);
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    elName = document.getElementById('upName');
+    elPhase = document.getElementById('upPhase');
+    elMeta = document.getElementById('upMeta');
+    elList = document.getElementById('upList');
+    elDisplay = document.getElementById('display');
+    elSub = document.getElementById('upSub');
+    if ((params.get('embed') === '1')) document.body.classList.add('embed');
+    if (locked && !lockedId) { /* noop */ }
+    if (lockedId && !locked) {
+      elName.textContent = 'Unknown timer: ' + lockedId;
+      return;
+    }
+    currentColor = getColorForRemainingRatio(1.0);
+    targetColor = currentColor;
+    applyColor(currentColor);
+    tick(true);
+    setInterval(function () { tick(false); }, 1000);
+    // Smooth sub-second display refresh.
+    setInterval(function () {
+      var up = window.DisplauAPI.getCurrent();
+      if (up) paintCountdown(up);
+    }, 53);
+  });
+
+  window.DisplauAPI = apiSurface([]);
+})();
+// =============== /UP-NEXT AUTO CLOCK ===============
+''';
+
+    auto_js = auto_js.replace('/*__MANIFEST__*/[]', manifest_json)
+
+    page = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Up Next - Auto Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+{styles}
+:root {{ --up-accent: #00ff88; }}
+body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }}
+.up-wrap {{ max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem; min-height: 100vh; display: flex; flex-direction: column; gap: 1.25rem; }}
+.up-eyebrow {{ text-align: center; color: var(--text-secondary, #a0a0b0); font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; }}
+.up-eyebrow a {{ color: var(--up-accent); text-decoration: none; }}
+.up-card {{ background: var(--bg-card, rgba(20,20,30,0.6)); border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius: 20px; padding: 2rem; backdrop-filter: blur(20px); text-align: center; }}
+.up-card.switched {{ animation: upflash 0.8s ease; }}
+@keyframes upflash {{ 0% {{ border-color: var(--up-accent); box-shadow: 0 0 0 2px rgba(0,255,136,0.35); }} 100% {{ border-color: var(--border-subtle, rgba(255,255,255,0.08)); box-shadow: none; }} }}
+#upName {{ font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; margin-bottom: 0.25rem; }}
+#upSub {{ color: var(--text-secondary, #a0a0b0); margin-bottom: 1rem; min-height: 1.2em; }}
+#upPhase {{ display: inline-block; padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); margin-bottom: 1.25rem; }}
+#upPhase[data-phase="in-class"] {{ background: rgba(0,255,136,0.12); color: #00ff88; border-color: rgba(0,255,136,0.3); }}
+#upPhase[data-phase="waiting"] {{ background: rgba(0,170,255,0.12); color: #33bbff; border-color: rgba(0,170,255,0.3); }}
+#upPhase[data-phase="one-shot"] {{ background: rgba(255,193,7,0.12); color: #ffc107; border-color: rgba(255,193,7,0.3); }}
+#upMeta {{ margin-top: 1rem; color: var(--text-secondary, #a0a0b0); font-size: 0.9rem; }}
+.up-list-card {{ background: var(--bg-glass, rgba(255,255,255,0.03)); border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius: 16px; padding: 1.25rem 1.5rem; }}
+.up-list-card h2 {{ font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted, #606070); margin-bottom: 0.75rem; }}
+#upList {{ list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }}
+.up-row {{ display: flex; justify-content: space-between; gap: 1rem; padding: 0.6rem 0.8rem; border-radius: 10px; background: rgba(255,255,255,0.02); font-size: 0.9rem; }}
+.up-row.is-current {{ border: 1px solid rgba(0,255,136,0.3); }}
+.up-in {{ font-family: 'JetBrains Mono', 'Courier New', monospace; color: var(--up-accent); }}
+.up-foot {{ text-align: center; color: var(--text-muted, #606070); font-size: 0.75rem; }}
+.up-foot code {{ background: rgba(255,255,255,0.06); padding: 0.1rem 0.4rem; border-radius: 6px; }}
+body.embed .up-list-card, body.embed .up-foot, body.embed .up-eyebrow {{ display: none; }}
+#api-dump {{ white-space: pre-wrap; word-break: break-word; padding: 2rem; font-size: 0.85rem; }}
+@media (prefers-reduced-motion: reduce) {{ *, *::before, *::after {{ animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }} }}
+</style>
+</head>
+<body>
+<div class="up-wrap">
+<div class="up-eyebrow">Displau &middot; Auto Clock &middot; <a href="api/up-next.json">api/up-next.json</a></div>
+<div class="up-card">
+<div id="upPhase" data-phase="waiting">○ STARTS IN</div>
+<h1 id="upName">Loading…</h1>
+<p id="upSub"></p>
+<div class="display" id="display"></div>
+<p id="upMeta"></p>
+</div>
+<div class="up-list-card">
+<h2>Following</h2>
+<ul id="upList"></ul>
+</div>
+<div class="up-foot">
+<p>Auto-switches to the closest countdown every second. Lock one with <code>?timer=&lt;id&gt;</code> · minimal view with <code>?embed=1</code> · raw JSON with <code>?json=1</code> · runtime API at <code>window.DisplauAPI</code>.</p>
+<p>7 Segment Display Timer System &copy; 2026 · build {build_date}</p>
+</div>
+</div>
+<script>
+var currentColor = '#00ff00';
+var targetColor = '#00ff00';
+var colorTransitionProgress = 1;
+var COLOR_TRANSITION_TABLE = null;
+</script>
+<script>
+{color_js}
+</script>
+<script>
+{dom_js}
+</script>
+<script>
+{auto_js}
+</script>
+</body>
+</html>'''
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(page)
+    logger.info(f"Generated auto clock page: {output_path} ({len(manifest)} timers)")
 
 
 def main() -> None:

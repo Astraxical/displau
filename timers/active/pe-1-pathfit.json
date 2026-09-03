@@ -1,0 +1,22 @@
+{
+    "id": "pe-1-pathfit",
+    "display_name": "PATHFit 1",
+    "description": "PE 1 · Sat 8:00–11:00am · GYM",
+    "target_time": "2026-08-15T08:00:00",
+    "start_time": "2026-08-08T00:00:00",
+    "direction": "down",
+    "min_value": 0,
+    "max_value": null,
+    "on_expire": "stop",
+    "display_on_expire": true,
+    "enabled": true,
+    "tags": ["course", "pe", "fitness"],
+    "category": "courses",
+    "color_theme": "progress",
+    "show_milliseconds": true,
+    "timezone": "UTC+8",
+    "recur": true,
+    "recur_weekday": "Saturday",
+    "recur_time": "08:00",
+    "recur_end": "11:00"
+}

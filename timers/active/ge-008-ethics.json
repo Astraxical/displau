@@ -1,0 +1,22 @@
+{
+    "id": "ge-008-ethics",
+    "display_name": "Ethics",
+    "description": "GE 008 · Tue 12:00nn–2:00pm · Room 311",
+    "target_time": "2026-08-11T12:00:00",
+    "start_time": "2026-08-04T00:00:00",
+    "direction": "down",
+    "min_value": 0,
+    "max_value": null,
+    "on_expire": "stop",
+    "display_on_expire": true,
+    "enabled": true,
+    "tags": ["course", "ethics", "ge"],
+    "category": "courses",
+    "color_theme": "progress",
+    "show_milliseconds": true,
+    "timezone": "UTC+8",
+    "recur": true,
+    "recur_weekday": "Tuesday",
+    "recur_time": "12:00",
+    "recur_end": "14:00"
+}

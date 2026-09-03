@@ -153,6 +153,43 @@ body.expired .colon-dot.on {
 }
 
 /* ============================================
+   IN-CLASS STATE (recurring weekly timers)
+   ============================================ */
+
+/* Class is in session - soft amber glow */
+body.in-class {
+    animation: inClassPulse 2s ease-in-out infinite;
+}
+
+@keyframes inClassPulse {
+    0%, 100% {
+        background: #1a1a2e;
+    }
+    50% {
+        background: #2a2a1e;
+    }
+}
+
+body.in-class .segment-part.on {
+    animation: inClassFlash 1.2s ease-in-out infinite;
+}
+
+@keyframes inClassFlash {
+    0%, 100% {
+        background: #ffaa00;
+        box-shadow: 0 0 12px #ffaa00, 0 0 24px #ffaa00, 0 0 36px #ffaa00;
+    }
+    50% {
+        background: #ffcc44;
+        box-shadow: 0 0 20px #ffaa00, 0 0 40px #ffaa00, 0 0 60px #ffaa00;
+    }
+}
+
+body.in-class .colon-dot.on {
+    animation: inClassFlash 1.2s ease-in-out infinite;
+}
+
+/* ============================================
    EXPIRED MESSAGE STYLES (for on_expire: hide)
    ============================================ */
 

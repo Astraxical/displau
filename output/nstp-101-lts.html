@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/test-static-timer.json">
+<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/nstp-101-lts.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -515,8 +515,8 @@ body {
 </head>
 <body>
     <!-- Display Name Overlay (hidden by default) -->
-    <div class="timer-display-name" id="displayName" title="Static Timer Test" style="opacity: 0;">
-        Static Timer Test
+    <div class="timer-display-name" id="displayName" title="NSTP 1 LTS" style="opacity: 0;">
+        NSTP 1 LTS
     </div>
 
     <!-- 7-Segment Display -->
@@ -525,9 +525,9 @@ body {
     </div>
 
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260904002438.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260904002437.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260904002438.stable</span>
+        <span class="version-date">2.0.0.20260904002437.stable</span>
     </div>
 
     <script>
@@ -535,25 +535,25 @@ body {
         // ============ CONFIGURATION ============
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
-    target_time: '2026-04-15T00:00:00',
-    start_time: '2026-04-05T00:00:00',
+    target_time: '2026-08-15T13:30:00',
+    start_time: '2026-09-04T00:24:37',
     display_name: '',
     config_id: 'default',
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
     direction: 'down',  // Options: 'down', 'up'
     min_value: 0,       // Minimum value in milliseconds (null for no limit)
     max_value: null,     // Maximum value in milliseconds (null for no limit)
-    display_mode: 'static',  // Options: 'countdown', 'static'
-    static_time_ms: 9000000,  // Fixed time value in ms for static display mode
+    display_mode: 'countdown',  // Options: 'countdown', 'static'
+    static_time_ms: 0,  // Fixed time value in ms for static display mode
     // Recurring mode: weekly multi-slot, daily, or fixed-interval countdowns.
     // Single-slot legacy fields (recur_weekday/time/end) still work and are
     // auto-converted into a one-entry recur_schedule.
-    recur: false,                    // true = recurring timer
+    recur: true,                    // true = recurring timer
     recur_rule: 'weekly',        // 'weekly' | 'daily' | 'interval'
-    recur_weekday: 0,    // legacy single-slot: 0=Sunday ... 6=Saturday
-    recur_time: '00:00:00',        // legacy single-slot start 'HH:MM:SS'
-    recur_end: null,            // legacy single-slot end 'HH:MM:SS' or null
-    recur_schedule: [], // canonical multi-slot list [{weekday,start,end,label}]
+    recur_weekday: 6,    // legacy single-slot: 0=Sunday ... 6=Saturday
+    recur_time: '13:30:00',        // legacy single-slot start 'HH:MM:SS'
+    recur_end: '17:30:00',            // legacy single-slot end 'HH:MM:SS' or null
+    recur_schedule: [{"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}], // canonical multi-slot list [{weekday,start,end,label}]
     recur_interval_minutes: null, // interval rule: minutes between occurrences or null
     recur_anchor: '',    // interval rule anchor ISO datetime ('' = use start_time)
     // Smooth color transition: Blue→Cyan→Green→Yellow→Orange→Red→Violet→Deep Violet
@@ -577,7 +577,7 @@ const DEFAULTS = {
     ]
 };
 const MILLISECONDS_AT_FULL_BRIGHTNESS = 0;
-const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/test-static-timer.json'; // Injected by build script
+const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/nstp-101-lts.json'; // Injected by build script
 // =======================================
 
 // Cache configuration
@@ -635,7 +635,7 @@ async function loadConfig() {
     }
     
     // Try fetch from GitHub
-    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/test-static-timer.json') {
+    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/nstp-101-lts.json') {
         try {
             console.log('[Config] Fetching config from:', CONFIG_URL);
             const response = await fetch(CONFIG_URL, {

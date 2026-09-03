@@ -1689,6 +1689,7 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
     scripts_dir = COMPONENTS_DIR / 'scripts'
     color_js = load_component(scripts_dir / 'color_utils.js')
     dom_js = load_component(scripts_dir / 'dom_utils.js')
+    render_js = load_component(scripts_dir / 'render.js')
     manifest_json = json.dumps(manifest)
 
     auto_js = r'''
@@ -1994,21 +1995,38 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
     elDisplay = document.getElementById('display');
     elSub = document.getElementById('upSub');
     if ((params.get('embed') === '1')) document.body.classList.add('embed');
-    if (locked && !lockedId) { /* noop */ }
     if (lockedId && !locked) {
       elName.textContent = 'Unknown timer: ' + lockedId;
       return;
     }
-    currentColor = getColorForRemainingRatio(1.0);
-    targetColor = currentColor;
-    applyColor(currentColor);
-    tick(true);
+    try {
+      if (typeof getColorForRemainingRatio !== 'function' || typeof updateDisplay !== 'function') {
+        throw new Error('display engine failed to load');
+      }
+      currentColor = getColorForRemainingRatio(1.0);
+      targetColor = currentColor;
+      applyColor(currentColor);
+      tick(true);
+      window.__upBooted = true;
+    } catch (err) {
+      elName.textContent = 'Could not start the clock';
+      elMeta.textContent = 'Error: ' + ((err && err.message) || err) + ' — try ?json=1 to inspect the data.';
+      return;
+    }
     setInterval(function () { tick(false); }, 1000);
     // Smooth sub-second display refresh.
     setInterval(function () {
       var up = window.DisplauAPI.getCurrent();
       if (up) paintCountdown(up);
     }, 53);
+  });
+
+  // Surface late runtime errors in the meta line instead of failing silently.
+  window.addEventListener('error', function (e) {
+    if (window.__upBooted || !elMeta) return;
+    try {
+      elMeta.textContent = 'Error: ' + (e.message || e.error) + ' — try ?json=1 to inspect the data.';
+    } catch (_) { /* noop */ }
   });
 
   window.DisplauAPI = apiSurface([]);
@@ -2087,6 +2105,9 @@ var COLOR_TRANSITION_TABLE = null;
 </script>
 <script>
 {dom_js}
+</script>
+<script>
+{render_js}
 </script>
 <script>
 {auto_js}

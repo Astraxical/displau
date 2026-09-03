@@ -558,7 +558,7 @@ body.embed .up-list-card, body.embed .up-foot, body.embed .up-eyebrow { display:
 </div>
 <div class="up-foot">
 <p>Auto-switches to the closest countdown every second. Lock one with <code>?timer=&lt;id&gt;</code> · minimal view with <code>?embed=1</code> · raw JSON with <code>?json=1</code> · runtime API at <code>window.DisplauAPI</code>.</p>
-<p>7 Segment Display Timer System &copy; 2026 · build 2.0.0.20260904002438.stable</p>
+<p>7 Segment Display Timer System &copy; 2026 · build 2.0.0.20260904003013.stable</p>
 </div>
 </div>
 <script>
@@ -701,11 +701,256 @@ function createDecimal() {
 
 </script>
 <script>
+function getColor() {
+    return currentColor;
+}
+
+/**
+ * Get color for negative time display
+ * Uses the same color system as the transition table
+ */
+function getNegativeTimeColor() {
+    // For negative time, calculate color based on how far into negative
+    // This will be handled by getColorForRemainingRatio with negative ratio
+    // Return a default violet as fallback
+    return '#ee82ee';
+}
+
+function getDarkerComplementaryColor(hex) {
+    const rgb = hexToRgb(hex);
+    const factor = 0.3;
+    return rgbToHex(
+        (255 - rgb.r) * factor,
+        (255 - rgb.g) * factor,
+        (255 - rgb.b) * factor
+    );
+}
+
+function applyColor(color) {
+    const complementary = getDarkerComplementaryColor(color);
+
+    document.querySelectorAll('.segment-part.on').forEach(seg => {
+        seg.style.background = color;
+        seg.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+    });
+
+    document.querySelectorAll('.segment-part:not(.on)').forEach(seg => {
+        seg.style.background = complementary;
+        seg.style.boxShadow = '';
+    });
+
+    document.querySelectorAll('.colon-dot.on').forEach(dot => {
+        dot.style.background = color;
+        dot.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+    });
+
+    document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
+        dot.style.background = complementary;
+    });
+}
+
+/**
+ * Apply color for negative time display
+ * Uses the current color from the transition table (which handles negative ratios)
+ */
+function applyNegativeTimeColor() {
+    // Use the currentColor which is already calculated from the transition table
+    // for negative time ratios
+    const color = currentColor || '#ee82ee';
+    const complementary = getDarkerComplementaryColor(color);
+
+    document.querySelectorAll('.segment-part.on').forEach(seg => {
+        seg.style.background = color;
+        seg.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+    });
+
+    document.querySelectorAll('.segment-part:not(.on)').forEach(seg => {
+        seg.style.background = complementary;
+        seg.style.boxShadow = '';
+    });
+
+    document.querySelectorAll('.colon-dot.on').forEach(dot => {
+        dot.style.background = color;
+        dot.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+    });
+
+    document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
+        dot.style.background = complementary;
+    });
+
+    // Color the minus sign
+    const minusBar = document.querySelector('.minus-bar');
+    if (minusBar) {
+        minusBar.style.background = color;
+        minusBar.style.boxShadow = `0 0 10px ${color}, 0 0 20px ${color}`;
+    }
+}
+
+function setDigit(element, value) {
+    const segments = element.querySelectorAll('.segment-part');
+    const num = parseInt(value);
+    const color = getColor();
+    const complementary = getDarkerComplementaryColor(color);
+
+    if (!isNaN(num) && patterns[num]) {
+        patterns[num].forEach((on, i) => {
+            if (on) {
+                segments[i].classList.add('on');
+                segments[i].style.background = color;
+                segments[i].style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+            } else {
+                segments[i].classList.remove('on');
+                segments[i].style.background = complementary;
+                segments[i].style.boxShadow = '';
+            }
+        });
+    }
+}
+
+function updateDisplay(timeStr) {
+    const display = document.getElementById('display');
+    display.innerHTML = '';
+    const colonCount = (timeStr.match(/:/g) || []).length;
+    const isNegative = timeStr.startsWith('-');
+    
+    // Handle negative sign for negative time display
+    if (isNegative) {
+        const minusElement = createMinusSign();
+        display.appendChild(minusElement);
+        timeStr = timeStr.substring(1); // Remove the minus sign for parsing
+    }
+
+    if (colonCount === 3) {
+        const parts = timeStr.split(':');
+        const days = parts[0];
+        const hours = parts[1] || '00';
+        const minutes = parts[2] || '00';
+        const seconds = parts[3] || '00';
+
+        for (let i = 0; i < days.length; i++) {
+            display.appendChild(createDigit());
+            setDigit(display.lastChild, days[i]);
+        }
+        display.appendChild(createColon());
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, hours[0]);
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, hours[1]);
+        display.appendChild(createColon());
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, minutes[0]);
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, minutes[1]);
+        display.appendChild(createColon());
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, seconds[0]);
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, seconds[1]);
+    } else if (colonCount === 2) {
+        const parts = timeStr.split(':');
+        const hours = parts[0];
+        const minutes = parts[1] || '00';
+        const secondsParts = (parts[2] || '00').split('.');
+        const seconds = secondsParts[0] || '00';
+        const decimals = secondsParts[1] || '';
+
+        for (let i = 0; i < hours.length; i++) {
+            display.appendChild(createDigit());
+            setDigit(display.lastChild, hours[i]);
+        }
+        display.appendChild(createColon());
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, minutes[0]);
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, minutes[1]);
+        display.appendChild(createColon());
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, seconds[0]);
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, seconds[1]);
+
+        if (decimals.length > 0) {
+            display.appendChild(createDecimal());
+            for (let i = 0; i < decimals.length; i++) {
+                display.appendChild(createDigit());
+                setDigit(display.lastChild, decimals[i]);
+            }
+        }
+    } else {
+        const parts = timeStr.split(':');
+        const minutes = parts[0];
+        const secondsParts = (parts[1] || '00').split('.');
+        const seconds = secondsParts[0] || '00';
+        const decimals = secondsParts[1] || '';
+
+        for (let i = 0; i < minutes.length; i++) {
+            display.appendChild(createDigit());
+            setDigit(display.lastChild, minutes[i]);
+        }
+        display.appendChild(createColon());
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, seconds[0]);
+        display.appendChild(createDigit());
+        setDigit(display.lastChild, seconds[1]);
+        display.appendChild(createDecimal());
+        for (let i = 0; i < decimals.length; i++) {
+            display.appendChild(createDigit());
+            setDigit(display.lastChild, decimals[i]);
+        }
+    }
+
+    // Apply color based on whether this is negative time
+    if (isNegative) {
+        applyNegativeTimeColor();
+    } else {
+        const color = getColor();
+        applyColor(color);
+    }
+}
+
+/**
+ * Create a minus sign element for negative time display
+ * @returns {HTMLDivElement} Minus sign element
+ */
+function createMinusSign() {
+    const minus = document.createElement('div');
+    minus.className = 'minus-sign';
+    minus.innerHTML = '<div class="minus-bar"></div>';
+    return minus;
+}
+
+/**
+ * Show expired message overlay when timer ends (for on_expire: 'hide')
+ */
+function showExpiredMessage() {
+    const display = document.getElementById('display');
+    if (!display) return;
+    
+    // Clear the display
+    display.innerHTML = '';
+    
+    // Create expired message container
+    const expiredContainer = document.createElement('div');
+    expiredContainer.className = 'expired-message';
+    expiredContainer.innerHTML = `
+        <div class="expired-text">EXPIRED</div>
+        <div class="expired-subtext">${DISPLAY_NAME || 'Timer Complete'}</div>
+    `;
+    
+    display.appendChild(expiredContainer);
+    
+    // Force red color for expired message
+    const redColor = '#ff0000';
+    document.body.style.setProperty('--expired-color', redColor);
+}
+
+</script>
+<script>
 
 // ================= UP-NEXT AUTO CLOCK =================
 (function () {
   'use strict';
-  var MANIFEST = [{"id": "pe-1-pathfit", "name": "PATHFit 1", "description": "PE 1 \u00b7 Sat 8:00\u201311:00am \u00b7 GYM", "html_file": "pe-1-pathfit.html", "target_time": "2026-08-15T08:00:00", "start_time": "2026-08-08T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 6, "start": "08:00:00", "end": "11:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "pe", "fitness"], "category": "courses", "next_target": "2026-09-05T08:00:00", "next_in_s": 113721.737702, "next_phase": "waiting", "next_slot": {"weekday": 6, "start": "08:00:00", "end": "11:00:00", "label": ""}}, {"id": "nstp-101-lts", "name": "NSTP 1 LTS", "description": "NSTP 101 \u00b7 Sat 1:30\u20135:30pm \u00b7 Room 314", "html_file": "nstp-101-lts.html", "target_time": "2026-08-15T13:30:00", "start_time": "2026-08-08T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "nstp"], "category": "courses", "next_target": "2026-09-05T13:30:00", "next_in_s": 133521.737702, "next_phase": "waiting", "next_slot": {"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}}, {"id": "ed-101-child", "name": "Child and Adolescent Learners", "description": "ED 101 \u00b7 Mon 8:30am\u201312:30pm \u00b7 Room 304", "html_file": "ed-101-child.html", "target_time": "2026-08-10T08:30:00", "start_time": "2026-08-03T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 1, "start": "08:30:00", "end": "12:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "education"], "category": "courses", "next_target": "2026-09-07T08:30:00", "next_in_s": 288321.737702, "next_phase": "waiting", "next_slot": {"weekday": 1, "start": "08:30:00", "end": "12:30:00", "label": ""}}, {"id": "ge-005-comm", "name": "Purposive Communication", "description": "GE 005 \u00b7 Mon 2:00\u20136:00pm \u00b7 Room 304", "html_file": "ge-005-comm.html", "target_time": "2026-08-10T14:00:00", "start_time": "2026-08-03T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 1, "start": "14:00:00", "end": "18:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "communication", "ge"], "category": "courses", "next_target": "2026-09-07T14:00:00", "next_in_s": 308121.737702, "next_phase": "waiting", "next_slot": {"weekday": 1, "start": "14:00:00", "end": "18:00:00", "label": ""}}, {"id": "ge-004-math-world", "name": "Mathematics in the Modern World", "description": "GE 004 \u00b7 Tue 7:00\u201311:00am \u00b7 Room 310", "html_file": "ge-004-math-world.html", "target_time": "2026-08-11T07:00:00", "start_time": "2026-08-04T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 2, "start": "07:00:00", "end": "11:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics", "ge"], "category": "courses", "next_target": "2026-09-08T07:00:00", "next_in_s": 369321.737702, "next_phase": "waiting", "next_slot": {"weekday": 2, "start": "07:00:00", "end": "11:00:00", "label": ""}}, {"id": "ge-008-ethics", "name": "Ethics", "description": "GE 008 \u00b7 Tue 12:00nn\u20132:00pm \u00b7 Room 311", "html_file": "ge-008-ethics.html", "target_time": "2026-08-11T12:00:00", "start_time": "2026-08-04T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 2, "start": "12:00:00", "end": "14:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "ethics", "ge"], "category": "courses", "next_target": "2026-09-08T12:00:00", "next_in_s": 387321.737702, "next_phase": "waiting", "next_slot": {"weekday": 2, "start": "12:00:00", "end": "14:00:00", "label": ""}}, {"id": "ge-002-history", "name": "Readings in Philippine History", "description": "GE 002 \u00b7 Wed 7:30\u201311:30am \u00b7 Room 312", "html_file": "ge-002-history.html", "target_time": "2026-08-12T07:30:00", "start_time": "2026-08-05T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 3, "start": "07:30:00", "end": "11:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "history", "ge"], "category": "courses", "next_target": "2026-09-09T07:30:00", "next_in_s": 457521.737702, "next_phase": "waiting", "next_slot": {"weekday": 3, "start": "07:30:00", "end": "11:30:00", "label": ""}}, {"id": "mat-201-history", "name": "History of Mathematics", "description": "MAT 201 \u00b7 Wed 12:00nn\u20134:00pm \u00b7 Room 314", "html_file": "mat-201-history.html", "target_time": "2026-08-12T12:00:00", "start_time": "2026-08-05T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 3, "start": "12:00:00", "end": "16:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics"], "category": "courses", "next_target": "2026-09-09T12:00:00", "next_in_s": 473721.737702, "next_phase": "waiting", "next_slot": {"weekday": 3, "start": "12:00:00", "end": "16:00:00", "label": ""}}, {"id": "mat-202-algebra", "name": "College and Advanced Algebra", "description": "MAT 202 \u00b7 Thu 12:00nn\u20134:00pm \u00b7 Room 312", "html_file": "mat-202-algebra.html", "target_time": "2026-08-13T12:00:00", "start_time": "2026-08-06T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 4, "start": "12:00:00", "end": "16:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics"], "category": "courses", "next_target": "2026-09-10T12:00:00", "next_in_s": 560121.737702, "next_phase": "waiting", "next_slot": {"weekday": 4, "start": "12:00:00", "end": "16:00:00", "label": ""}}, {"id": "test-static-timer", "name": "Static Timer Test", "description": "Test timer that displays a fixed time value in milliseconds", "html_file": "test-static-timer.html", "target_time": "2026-04-15T00:00:00", "start_time": "2026-04-05T00:00:00", "timezone": "UTC", "recur": false, "recur_rule": null, "recur_schedule": [], "recur_interval_minutes": null, "recur_anchor": null, "tags": [], "category": null, "next_target": "2026-04-15T00:00:00", "next_in_s": -12270278.262298, "next_phase": "expired"}];
+  var MANIFEST = [{"id": "pe-1-pathfit", "name": "PATHFit 1", "description": "PE 1 \u00b7 Sat 8:00\u201311:00am \u00b7 GYM", "html_file": "pe-1-pathfit.html", "target_time": "2026-08-15T08:00:00", "start_time": "2026-08-08T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 6, "start": "08:00:00", "end": "11:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "pe", "fitness"], "category": "courses", "next_target": "2026-09-05T08:00:00", "next_in_s": 113386.284781, "next_phase": "waiting", "next_slot": {"weekday": 6, "start": "08:00:00", "end": "11:00:00", "label": ""}}, {"id": "nstp-101-lts", "name": "NSTP 1 LTS", "description": "NSTP 101 \u00b7 Sat 1:30\u20135:30pm \u00b7 Room 314", "html_file": "nstp-101-lts.html", "target_time": "2026-08-15T13:30:00", "start_time": "2026-08-08T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "nstp"], "category": "courses", "next_target": "2026-09-05T13:30:00", "next_in_s": 133186.284781, "next_phase": "waiting", "next_slot": {"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}}, {"id": "ed-101-child", "name": "Child and Adolescent Learners", "description": "ED 101 \u00b7 Mon 8:30am\u201312:30pm \u00b7 Room 304", "html_file": "ed-101-child.html", "target_time": "2026-08-10T08:30:00", "start_time": "2026-08-03T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 1, "start": "08:30:00", "end": "12:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "education"], "category": "courses", "next_target": "2026-09-07T08:30:00", "next_in_s": 287986.284781, "next_phase": "waiting", "next_slot": {"weekday": 1, "start": "08:30:00", "end": "12:30:00", "label": ""}}, {"id": "ge-005-comm", "name": "Purposive Communication", "description": "GE 005 \u00b7 Mon 2:00\u20136:00pm \u00b7 Room 304", "html_file": "ge-005-comm.html", "target_time": "2026-08-10T14:00:00", "start_time": "2026-08-03T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 1, "start": "14:00:00", "end": "18:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "communication", "ge"], "category": "courses", "next_target": "2026-09-07T14:00:00", "next_in_s": 307786.284781, "next_phase": "waiting", "next_slot": {"weekday": 1, "start": "14:00:00", "end": "18:00:00", "label": ""}}, {"id": "ge-004-math-world", "name": "Mathematics in the Modern World", "description": "GE 004 \u00b7 Tue 7:00\u201311:00am \u00b7 Room 310", "html_file": "ge-004-math-world.html", "target_time": "2026-08-11T07:00:00", "start_time": "2026-08-04T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 2, "start": "07:00:00", "end": "11:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics", "ge"], "category": "courses", "next_target": "2026-09-08T07:00:00", "next_in_s": 368986.284781, "next_phase": "waiting", "next_slot": {"weekday": 2, "start": "07:00:00", "end": "11:00:00", "label": ""}}, {"id": "ge-008-ethics", "name": "Ethics", "description": "GE 008 \u00b7 Tue 12:00nn\u20132:00pm \u00b7 Room 311", "html_file": "ge-008-ethics.html", "target_time": "2026-08-11T12:00:00", "start_time": "2026-08-04T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 2, "start": "12:00:00", "end": "14:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "ethics", "ge"], "category": "courses", "next_target": "2026-09-08T12:00:00", "next_in_s": 386986.284781, "next_phase": "waiting", "next_slot": {"weekday": 2, "start": "12:00:00", "end": "14:00:00", "label": ""}}, {"id": "ge-002-history", "name": "Readings in Philippine History", "description": "GE 002 \u00b7 Wed 7:30\u201311:30am \u00b7 Room 312", "html_file": "ge-002-history.html", "target_time": "2026-08-12T07:30:00", "start_time": "2026-08-05T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 3, "start": "07:30:00", "end": "11:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "history", "ge"], "category": "courses", "next_target": "2026-09-09T07:30:00", "next_in_s": 457186.284781, "next_phase": "waiting", "next_slot": {"weekday": 3, "start": "07:30:00", "end": "11:30:00", "label": ""}}, {"id": "mat-201-history", "name": "History of Mathematics", "description": "MAT 201 \u00b7 Wed 12:00nn\u20134:00pm \u00b7 Room 314", "html_file": "mat-201-history.html", "target_time": "2026-08-12T12:00:00", "start_time": "2026-08-05T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 3, "start": "12:00:00", "end": "16:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics"], "category": "courses", "next_target": "2026-09-09T12:00:00", "next_in_s": 473386.284781, "next_phase": "waiting", "next_slot": {"weekday": 3, "start": "12:00:00", "end": "16:00:00", "label": ""}}, {"id": "mat-202-algebra", "name": "College and Advanced Algebra", "description": "MAT 202 \u00b7 Thu 12:00nn\u20134:00pm \u00b7 Room 312", "html_file": "mat-202-algebra.html", "target_time": "2026-08-13T12:00:00", "start_time": "2026-08-06T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 4, "start": "12:00:00", "end": "16:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics"], "category": "courses", "next_target": "2026-09-10T12:00:00", "next_in_s": 559786.284781, "next_phase": "waiting", "next_slot": {"weekday": 4, "start": "12:00:00", "end": "16:00:00", "label": ""}}, {"id": "test-static-timer", "name": "Static Timer Test", "description": "Test timer that displays a fixed time value in milliseconds", "html_file": "test-static-timer.html", "target_time": "2026-04-15T00:00:00", "start_time": "2026-04-05T00:00:00", "timezone": "UTC", "recur": false, "recur_rule": null, "recur_schedule": [], "recur_interval_minutes": null, "recur_anchor": null, "tags": [], "category": null, "next_target": "2026-04-15T00:00:00", "next_in_s": -12270613.715219, "next_phase": "expired"}];
   var params = new URLSearchParams(window.location.search || '');
 
   // ?json=1 -> raw API dump instead of the clock UI.
@@ -1004,21 +1249,38 @@ function createDecimal() {
     elDisplay = document.getElementById('display');
     elSub = document.getElementById('upSub');
     if ((params.get('embed') === '1')) document.body.classList.add('embed');
-    if (locked && !lockedId) { /* noop */ }
     if (lockedId && !locked) {
       elName.textContent = 'Unknown timer: ' + lockedId;
       return;
     }
-    currentColor = getColorForRemainingRatio(1.0);
-    targetColor = currentColor;
-    applyColor(currentColor);
-    tick(true);
+    try {
+      if (typeof getColorForRemainingRatio !== 'function' || typeof updateDisplay !== 'function') {
+        throw new Error('display engine failed to load');
+      }
+      currentColor = getColorForRemainingRatio(1.0);
+      targetColor = currentColor;
+      applyColor(currentColor);
+      tick(true);
+      window.__upBooted = true;
+    } catch (err) {
+      elName.textContent = 'Could not start the clock';
+      elMeta.textContent = 'Error: ' + ((err && err.message) || err) + ' — try ?json=1 to inspect the data.';
+      return;
+    }
     setInterval(function () { tick(false); }, 1000);
     // Smooth sub-second display refresh.
     setInterval(function () {
       var up = window.DisplauAPI.getCurrent();
       if (up) paintCountdown(up);
     }, 53);
+  });
+
+  // Surface late runtime errors in the meta line instead of failing silently.
+  window.addEventListener('error', function (e) {
+    if (window.__upBooted || !elMeta) return;
+    try {
+      elMeta.textContent = 'Error: ' + (e.message || e.error) + ' — try ?json=1 to inspect the data.';
+    } catch (_) { /* noop */ }
   });
 
   window.DisplauAPI = apiSurface([]);

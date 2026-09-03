@@ -1699,6 +1699,46 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
   var MANIFEST = /*__MANIFEST__*/[];
   var params = new URLSearchParams(window.location.search || '');
 
+  // ---- live data: fetch the JSON API at runtime, embedded manifest is instant fallback ----
+  var liveEntries = null;
+  var lastSyncAt = 0;
+  var syncState = 'embedded'; // 'live' | 'stale' | 'embedded'
+  function getEntries() { return liveEntries || MANIFEST; }
+  function fetchLive() {
+    var urls = ['api/up-next.json', 'api/timers.json'];
+    var chain = Promise.resolve(false);
+    urls.forEach(function (url) {
+      chain = chain.then(function (done) {
+        if (done) return true;
+        return fetch(url, { cache: 'no-store' }).then(function (res) {
+          if (!res.ok) return false;
+          return res.json().then(function (data) {
+            var list = (data && (data.timers || data.upcoming)) || data;
+            if (Array.isArray(list) && list.length) {
+              liveEntries = list;
+              lastSyncAt = Date.now();
+              syncState = 'live';
+              return true;
+            }
+            return false;
+          });
+        }).catch(function () { return false; });
+      });
+    });
+    return chain.then(function (ok) {
+      if (!ok) syncState = liveEntries ? 'stale' : 'embedded';
+      return ok;
+    });
+  }
+  function syncLabel() {
+    if (syncState === 'live') {
+      var s = Math.floor((Date.now() - lastSyncAt) / 1000);
+      return 'fetched fresh data ' + (s < 5 ? 'just now' : s + 's ago') + ' \u2665';
+    }
+    if (syncState === 'stale') return 'offline — holding onto the last data I fetched for you\u2026';
+    return 'offline — counting from built-in data, still thinking of you\u2026';
+  }
+
   // ?json=1 -> raw API dump instead of the clock UI.
   if (params.get('json') === '1') {
     document.addEventListener('DOMContentLoaded', function () {
@@ -1823,9 +1863,9 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
     if (isNaN(prevOne.getTime()) || prevOne.getTime() >= t.getTime()) prevOne = new Date(t.getTime() - 86400000);
     return { entry: entry, target: t, prev: prevOne, phase: 'one-shot', slot: null };
   }
-  function computeUpcoming(now) {
+  function computeUpcoming(now, pool) {
     var out = [];
-    MANIFEST.forEach(function (e) {
+    (pool || getEntries()).forEach(function (e) {
       var st = entryState(e, now);
       if (st) out.push({
         id: e.id, name: e.name, description: e.description, html_file: e.html_file,
@@ -1862,23 +1902,31 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
   var currentId = null;
   function apiSurface(snapshot) {
     return {
-      version: '2.1.0',
-      getTimers: function () { return MANIFEST.slice(); },
+      version: '2.2.0',
+      getTimers: function () { return getEntries().slice(); },
       getUpcoming: function (n) { return computeUpcoming(new Date()).slice(0, n || 10); },
       getCurrent: function () {
         var up = computeUpcoming(new Date());
         return up.length ? up[0] : null;
       },
       getCurrentId: function () { return currentId; },
+      getSyncState: function () { return { state: syncState, lastSyncAt: lastSyncAt }; },
       onSwitch: function (fn) { if (typeof fn === 'function') switchHandlers.push(fn); },
-      refresh: function () { tick(true); }
+      refresh: function () { return fetchLive().then(function () { tick(true); }); }
     };
   }
 
   // ---- UI wiring ----
   var lockedId = params.get('timer');
-  var locked = lockedId ? MANIFEST.filter(function (e) { return e.id === lockedId; })[0] || null : null;
-  var elName, elPhase, elMeta, elList, elDisplay, elSub;
+  function findLocked(pool) {
+    if (!lockedId) return null;
+    var list = pool || getEntries();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === lockedId) return list[i];
+    }
+    return null;
+  }
+  var elName, elPhase, elMeta, elList, elDisplay, elSub, elSync;
   var lastTarget = 0;
 
   function ratioFor(up) {
@@ -1905,15 +1953,15 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
   function describe(up) {
     var when = up.target.toLocaleString();
     if (up.phase === 'in-class') {
-      var lbl = up.slot && up.slot.label ? ' · ' + up.slot.label : '';
-      return 'Ends ' + when + lbl;
+      var lbl = up.slot && up.slot.label ? ' \u00b7 ' + up.slot.label : '';
+      return 'Ends ' + when + lbl + " — don't go anywhere";
     }
-    if (up.phase === 'waiting' && up.slot && up.slot.label) return 'Starts ' + when + ' · ' + up.slot.label;
-    return ((up.phase === 'one-shot') ? 'Target ' : 'Starts ') + when;
+    if (up.phase === 'waiting' && up.slot && up.slot.label) return 'Starts ' + when + ' \u00b7 ' + up.slot.label + " — I'm waiting";
+    return ((up.phase === 'one-shot') ? 'Target ' : 'Starts ') + when + ' — once in a lifetime';
   }
   function setPhaseBadge(up) {
-    var txt = up.phase === 'in-class' ? '● IN SESSION'
-      : up.phase === 'one-shot' ? '○ ONE-SHOT' : '○ STARTS IN';
+    var txt = up.phase === 'in-class' ? '\u25cf WITH YOU RIGHT NOW'
+      : up.phase === 'one-shot' ? '\u25cb ONCE IN A LIFETIME' : '\u25cb COUNTING DOWN FOR YOU';
     elPhase.textContent = txt;
     elPhase.dataset.phase = up.phase;
   }
@@ -1924,7 +1972,7 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
       li.className = 'up-row' + (i === 0 ? ' is-current' : '');
       var left = document.createElement('span');
       left.className = 'up-name';
-      left.textContent = (i === 0 ? '▶ ' : '') + u.name;
+      left.textContent = (i === 0 ? '\u2665 ' : '') + u.name;
       var right = document.createElement('span');
       right.className = 'up-in';
       right.textContent = fmtDur(Math.max(0, u.target.getTime() - Date.now()));
@@ -1944,23 +1992,28 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
   }
   function tick(force) {
     var now = new Date();
-    var upcoming = computeUpcoming(now);
+    var pool = getEntries();
+    var upcoming = computeUpcoming(now, pool);
     var up = upcoming.length ? upcoming[0] : null;
-    if (locked) {
-      var st = entryState(locked, now);
+    var locked = findLocked(pool);
+    if (lockedId) {
+      var st = locked ? entryState(locked, now) : null;
       up = st ? {
         id: locked.id, name: locked.name, description: locked.description,
         html_file: locked.html_file, target: st.target, prev: st.prev,
         phase: st.phase, slot: st.slot || null, in_s: (st.target - now) / 1000
       } : null;
     }
+    if (elSync) elSync.textContent = syncLabel();
     if (!up) {
-      elName.textContent = 'No upcoming timers';
-      elPhase.textContent = '○ IDLE';
+      elName.textContent = lockedId ? 'Nobody by that name\u2026' : 'Nothing to obsess over\u2026 yet';
+      elPhase.textContent = '\u25cb ALL ALONE';
       elPhase.dataset.phase = 'idle';
-      elMeta.textContent = 'Add a timer JSON and rebuild.';
+      elMeta.textContent = lockedId
+        ? 'No timer with id "' + lockedId + '" in my heart (or the API).'
+        : "Add a timer JSON and rebuild — I'll be waiting.";
       if (typeof updateDisplay === 'function') updateDisplay('0:00.000');
-      document.title = 'Up Next - idle';
+      document.title = 'Up Next \u2665 all alone';
       renderList([]);
       return;
     }
@@ -1983,8 +2036,26 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
     }
     var remain = paintCountdown(up);
     elMeta.textContent = describe(up) + ' — ' + fmtDur(remain) + ' left';
-    document.title = fmtClock(remain).split('.')[0] + ' - ' + up.name;
+    document.title = fmtClock(remain).split('.')[0] + ' \u2665 ' + up.name;
     renderList(upcoming);
+  }
+
+  function spawnHearts() {
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    } catch (e) { /* noop */ }
+    var box = document.getElementById('hearts');
+    if (!box) return;
+    var glyphs = ['\u2665', '\u2661', '\u2665', '\u2727'];
+    for (var i = 0; i < 14; i++) {
+      var s = document.createElement('span');
+      s.textContent = glyphs[i % glyphs.length];
+      s.style.left = (Math.random() * 100).toFixed(2) + '%';
+      s.style.animationDuration = (7 + Math.random() * 8).toFixed(2) + 's';
+      s.style.animationDelay = (-Math.random() * 12).toFixed(2) + 's';
+      s.style.fontSize = (12 + Math.random() * 22).toFixed(0) + 'px';
+      box.appendChild(s);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -1994,10 +2065,12 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
     elList = document.getElementById('upList');
     elDisplay = document.getElementById('display');
     elSub = document.getElementById('upSub');
+    elSync = document.getElementById('upSync');
     if ((params.get('embed') === '1')) document.body.classList.add('embed');
-    if (lockedId && !locked) {
-      elName.textContent = 'Unknown timer: ' + lockedId;
-      return;
+    spawnHearts();
+    if (lockedId && !findLocked()) {
+      elName.textContent = 'Nobody by that name\u2026 (' + lockedId + ')';
+      elMeta.textContent = 'Still fetching — maybe they just haven\u2019t been added yet.';
     }
     try {
       if (typeof getColorForRemainingRatio !== 'function' || typeof updateDisplay !== 'function') {
@@ -2006,8 +2079,11 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
       currentColor = getColorForRemainingRatio(1.0);
       targetColor = currentColor;
       applyColor(currentColor);
-      tick(true);
+      tick(true); // instant paint from built-in data
       window.__upBooted = true;
+      // Then fetch the live API and re-paint; keep feelings fresh every minute.
+      fetchLive().then(function () { tick(true); });
+      setInterval(function () { fetchLive().then(function () { tick(true); }); }, 60000);
     } catch (err) {
       elName.textContent = 'Could not start the clock';
       elMeta.textContent = 'Error: ' + ((err && err.message) || err) + ' — try ?json=1 to inspect the data.';
@@ -2041,57 +2117,171 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Up Next - Auto Clock</title>
+<title>Up Next &#9825; Auto Clock</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 {styles}
-:root {{ --up-accent: #00ff88; }}
-body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }}
-.up-wrap {{ max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem; min-height: 100vh; display: flex; flex-direction: column; gap: 1.25rem; }}
-.up-eyebrow {{ text-align: center; color: var(--text-secondary, #a0a0b0); font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; }}
-.up-eyebrow a {{ color: var(--up-accent); text-decoration: none; }}
-.up-card {{ background: var(--bg-card, rgba(20,20,30,0.6)); border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius: 20px; padding: 2rem; backdrop-filter: blur(20px); text-align: center; }}
-.up-card.switched {{ animation: upflash 0.8s ease; }}
-@keyframes upflash {{ 0% {{ border-color: var(--up-accent); box-shadow: 0 0 0 2px rgba(0,255,136,0.35); }} 100% {{ border-color: var(--border-subtle, rgba(255,255,255,0.08)); box-shadow: none; }} }}
-#upName {{ font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; margin-bottom: 0.25rem; }}
-#upSub {{ color: var(--text-secondary, #a0a0b0); margin-bottom: 1rem; min-height: 1.2em; }}
-#upPhase {{ display: inline-block; padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); margin-bottom: 1.25rem; }}
-#upPhase[data-phase="in-class"] {{ background: rgba(0,255,136,0.12); color: #00ff88; border-color: rgba(0,255,136,0.3); }}
-#upPhase[data-phase="waiting"] {{ background: rgba(0,170,255,0.12); color: #33bbff; border-color: rgba(0,170,255,0.3); }}
-#upPhase[data-phase="one-shot"] {{ background: rgba(255,193,7,0.12); color: #ffc107; border-color: rgba(255,193,7,0.3); }}
-#upMeta {{ margin-top: 1rem; color: var(--text-secondary, #a0a0b0); font-size: 0.9rem; }}
-.up-list-card {{ background: var(--bg-glass, rgba(255,255,255,0.03)); border: 1px solid var(--border-subtle, rgba(255,255,255,0.08)); border-radius: 16px; padding: 1.25rem 1.5rem; }}
-.up-list-card h2 {{ font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted, #606070); margin-bottom: 0.75rem; }}
+:root {{
+    --up-bg: #0d0208;
+    --up-pink: #ff2d78;
+    --up-red: #ff0f3f;
+    --up-soft: #ffd6e7;
+    --up-violet: #b967ff;
+    --up-card: rgba(30, 6, 18, 0.72);
+    --up-border: rgba(255, 45, 120, 0.28);
+}}
+body {{
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    color: #fff;
+    background:
+        radial-gradient(1100px 550px at 50% -8%, rgba(255, 45, 120, 0.16), transparent 60%),
+        radial-gradient(900px 500px at 92% 108%, rgba(185, 103, 255, 0.12), transparent 60%),
+        radial-gradient(700px 420px at 8% 100%, rgba(255, 15, 63, 0.10), transparent 60%),
+        var(--up-bg);
+    overflow-x: hidden;
+}}
+body::after {{
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+    z-index: 1;
+}}
+.hearts {{ position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }}
+.hearts span {{
+    position: absolute;
+    top: 105%;
+    color: rgba(255, 45, 120, 0.35);
+    animation: heartrise linear infinite;
+    text-shadow: 0 0 12px rgba(255, 45, 120, 0.6);
+}}
+@keyframes heartrise {{
+    0% {{ transform: translateY(0) rotate(0deg); opacity: 0; }}
+    10% {{ opacity: 1; }}
+    90% {{ opacity: 0.8; }}
+    100% {{ transform: translateY(-115vh) rotate(24deg); opacity: 0; }}
+}}
+.up-wrap {{ position: relative; z-index: 2; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem; min-height: 100vh; display: flex; flex-direction: column; gap: 1.25rem; }}
+.up-eyebrow {{ text-align: center; color: #e89bb8; font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 700; }}
+.up-eyebrow a {{ color: var(--up-pink); text-decoration: none; border-bottom: 1px dotted var(--up-pink); }}
+.up-card {{
+    background: var(--up-card);
+    border: 1px solid var(--up-border);
+    border-radius: 22px;
+    padding: 2.2rem 2rem;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    text-align: center;
+    box-shadow: 0 0 60px rgba(255, 45, 120, 0.12), 0 24px 60px rgba(0, 0, 0, 0.5);
+}}
+.up-card.switched {{ animation: upflash 0.9s ease; }}
+@keyframes upflash {{
+    0% {{ border-color: var(--up-pink); box-shadow: 0 0 0 2px rgba(255, 45, 120, 0.5), 0 0 80px rgba(255, 45, 120, 0.35); }}
+    100% {{ border-color: var(--up-border); box-shadow: 0 0 60px rgba(255, 45, 120, 0.12), 0 24px 60px rgba(0, 0, 0, 0.5); }}
+}}
+#upName {{
+    font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.25rem;
+    background: linear-gradient(120deg, #fff 20%, var(--up-pink) 55%, var(--up-red) 80%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 22px rgba(255, 45, 120, 0.35));
+}}
+#upSub {{ color: #e89bb8; margin-bottom: 1rem; min-height: 1.2em; }}
+#upSub:empty::before {{ content: 'I\\2019m watching this one just for you \\2665'; opacity: 0.7; }}
+#upPhase {{
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    border: 1px solid var(--up-border);
+    margin-bottom: 1.25rem;
+    background: rgba(255, 45, 120, 0.08);
+    color: var(--up-soft);
+}}
+#upPhase[data-phase="in-class"] {{
+    background: rgba(255, 15, 63, 0.18);
+    color: #ff8fa8;
+    border-color: rgba(255, 15, 63, 0.55);
+    animation: heartbeat 1.2s ease-in-out infinite;
+}}
+@keyframes heartbeat {{
+    0%, 100% {{ transform: scale(1); }}
+    14% {{ transform: scale(1.12); }}
+    28% {{ transform: scale(1); }}
+    42% {{ transform: scale(1.1); }}
+}}
+#upPhase[data-phase="waiting"] {{
+    background: rgba(255, 45, 120, 0.12);
+    color: #ff7dae;
+    border-color: rgba(255, 45, 120, 0.4);
+}}
+#upPhase[data-phase="one-shot"] {{
+    background: rgba(185, 103, 255, 0.12);
+    color: #d3a6ff;
+    border-color: rgba(185, 103, 255, 0.4);
+}}
+#upMeta {{ margin-top: 1rem; color: #f3c6d8; font-size: 0.92rem; }}
+.up-sync {{ margin-top: 0.35rem; font-size: 0.72rem; color: #a06a85; letter-spacing: 0.04em; }}
+.up-list-card {{
+    background: rgba(30, 6, 18, 0.55);
+    border: 1px solid var(--up-border);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}}
+.up-list-card h2 {{ font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.16em; color: #e89bb8; margin-bottom: 0.75rem; }}
 #upList {{ list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }}
-.up-row {{ display: flex; justify-content: space-between; gap: 1rem; padding: 0.6rem 0.8rem; border-radius: 10px; background: rgba(255,255,255,0.02); font-size: 0.9rem; }}
-.up-row.is-current {{ border: 1px solid rgba(0,255,136,0.3); }}
-.up-in {{ font-family: 'JetBrains Mono', 'Courier New', monospace; color: var(--up-accent); }}
-.up-foot {{ text-align: center; color: var(--text-muted, #606070); font-size: 0.75rem; }}
-.up-foot code {{ background: rgba(255,255,255,0.06); padding: 0.1rem 0.4rem; border-radius: 6px; }}
-body.embed .up-list-card, body.embed .up-foot, body.embed .up-eyebrow {{ display: none; }}
+.up-row {{
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 10px;
+    background: rgba(255, 45, 120, 0.05);
+    border: 1px solid transparent;
+    font-size: 0.9rem;
+}}
+.up-row.is-current {{ border-color: rgba(255, 45, 120, 0.45); background: rgba(255, 45, 120, 0.09); }}
+.up-in {{ font-family: 'JetBrains Mono', 'Courier New', monospace; color: var(--up-pink); white-space: nowrap; }}
+.up-foot {{ text-align: center; color: #a06a85; font-size: 0.75rem; line-height: 1.7; }}
+.up-foot code {{ background: rgba(255, 45, 120, 0.1); border: 1px solid rgba(255, 45, 120, 0.2); padding: 0.1rem 0.4rem; border-radius: 6px; color: #ff9ec2; }}
+body.embed .up-list-card, body.embed .up-foot, body.embed .up-eyebrow, body.embed .hearts {{ display: none; }}
 #api-dump {{ white-space: pre-wrap; word-break: break-word; padding: 2rem; font-size: 0.85rem; }}
-@media (prefers-reduced-motion: reduce) {{ *, *::before, *::after {{ animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }} }}
+@media (prefers-reduced-motion: reduce) {{
+    *, *::before, *::after {{ animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }}
+    .hearts {{ display: none; }}
+}}
 </style>
 </head>
 <body>
+<div class="hearts" id="hearts" aria-hidden="true"></div>
 <div class="up-wrap">
-<div class="up-eyebrow">Displau &middot; Auto Clock &middot; <a href="api/up-next.json">api/up-next.json</a></div>
+<div class="up-eyebrow">&#9825; your darling clock &#9825; &middot; <a href="api/up-next.json">api/up-next.json</a></div>
 <div class="up-card">
-<div id="upPhase" data-phase="waiting">○ STARTS IN</div>
-<h1 id="upName">Loading…</h1>
+<div id="upPhase" data-phase="waiting">&#9675; COUNTING DOWN FOR YOU</div>
+<h1 id="upName">Loading&hellip;</h1>
 <p id="upSub"></p>
 <div class="display" id="display"></div>
 <p id="upMeta"></p>
+<p class="up-sync" id="upSync"></p>
 </div>
 <div class="up-list-card">
-<h2>Following</h2>
+<h2>Also on my mind</h2>
 <ul id="upList"></ul>
 </div>
 <div class="up-foot">
-<p>Auto-switches to the closest countdown every second. Lock one with <code>?timer=&lt;id&gt;</code> · minimal view with <code>?embed=1</code> · raw JSON with <code>?json=1</code> · runtime API at <code>window.DisplauAPI</code>.</p>
-<p>7 Segment Display Timer System &copy; 2026 · build {build_date}</p>
+<p>I check every second for whoever needs you next — and I refresh my feelings from the API every minute. Lock onto one with <code>?timer=&lt;id&gt;</code> · just us with <code>?embed=1</code> · raw data with <code>?json=1</code> · <code>window.DisplauAPI</code> for your own scripts.</p>
+<p>7 Segment Display Timer System &copy; 2026 · build {build_date} · I&apos;ll always be watching the clock for you &#9825;</p>
 </div>
 </div>
 <script>

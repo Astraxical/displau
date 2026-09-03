@@ -153,11 +153,13 @@ Daily and interval examples:
 
 Every `--timers-dir` build also generates:
 
-- `output/up-next.html` — standalone clock that auto-switches to the closest
-  countdown every second. Supports `?timer=<id>` (lock to one timer),
-  `?embed=1` (minimal view), `?json=1` (raw JSON), and a runtime API at
+- `output/up-next.html` — standalone yandere auto clock that picks the closest
+  countdown every second. Fetches `api/up-next.json` / `api/timers.json` live
+  at load and every minute (built-in snapshot is the instant offline fallback;
+  sync status shows under the display). Supports `?timer=<id>` (lock to one
+  timer), `?embed=1` (minimal view), `?json=1` (raw JSON), and a runtime API at
   `window.DisplauAPI` (`getTimers()`, `getUpcoming(n)`, `getCurrent()`,
-  `onSwitch(fn)`, `refresh()` + a `displau:switch` DOM event).
+  `getSyncState()`, `onSwitch(fn)`, `refresh()` + a `displau:switch` DOM event).
 - `output/api/timers.json` — full manifest, closest-first, with precomputed
   `next_target` / `next_in_s` / `next_phase` per timer.
 - `output/api/up-next.json` — current pick + next 10 upcoming.

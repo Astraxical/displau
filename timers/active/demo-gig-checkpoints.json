@@ -16,6 +16,7 @@
     "show_milliseconds": true,
     "timezone": "UTC+8",
     "display_mode": "checkpoints",
+    "theme": "yandere",
     "checkpoints": [
         {"at": "2026-09-11T20:30:00", "label": "Doors open"},
         {"at": "2026-09-11T21:00:00", "label": "Support act"},

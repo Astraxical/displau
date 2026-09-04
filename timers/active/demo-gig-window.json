@@ -17,5 +17,6 @@
     "timezone": "UTC+8",
     "display_mode": "window",
     "window_start": "2026-09-11T20:30:00",
-    "window_end": "2026-09-11T23:00:00"
+    "window_end": "2026-09-11T23:00:00",
+    "theme": "blood"
 }

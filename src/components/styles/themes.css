@@ -1,0 +1,44 @@
+/* Per-timer color themes (applied via body[data-theme]) */
+
+body[data-theme='yandere'] { background: #160409; }
+body[data-theme='amber'] { background: #171006; }
+body[data-theme='ice'] { background: #04141a; }
+body[data-theme='blood'] { background: #170505; }
+body[data-theme='violet'] { background: #100722; }
+body[data-theme='midnight'] { background: #05070c; }
+
+body[data-theme='yandere'] .timer-display-name {
+    color: #ff7dae;
+    text-shadow: 0 0 20px rgba(255, 45, 120, 0.5);
+    border-color: rgba(255, 45, 120, 0.25);
+}
+
+body[data-theme='amber'] .timer-display-name {
+    color: #ffbf3f;
+    text-shadow: 0 0 20px rgba(255, 170, 0, 0.5);
+    border-color: rgba(255, 170, 0, 0.25);
+}
+
+body[data-theme='ice'] .timer-display-name {
+    color: #7fe3ff;
+    text-shadow: 0 0 20px rgba(80, 200, 255, 0.5);
+    border-color: rgba(80, 200, 255, 0.25);
+}
+
+body[data-theme='blood'] .timer-display-name {
+    color: #ff6a5e;
+    text-shadow: 0 0 20px rgba(255, 60, 40, 0.5);
+    border-color: rgba(255, 60, 40, 0.25);
+}
+
+body[data-theme='violet'] .timer-display-name {
+    color: #c084fc;
+    text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+    border-color: rgba(168, 85, 247, 0.25);
+}
+
+body[data-theme='midnight'] .timer-display-name {
+    color: #8fa3bf;
+    text-shadow: 0 0 20px rgba(120, 150, 190, 0.4);
+    border-color: rgba(120, 150, 190, 0.2);
+}

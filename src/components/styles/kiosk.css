@@ -1,0 +1,27 @@
+/* Kiosk mode: clean display chrome */
+
+body.kiosk {
+    overflow: hidden;
+}
+
+body.kiosk .version-watermark {
+    display: none !important;
+}
+
+body.kiosk .timer-display-name {
+    opacity: 0 !important;
+}
+
+body.kiosk .phase-label {
+    opacity: 0.85;
+}
+
+body.kiosk .checkpoint-rail {
+    opacity: 0.9;
+}
+
+body.kiosk .up-list-card,
+body.kiosk .up-foot,
+body.kiosk .up-eyebrow .kiosk-only-hide {
+    display: none;
+}

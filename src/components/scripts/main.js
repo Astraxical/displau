@@ -183,6 +183,11 @@ async function init() {
     // Wait for config to load
     await loadConfig();
 
+    // Apply the color theme (explicit color tables always win)
+    if (typeof applyTheme === 'function') {
+        try { applyTheme(THEME); } catch (e) { console.warn('[Theme] apply error:', e); }
+    }
+
     // Initialize three-time model
     actualTime = getCurrentTimeValue();
     displayTime = actualTime;

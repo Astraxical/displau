@@ -98,6 +98,12 @@
             "description": "Color theme identifier",
             "default": "progress"
         },
+        "theme": {
+            "type": "string",
+            "description": "Countdown color theme: toxic (default), yandere, amber, ice, blood, violet, midnight. An explicit color_transition_table always wins.",
+            "enum": ["toxic", "yandere", "amber", "ice", "blood", "violet", "midnight"],
+            "default": "toxic"
+        },
         "color_transition_table": {
             "type": "array",
             "description": "Custom color transition table",

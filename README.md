@@ -188,6 +188,39 @@ Every `--timers-dir` build also generates:
 - `output/api/up-next.json` — current pick + next 10 upcoming.
 - `output/api/status.json` — counts + build info.
 
+### Privacy lock (PIN screen)
+
+Keep annoying people out of your timers with a PIN gate over every page
+(selector, timer pages, auto clock). Unlock lasts for the tab session; press
+`L` or the 🔒 button to re-lock.
+
+```bash
+# 1. Hash your PIN (demo PIN is 2468)
+python3 src/vMain.py --hash-pin 2468
+
+# 2. Put it in config/build.json
+"lock": {"enabled": true, "pin_sha256": "<hash>", "hint": "optional hint"}
+
+# 3. Rebuild + push
+python3 src/vMain.py --timers-dir --selector
+```
+
+Set `enabled: false` to ship without the gate. Note: this is a deterrent, not
+vault security — static hosting means the raw files stay publicly fetchable.
+
+### Kiosk mode
+
+One-tap distraction-free display: press `K` on any timer page, the ⛶ button
+on the auto clock, or open with `?kiosk=1`. Hides chrome + watermark, hides
+the cursor after 3s idle (moves to wake), `ESC` exits.
+
+### Custom themes
+
+Per-timer color journey + page background via `"theme"`:
+`toxic` (default), `yandere`, `amber`, `ice`, `blood`, `violet`, `midnight`.
+An explicit `color_transition_table` always wins over the theme. The auto
+clock follows each timer's theme as it switches.
+
 ## Build Script Usage
 
 ```bash

@@ -17,5 +17,10 @@
     "cache": {
         "duration_minutes": 5,
         "localStorage_key": "seven_segment_config"
+    },
+    "lock": {
+        "enabled": true,
+        "pin_sha256": "a1fb4e703a9ef1fa4936801721ff285a97ac85330856674412e054892afe6972",
+        "hint": "demo PIN is 2468 — change me with: python3 src/vMain.py --hash-pin YOURPIN"
     }
 }

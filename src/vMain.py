@@ -31,6 +31,19 @@ CONFIG_FILE = SCRIPT_DIR / '../config/build.json'
 with open(CONFIG_FILE, 'r') as f:
     BUILD_CONFIG = json.load(f)
 
+# Page lock (privacy PIN screen) — deterrent-grade, see README.
+_LOCK_CFG = BUILD_CONFIG.get('lock', {})
+LOCK_ENABLED = bool(_LOCK_CFG.get('enabled', False))
+LOCK_HASH = str(_LOCK_CFG.get('pin_sha256', '') or '')
+LOCK_HINT = str(_LOCK_CFG.get('hint', '') or '')
+
+THEME_CHOICES = ('toxic', 'yandere', 'amber', 'ice', 'blood', 'violet', 'midnight')
+
+
+def js_str(value: str) -> str:
+    """Escape a string for safe embedding inside a single-quoted JS literal."""
+    return str(value or '').replace('\\', '\\\\').replace("'", "\\'").replace('\n', ' ')
+
 # Extract config values
 VERSION = BUILD_CONFIG['version']
 GITHUB_REPO = BUILD_CONFIG['github']['repo']
@@ -429,7 +442,7 @@ def load_html_components() -> dict[str, str]:
     }
 
 
-def load_style_components() -> str:
+def load_style_components(exclude: tuple[str, ...] = ()) -> str:
     """Load all CSS style components."""
     styles_dir = COMPONENTS_DIR / 'styles'
     style_files = [
@@ -441,10 +454,15 @@ def load_style_components() -> str:
         'colon.css',
         'decimal.css',
         'phase.css',
+        'lock.css',
+        'kiosk.css',
+        'themes.css',
     ]
 
     combined_styles = []
     for style_file in style_files:
+        if style_file in exclude:
+            continue
         style_path = styles_dir / style_file
         if style_path.exists():
             combined_styles.append(load_component(style_path))
@@ -462,6 +480,9 @@ def load_script_components() -> str:
         'dom_utils.js',
         'render.js',
         'animation.js',
+        'lock.js',
+        'kiosk.js',
+        'themes.js',
         'main.js',
     ]
 
@@ -501,7 +522,10 @@ def replace_placeholders(
     recur_anchor: str = '',
     window_start: str = '',
     window_end: str = '',
-    checkpoints_json: str = '[]'
+    checkpoints_json: str = '[]',
+    theme: str = 'toxic',
+    lock_hash: str = '',
+    lock_hint: str = ''
 ) -> str:
     """Replace configuration placeholders in content."""
     if build_date is None:
@@ -538,6 +562,9 @@ def replace_placeholders(
         '{{WINDOW_START}}': window_start or '',
         '{{WINDOW_END}}': window_end or '',
         '{{CHECKPOINTS_JSON}}': checkpoints_json or '[]',
+        '{{THEME}}': theme or 'toxic',
+        '{{LOCK_HASH}}': lock_hash or '',
+        '{{LOCK_HINT}}': js_str(lock_hint),
     }
 
     for placeholder, value in replacements.items():
@@ -640,13 +667,14 @@ def build_html(
     window_start = ''
     window_end = ''
     checkpoints: list[dict[str, Any]] = []
+    theme = 'toxic'
 
     def apply_timer_config(config: dict[str, Any]) -> None:
         """Extract runtime settings from a timer config."""
         nonlocal direction, min_value, max_value, display_name, display_mode, static_time_ms
         nonlocal recur, recur_weekday, recur_time, recur_end
         nonlocal recur_rule, recur_schedule, recur_interval, recur_anchor
-        nonlocal window_start, window_end, checkpoints
+        nonlocal window_start, window_end, checkpoints, theme
         direction = config.get('direction', direction)
         min_value = config.get('min_value', min_value)
         max_val = config.get('max_value', None)
@@ -681,6 +709,8 @@ def build_html(
         window_end = config.get('window_end', window_end) or ''
         if isinstance(config.get('checkpoints'), list):
             checkpoints = normalize_checkpoints(config)
+        theme_raw = str(config.get('theme', theme) or 'toxic').lower()
+        theme = theme_raw if theme_raw in THEME_CHOICES else 'toxic'
 
     # Try fetching from URL first
     if config_url and not use_local_config:
@@ -700,7 +730,10 @@ def build_html(
         recur_rule=recur_rule, recur_schedule_json=json.dumps(recur_schedule),
         recur_interval=recur_interval, recur_anchor=recur_anchor,
         window_start=window_start, window_end=window_end,
-        checkpoints_json=json.dumps(checkpoints)
+        checkpoints_json=json.dumps(checkpoints),
+        theme=theme,
+        lock_hash=LOCK_HASH if LOCK_ENABLED else '',
+        lock_hint=LOCK_HINT if LOCK_ENABLED else ''
     )
     html['body'] = replace_placeholders(
         html['body'], target_time_str, milliseconds_at_full_brightness,
@@ -710,7 +743,10 @@ def build_html(
         recur_rule=recur_rule, recur_schedule_json=json.dumps(recur_schedule),
         recur_interval=recur_interval, recur_anchor=recur_anchor,
         window_start=window_start, window_end=window_end,
-        checkpoints_json=json.dumps(checkpoints)
+        checkpoints_json=json.dumps(checkpoints),
+        theme=theme,
+        lock_hash=LOCK_HASH if LOCK_ENABLED else '',
+        lock_hint=LOCK_HINT if LOCK_ENABLED else ''
     )
     html['html_open'] = html['html_open'].replace('{{CONFIG_URL}}', config_url)
 
@@ -1731,9 +1767,23 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
 
     with open(output_path, 'w', encoding='utf-8') as f:
         html_content = html_content.replace('__VERSION_TYPE__', version_type).replace('__BUILD_DATE__', build_date)
+        # Privacy lock screen (dormant unless a PIN hash is configured).
+        lock_css = load_component(COMPONENTS_DIR / 'styles' / 'lock.css')
+        lock_js = load_component(COMPONENTS_DIR / 'scripts' / 'lock.js')
+        if LOCK_ENABLED and LOCK_HASH:
+            lock_js = lock_js.replace('{{LOCK_HASH}}', LOCK_HASH).replace('{{LOCK_HINT}}', js_str(LOCK_HINT))
+        else:
+            lock_js = lock_js.replace('{{LOCK_HASH}}', '').replace('{{LOCK_HINT}}', '')
+        html_content = html_content.replace('</style>', lock_css + '\n    </style>', 1)
+        html_content = html_content.replace('</body>', '<script>\n' + lock_js + '\n</script>\n</body>', 1)
         f.write(html_content)
 
     logger.info(f"Generated selector page: {output_path}")
+
+
+def _manifest_theme(timer: dict[str, Any]) -> str:
+    name = str(timer.get('theme', 'toxic') or 'toxic').lower()
+    return name if name in THEME_CHOICES else 'toxic'
 
 
 def build_timer_manifest(timers_list: list[dict[str, Any]], now: datetime) -> list[dict[str, Any]]:
@@ -1758,6 +1808,7 @@ def build_timer_manifest(timers_list: list[dict[str, Any]], now: datetime) -> li
             'start_time': timer.get('start_time'),
             'timezone': timer.get('timezone', 'UTC'),
             'display_mode': str(timer.get('display_mode', 'countdown') or 'countdown'),
+            'theme': _manifest_theme(timer),
             'window_start': timer.get('window_start'),
             'window_end': timer.get('window_end'),
             'checkpoints': normalize_checkpoints(timer),
@@ -1844,12 +1895,20 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
     timestamp = now.strftime('%Y%m%d%H%M%S')
     build_date = f"{VERSION}.{timestamp}.{version_type.lower()}"
 
-    styles = load_style_components()
+    styles = load_style_components(exclude=('themes.css',))
     scripts_dir = COMPONENTS_DIR / 'scripts'
     color_js = load_component(scripts_dir / 'color_utils.js')
     dom_js = load_component(scripts_dir / 'dom_utils.js')
     render_js = load_component(scripts_dir / 'render.js')
+    themes_js = load_component(scripts_dir / 'themes.js')
+    lock_js = load_component(scripts_dir / 'lock.js')
+    kiosk_js = load_component(scripts_dir / 'kiosk.js')
     manifest_json = json.dumps(manifest)
+
+    if LOCK_ENABLED and LOCK_HASH:
+        lock_js = lock_js.replace('{{LOCK_HASH}}', LOCK_HASH).replace('{{LOCK_HINT}}', js_str(LOCK_HINT))
+    else:
+        lock_js = lock_js.replace('{{LOCK_HASH}}', '').replace('{{LOCK_HINT}}', '')
 
     auto_js = r'''
 // ================= UP-NEXT AUTO CLOCK =================
@@ -2066,6 +2125,7 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
       if (st) out.push({
         id: e.id, name: e.name, description: e.description, html_file: e.html_file,
         target: st.target, prev: st.prev, phase: st.phase, slot: st.slot || null,
+        theme: e.theme || 'toxic',
         in_s: (st.target.getTime() - now.getTime()) / 1000
       });
     });
@@ -2130,6 +2190,18 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
     var el = Date.now() - up.prev.getTime();
     if (!(total > 0)) return 0;
     return Math.max(0, Math.min(1, 1 - el / total));
+  }
+  // Follow the current timer's theme (color journey only — chrome stays yandere).
+  var currentTheme = '';
+  function syncTheme(name) {
+    if (typeof THEMES === 'undefined') return;
+    var key = (name && THEMES[name]) ? name : 'toxic';
+    if (key === currentTheme) return;
+    if (typeof __CUSTOM_COLORS !== 'undefined' && __CUSTOM_COLORS) return;
+    currentTheme = key;
+    COLOR_TRANSITION_TABLE = THEMES[key].table.map(function (e) {
+      return { ratio: e.ratio, color: e.color };
+    });
   }
   function paintCountdown(up) {
     var remain = Math.max(0, up.target.getTime() - Date.now());
@@ -2210,7 +2282,8 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
       up = st ? {
         id: locked.id, name: locked.name, description: locked.description,
         html_file: locked.html_file, target: st.target, prev: st.prev,
-        phase: st.phase, slot: st.slot || null, in_s: (st.target - now) / 1000
+        phase: st.phase, slot: st.slot || null, theme: locked.theme || 'toxic',
+        in_s: (st.target - now) / 1000
       } : null;
     }
     if (elSync) elSync.textContent = syncLabel();
@@ -2232,6 +2305,7 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
       elName.textContent = up.name;
       elSub.textContent = up.description || '';
       setPhaseBadge(up);
+      syncTheme(up.theme);
       var card = document.querySelector('.up-card');
       if (card) {
         card.classList.remove('switched');
@@ -2277,6 +2351,14 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
     elSync = document.getElementById('upSync');
     if ((params.get('embed') === '1')) document.body.classList.add('embed');
     spawnHearts();
+    var kioskBtn = document.getElementById('kioskBtn');
+    if (kioskBtn) kioskBtn.addEventListener('click', function () {
+      if (typeof toggleKiosk === 'function') toggleKiosk();
+    });
+    var lockBtn = document.getElementById('lockBtn');
+    if (lockBtn) lockBtn.addEventListener('click', function () {
+      if (typeof lockNow === 'function') lockNow();
+    });
     if (lockedId && !findLocked()) {
       elName.textContent = 'Nobody by that name\u2026 (' + lockedId + ')';
       elMeta.textContent = 'Still fetching — maybe they just haven\u2019t been added yet.';
@@ -2376,6 +2458,18 @@ body::after {{
 .up-wrap {{ position: relative; z-index: 2; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 3rem; min-height: 100vh; display: flex; flex-direction: column; gap: 1.25rem; }}
 .up-eyebrow {{ text-align: center; color: #e89bb8; font-size: 0.78rem; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 700; }}
 .up-eyebrow a {{ color: var(--up-pink); text-decoration: none; border-bottom: 1px dotted var(--up-pink); }}
+.up-actions {{ display: inline-flex; gap: 0.4rem; margin-left: 0.7rem; vertical-align: middle; }}
+.up-btn {{
+    background: rgba(255, 45, 120, 0.1);
+    border: 1px solid rgba(255, 45, 120, 0.3);
+    color: #ff9ec2;
+    border-radius: 8px;
+    padding: 0.1rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    letter-spacing: 0;
+}}
+.up-btn:hover {{ background: rgba(255, 45, 120, 0.28); }}
 .up-card {{
     background: var(--up-card);
     border: 1px solid var(--up-border);
@@ -2491,7 +2585,7 @@ body.embed .up-list-card, body.embed .up-foot, body.embed .up-eyebrow, body.embe
 <body>
 <div class="hearts" id="hearts" aria-hidden="true"></div>
 <div class="up-wrap">
-<div class="up-eyebrow">&#9825; your darling clock &#9825; &middot; <a href="api/up-next.json">api/up-next.json</a></div>
+<div class="up-eyebrow">&#9825; your darling clock &#9825; &middot; <a href="api/up-next.json">api/up-next.json</a><span class="up-actions"><button id="kioskBtn" class="up-btn" title="Kiosk fullscreen (K)">&#9974;</button><button id="lockBtn" class="up-btn" title="Lock screen (L)">&#128272;</button></span></div>
 <div class="up-card">
 <div id="upPhase" data-phase="waiting">&#9675; COUNTING DOWN FOR YOU</div>
 <h1 id="upName">Loading&hellip;</h1>
@@ -2523,6 +2617,15 @@ var COLOR_TRANSITION_TABLE = null;
 </script>
 <script>
 {render_js}
+</script>
+<script>
+{themes_js}
+</script>
+<script>
+{lock_js}
+</script>
+<script>
+{kiosk_js}
 </script>
 <script>
 {auto_js}
@@ -2593,12 +2696,22 @@ def main() -> None:
         help='Don\'t auto-sort timers into status folders'
     )
     parser.add_argument(
+        '--hash-pin',
+        metavar='PIN',
+        help='Print the SHA-256 hash of a lock-screen PIN (put it in config/build.json -> lock.pin_sha256)'
+    )
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help='Enable verbose output'
     )
 
     args = parser.parse_args()
+
+    if args.hash_pin is not None:
+        import hashlib
+        print(hashlib.sha256(args.hash_pin.encode('utf-8')).hexdigest())
+        return
 
     if args.verbose:
         logger.setLevel(logging.DEBUG)

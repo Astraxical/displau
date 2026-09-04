@@ -10,6 +10,7 @@ const DEFAULTS = {
     min_value: {{MIN_VALUE}},       // Minimum value in milliseconds (null for no limit)
     max_value: {{MAX_VALUE}},     // Maximum value in milliseconds (null for no limit)
     display_mode: '{{DISPLAY_MODE}}',  // 'countdown' | 'static' | 'window' | 'checkpoints'
+    theme: '{{THEME}}',                  // Color theme: toxic | yandere | amber | ice | blood | violet | midnight
     static_time_ms: {{STATIC_TIME_MS}},  // Fixed time value in ms for static display mode
     window_start: '{{WINDOW_START}}',    // Window mode: event opens (ISO datetime, '' = use start_time)
     window_end: '{{WINDOW_END}}',        // Window mode: event closes (ISO datetime, '' = use target_time)
@@ -71,6 +72,10 @@ let MIN_VALUE = DEFAULTS.min_value;
 let MAX_VALUE = DEFAULTS.max_value;
 let COLOR_TRANSITION_TABLE = DEFAULTS.color_transition_table;
 let DISPLAY_MODE = DEFAULTS.display_mode || 'countdown';
+let THEME = DEFAULTS.theme || 'toxic';
+// True when the timer JSON carries its own color table (it always beats themes).
+// Declared here (first in the bundle) so later files never reset it.
+var __CUSTOM_COLORS = false;
 let STATIC_TIME_MS = DEFAULTS.static_time_ms || 0;
 let WINDOW_START = DEFAULTS.window_start || '';
 let WINDOW_END = DEFAULTS.window_end || '';
@@ -166,9 +171,14 @@ function applyConfig(config) {
     if (config.max_value !== undefined) {
         MAX_VALUE = config.max_value;
     }
-    // Use color_transition_table from config if available
+    // Use color_transition_table from config if available (explicit tables beat themes)
     if (config.color_transition_table && Array.isArray(config.color_transition_table)) {
         COLOR_TRANSITION_TABLE = config.color_transition_table;
+        __CUSTOM_COLORS = true;
+    }
+    // Use theme from config if available
+    if (config.theme) {
+        THEME = config.theme;
     }
     // Use display_mode from config if available
     if (config.display_mode) {

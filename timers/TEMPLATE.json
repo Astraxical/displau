@@ -35,6 +35,7 @@
     "timezone": "UTC",
     "display_mode": "countdown",
     "static_time_ms": 0,
+    "theme": "toxic",
     "window_start": null,
     "window_end": null,
     "checkpoints": [

@@ -13,17 +13,24 @@ body {
     overflow: hidden;
 }
 
+/* Zoom-proof scale anchor: every display length below derives from this
+   single font-size (em), so browser zoom can never skew proportions. */
 .display {
     display: flex;
-    gap: 1vw;
+    gap: 0.125em;
     justify-content: center;
     align-items: center;
+    flex-wrap: nowrap;
+    font-size: min(8vw, 10vh);
+    line-height: 1;
+    transform-origin: center center;
 }
 
 .segment {
-    width: 8vw;
-    height: 14vw;
+    width: 1em;
+    height: 1.75em;
     position: relative;
+    flex-shrink: 0;
 }
 
 .segment-part {
@@ -34,47 +41,48 @@ body {
 
 .segment-part.on {
     background: #00ff00;
-    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+    box-shadow: 0 0 0.2em #00ff00, 0 0 0.4em #00ff00;
 }
 
 /* Horizontal segments (a, d, g) */
 .seg-a, .seg-d, .seg-g {
-    width: 5.5vw;
-    height: 1vw;
-    left: 1.25vw;
-    clip-path: polygon(0.6vw 0, 100% 0, 100% 100%, 0.6vw 100%, 0 50%);
+    width: 0.6875em;
+    height: 0.125em;
+    left: 0.15625em;
+    clip-path: polygon(0.075em 0, 100% 0, 100% 100%, 0.075em 100%, 0 50%);
 }
 
 .seg-a { top: 0; }
 .seg-d { bottom: 0; }
-.seg-g { top: 6.5vw; }
+.seg-g { top: 0.8125em; }
 
 /* Vertical segments (b, c, e, f) */
 .seg-b, .seg-c, .seg-e, .seg-f {
-    width: 1vw;
-    height: 5.5vw;
-    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+    width: 0.125em;
+    height: 0.6875em;
+    clip-path: polygon(0 0.075em, 50% 0, 100% 0.075em, 100% 100%, 50% 95%, 0 100%);
 }
 
-.seg-b { top: 0.6vw; right: 0; }
-.seg-c { bottom: 0.6vw; right: 0; }
-.seg-e { bottom: 0.6vw; left: 0; }
-.seg-f { top: 0.6vw; left: 0; }
+.seg-b { top: 0.075em; right: 0; }
+.seg-c { bottom: 0.075em; right: 0; }
+.seg-e { bottom: 0.075em; left: 0; }
+.seg-f { top: 0.075em; left: 0; }
 
 /* Colon separator */
 .colon {
-    width: 2vw;
-    height: 14vw;
+    width: 0.25em;
+    height: 1.75em;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 2vw;
+    gap: 0.25em;
+    flex-shrink: 0;
 }
 
 .colon-dot {
-    width: 1.5vw;
-    height: 1.5vw;
+    width: 0.1875em;
+    height: 0.1875em;
     border-radius: 50%;
     background: #331;
     transition: background 0.1s;
@@ -82,22 +90,23 @@ body {
 
 .colon-dot.on {
     background: #00ff00;
-    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+    box-shadow: 0 0 0.2em #00ff00, 0 0 0.4em #00ff00;
 }
 
 /* Decimal point */
 .decimal {
-    width: 2vw;
-    height: 14vw;
+    width: 0.25em;
+    height: 1.75em;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding-bottom: 2vw;
+    padding-bottom: 0.25em;
+    flex-shrink: 0;
 }
 
 .decimal-dot {
-    width: 1.5vw;
-    height: 1.5vw;
+    width: 0.1875em;
+    height: 0.1875em;
     border-radius: 50%;
     background: #331;
     transition: background 0.1s;
@@ -105,5 +114,5 @@ body {
 
 .decimal-dot.on {
     background: #00ff00;
-    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+    box-shadow: 0 0 0.2em #00ff00, 0 0 0.4em #00ff00;
 }

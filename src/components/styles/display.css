@@ -1,8 +1,9 @@
 .display {
     display: flex;
-    gap: 1vw;
+    gap: 0.125em;
     justify-content: center;
     align-items: center;
+    flex-wrap: nowrap;
 }
 
 /* ============================================
@@ -139,11 +140,11 @@ body.expired .segment-part.on {
 @keyframes expiredFlash {
     0%, 100% {
         background: #ff0000;
-        box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000, 0 0 45px #ff0000;
+        box-shadow: 0 0 0.2em #ff0000, 0 0 0.4em #ff0000, 0 0 0.6em #ff0000;
     }
     50% {
         background: #ff4444;
-        box-shadow: 0 0 25px #ff0000, 0 0 50px #ff0000, 0 0 75px #ff0000;
+        box-shadow: 0 0 0.3em #ff0000, 0 0 0.65em #ff0000, 0 0 1em #ff0000;
     }
 }
 
@@ -177,11 +178,11 @@ body.in-class .segment-part.on {
 @keyframes inClassFlash {
     0%, 100% {
         background: #ffaa00;
-        box-shadow: 0 0 12px #ffaa00, 0 0 24px #ffaa00, 0 0 36px #ffaa00;
+        box-shadow: 0 0 0.15em #ffaa00, 0 0 0.3em #ffaa00, 0 0 0.45em #ffaa00;
     }
     50% {
         background: #ffcc44;
-        box-shadow: 0 0 20px #ffaa00, 0 0 40px #ffaa00, 0 0 60px #ffaa00;
+        box-shadow: 0 0 0.25em #ffaa00, 0 0 0.5em #ffaa00, 0 0 0.75em #ffaa00;
     }
 }
 
@@ -247,26 +248,27 @@ body.in-class .colon-dot.on {
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    margin-right: 0.5vw;
+    margin-right: 0.0625em;
+    flex-shrink: 0;
 }
 
 .minus-bar {
-    width: 3vw;
-    height: 0.8vw;
+    width: 0.375em;
+    height: 0.1em;
     background: #ff1493;
-    border-radius: 2px;
-    box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
+    border-radius: 0.05em;
+    box-shadow: 0 0 0.12em #ff1493, 0 0 0.25em #ff1493;
     animation: minusPulse 2s ease-in-out infinite;
 }
 
 @keyframes minusPulse {
     0%, 100% {
         opacity: 1;
-        box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
+        box-shadow: 0 0 0.12em #ff1493, 0 0 0.25em #ff1493;
     }
     50% {
         opacity: 0.8;
-        box-shadow: 0 0 15px #ff1493, 0 0 30px #ff1493;
+        box-shadow: 0 0 0.2em #ff1493, 0 0 0.4em #ff1493;
     }
 }
 
@@ -284,7 +286,7 @@ body.in-class .colon-dot.on {
     }
     
     .minus-bar {
-        width: 5vw;
-        height: 1.2vw;
+        width: 0.625em;
+        height: 0.15em;
     }
 }

@@ -1,0 +1,25 @@
+{
+    "id": "demo-gig-checkpoints",
+    "display_name": "Demo: Gig Night (TRIGGERS)",
+    "description": "Each trigger is its own mini-timer: doors, support, main set, end",
+    "target_time": "2026-09-11T23:00:00",
+    "start_time": "2026-09-11T20:30:00",
+    "direction": "down",
+    "min_value": 0,
+    "max_value": null,
+    "on_expire": "stop",
+    "display_on_expire": true,
+    "enabled": true,
+    "tags": ["demo", "event", "checkpoints"],
+    "category": "demos",
+    "color_theme": "progress",
+    "show_milliseconds": true,
+    "timezone": "UTC+8",
+    "display_mode": "checkpoints",
+    "checkpoints": [
+        {"at": "2026-09-11T20:30:00", "label": "Doors open"},
+        {"at": "2026-09-11T21:00:00", "label": "Support act"},
+        {"at": "2026-09-11T21:45:00", "label": "Main set"},
+        {"at": "2026-09-11T23:00:00", "label": "End"}
+    ]
+}

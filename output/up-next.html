@@ -50,9 +50,10 @@ body {
 
 .display {
     display: flex;
-    gap: 1vw;
+    gap: 0.125em;
     justify-content: center;
     align-items: center;
+    flex-wrap: nowrap;
 }
 
 /* ============================================
@@ -189,11 +190,11 @@ body.expired .segment-part.on {
 @keyframes expiredFlash {
     0%, 100% {
         background: #ff0000;
-        box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000, 0 0 45px #ff0000;
+        box-shadow: 0 0 0.2em #ff0000, 0 0 0.4em #ff0000, 0 0 0.6em #ff0000;
     }
     50% {
         background: #ff4444;
-        box-shadow: 0 0 25px #ff0000, 0 0 50px #ff0000, 0 0 75px #ff0000;
+        box-shadow: 0 0 0.3em #ff0000, 0 0 0.65em #ff0000, 0 0 1em #ff0000;
     }
 }
 
@@ -227,11 +228,11 @@ body.in-class .segment-part.on {
 @keyframes inClassFlash {
     0%, 100% {
         background: #ffaa00;
-        box-shadow: 0 0 12px #ffaa00, 0 0 24px #ffaa00, 0 0 36px #ffaa00;
+        box-shadow: 0 0 0.15em #ffaa00, 0 0 0.3em #ffaa00, 0 0 0.45em #ffaa00;
     }
     50% {
         background: #ffcc44;
-        box-shadow: 0 0 20px #ffaa00, 0 0 40px #ffaa00, 0 0 60px #ffaa00;
+        box-shadow: 0 0 0.25em #ffaa00, 0 0 0.5em #ffaa00, 0 0 0.75em #ffaa00;
     }
 }
 
@@ -297,26 +298,27 @@ body.in-class .colon-dot.on {
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    margin-right: 0.5vw;
+    margin-right: 0.0625em;
+    flex-shrink: 0;
 }
 
 .minus-bar {
-    width: 3vw;
-    height: 0.8vw;
+    width: 0.375em;
+    height: 0.1em;
     background: #ff1493;
-    border-radius: 2px;
-    box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
+    border-radius: 0.05em;
+    box-shadow: 0 0 0.12em #ff1493, 0 0 0.25em #ff1493;
     animation: minusPulse 2s ease-in-out infinite;
 }
 
 @keyframes minusPulse {
     0%, 100% {
         opacity: 1;
-        box-shadow: 0 0 10px #ff1493, 0 0 20px #ff1493;
+        box-shadow: 0 0 0.12em #ff1493, 0 0 0.25em #ff1493;
     }
     50% {
         opacity: 0.8;
-        box-shadow: 0 0 15px #ff1493, 0 0 30px #ff1493;
+        box-shadow: 0 0 0.2em #ff1493, 0 0 0.4em #ff1493;
     }
 }
 
@@ -334,8 +336,8 @@ body.in-class .colon-dot.on {
     }
     
     .minus-bar {
-        width: 5vw;
-        height: 1.2vw;
+        width: 0.625em;
+        height: 0.15em;
     }
 }
 
@@ -354,17 +356,24 @@ body {
     overflow: hidden;
 }
 
+/* Zoom-proof scale anchor: every display length below derives from this
+   single font-size (em), so browser zoom can never skew proportions. */
 .display {
     display: flex;
-    gap: 1vw;
+    gap: 0.125em;
     justify-content: center;
     align-items: center;
+    flex-wrap: nowrap;
+    font-size: min(8vw, 10vh);
+    line-height: 1;
+    transform-origin: center center;
 }
 
 .segment {
-    width: 8vw;
-    height: 14vw;
+    width: 1em;
+    height: 1.75em;
     position: relative;
+    flex-shrink: 0;
 }
 
 .segment-part {
@@ -375,47 +384,48 @@ body {
 
 .segment-part.on {
     background: #00ff00;
-    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+    box-shadow: 0 0 0.2em #00ff00, 0 0 0.4em #00ff00;
 }
 
 /* Horizontal segments (a, d, g) */
 .seg-a, .seg-d, .seg-g {
-    width: 5.5vw;
-    height: 1vw;
-    left: 1.25vw;
-    clip-path: polygon(0.6vw 0, 100% 0, 100% 100%, 0.6vw 100%, 0 50%);
+    width: 0.6875em;
+    height: 0.125em;
+    left: 0.15625em;
+    clip-path: polygon(0.075em 0, 100% 0, 100% 100%, 0.075em 100%, 0 50%);
 }
 
 .seg-a { top: 0; }
 .seg-d { bottom: 0; }
-.seg-g { top: 6.5vw; }
+.seg-g { top: 0.8125em; }
 
 /* Vertical segments (b, c, e, f) */
 .seg-b, .seg-c, .seg-e, .seg-f {
-    width: 1vw;
-    height: 5.5vw;
-    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+    width: 0.125em;
+    height: 0.6875em;
+    clip-path: polygon(0 0.075em, 50% 0, 100% 0.075em, 100% 100%, 50% 95%, 0 100%);
 }
 
-.seg-b { top: 0.6vw; right: 0; }
-.seg-c { bottom: 0.6vw; right: 0; }
-.seg-e { bottom: 0.6vw; left: 0; }
-.seg-f { top: 0.6vw; left: 0; }
+.seg-b { top: 0.075em; right: 0; }
+.seg-c { bottom: 0.075em; right: 0; }
+.seg-e { bottom: 0.075em; left: 0; }
+.seg-f { top: 0.075em; left: 0; }
 
 /* Colon separator */
 .colon {
-    width: 2vw;
-    height: 14vw;
+    width: 0.25em;
+    height: 1.75em;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 2vw;
+    gap: 0.25em;
+    flex-shrink: 0;
 }
 
 .colon-dot {
-    width: 1.5vw;
-    height: 1.5vw;
+    width: 0.1875em;
+    height: 0.1875em;
     border-radius: 50%;
     background: #331;
     transition: background 0.1s;
@@ -423,22 +433,23 @@ body {
 
 .colon-dot.on {
     background: #00ff00;
-    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+    box-shadow: 0 0 0.2em #00ff00, 0 0 0.4em #00ff00;
 }
 
 /* Decimal point */
 .decimal {
-    width: 2vw;
-    height: 14vw;
+    width: 0.25em;
+    height: 1.75em;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding-bottom: 2vw;
+    padding-bottom: 0.25em;
+    flex-shrink: 0;
 }
 
 .decimal-dot {
-    width: 1.5vw;
-    height: 1.5vw;
+    width: 0.1875em;
+    height: 0.1875em;
     border-radius: 50%;
     background: #331;
     transition: background 0.1s;
@@ -446,49 +457,50 @@ body {
 
 .decimal-dot.on {
     background: #00ff00;
-    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+    box-shadow: 0 0 0.2em #00ff00, 0 0 0.4em #00ff00;
 }
 
-/* 7-Segment Display Segments */
+/* 7-Segment Display Segments (em-anchored: scales with .display font-size) */
 
 /* Horizontal segments (a, d, g) */
 .seg-a, .seg-d, .seg-g {
-    width: 5.5vw;
-    height: 1vw;
-    left: 1.25vw;
-    clip-path: polygon(0.6vw 0, 100% 0, 100% 100%, 0.6vw 100%, 0 50%);
+    width: 0.6875em;
+    height: 0.125em;
+    left: 0.15625em;
+    clip-path: polygon(0.075em 0, 100% 0, 100% 100%, 0.075em 100%, 0 50%);
 }
 
 .seg-a { top: 0; }
 .seg-d { bottom: 0; }
-.seg-g { top: 6.5vw; }
+.seg-g { top: 0.8125em; }
 
 /* Vertical segments (b, c, e, f) */
 .seg-b, .seg-c, .seg-e, .seg-f {
-    width: 1vw;
-    height: 5.5vw;
-    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+    width: 0.125em;
+    height: 0.6875em;
+    clip-path: polygon(0 0.075em, 50% 0, 100% 0.075em, 100% 100%, 50% 95%, 0 100%);
 }
 
-.seg-b { top: 0.6vw; right: 0; }
-.seg-c { bottom: 0.6vw; right: 0; }
-.seg-e { bottom: 0.6vw; left: 0; }
-.seg-f { top: 0.6vw; left: 0; }
+.seg-b { top: 0.075em; right: 0; }
+.seg-c { bottom: 0.075em; right: 0; }
+.seg-e { bottom: 0.075em; left: 0; }
+.seg-f { top: 0.075em; left: 0; }
 
-/* Colon separator */
+/* Colon separator (em-anchored: scales with .display font-size) */
 .colon {
-    width: 2vw;
-    height: 14vw;
+    width: 0.25em;
+    height: 1.75em;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 2vw;
+    gap: 0.25em;
+    flex-shrink: 0;
 }
 
 .colon-dot {
-    width: 1.5vw;
-    height: 1.5vw;
+    width: 0.1875em;
+    height: 0.1875em;
     border-radius: 50%;
     background: #331;
     transition: background 0.1s;
@@ -496,22 +508,116 @@ body {
 
 .colon-dot.on {
     background: #00ff00;
-    box-shadow: 0 0 15px #00ff00, 0 0 30px #00ff00;
+    box-shadow: 0 0 0.2em #00ff00, 0 0 0.4em #00ff00;
 }
 
-/* Decimal point */
+/* Decimal point (em-anchored: scales with .display font-size) */
 .decimal {
-    width: 2vw;
-    height: 14vw;
+    width: 0.25em;
+    height: 1.75em;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     align-items: center;
-    padding-bottom: 1vw;
+    padding-bottom: 0.125em;
+    flex-shrink: 0;
 }
 
 .decimal .colon-dot {
-    margin-bottom: 0.5vw;
+    margin-bottom: 0.0625em;
+}
+
+/* Phase label + checkpoint rail (window / checkpoints modes) */
+
+.phase-label {
+    text-align: center;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #00ff88;
+    text-shadow: 0 0 18px rgba(0, 255, 136, 0.45);
+    margin-bottom: 1rem;
+    min-height: 1.4em;
+}
+
+.phase-label[data-phase='live'],
+.phase-label[data-phase='over'] {
+    color: #ffaa00;
+    text-shadow: 0 0 18px rgba(255, 170, 0, 0.45);
+}
+
+.phase-label[data-phase='over'] {
+    color: #ff4444;
+    text-shadow: 0 0 18px rgba(255, 68, 68, 0.5);
+}
+
+.checkpoint-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 1.25rem;
+    max-width: 28rem;
+    margin-left: auto;
+    margin-right: auto;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.checkpoint {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.85rem;
+    color: #a0a0b0;
+}
+
+.checkpoint-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: #404050;
+    flex-shrink: 0;
+}
+
+.checkpoint.is-done {
+    opacity: 0.55;
+}
+
+.checkpoint.is-done .checkpoint-dot {
+    background: #00ff88;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.7);
+}
+
+.checkpoint.is-done .checkpoint-label {
+    text-decoration: line-through;
+}
+
+.checkpoint.is-next {
+    border-color: rgba(0, 255, 136, 0.35);
+    background: rgba(0, 255, 136, 0.06);
+    color: #ffffff;
+}
+
+.checkpoint.is-next .checkpoint-dot {
+    background: #00ff88;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.9);
+    animation: checkpointPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes checkpointPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .checkpoint.is-next .checkpoint-dot {
+        animation: none;
+    }
 }
 
 :root {
@@ -620,6 +726,22 @@ body::after {
     color: #d3a6ff;
     border-color: rgba(185, 103, 255, 0.4);
 }
+#upPhase[data-phase="starts"] {
+    background: rgba(255, 45, 120, 0.12);
+    color: #ff7dae;
+    border-color: rgba(255, 45, 120, 0.4);
+}
+#upPhase[data-phase="ends"] {
+    background: rgba(255, 15, 63, 0.18);
+    color: #ff8fa8;
+    border-color: rgba(255, 15, 63, 0.55);
+    animation: heartbeat 1.2s ease-in-out infinite;
+}
+#upPhase[data-phase="checkpoint"] {
+    background: rgba(255, 45, 120, 0.12);
+    color: #ff9ec2;
+    border-color: rgba(255, 45, 120, 0.45);
+}
 #upMeta { margin-top: 1rem; color: #f3c6d8; font-size: 0.92rem; }
 .up-sync { margin-top: 0.35rem; font-size: 0.72rem; color: #a06a85; letter-spacing: 0.04em; }
 .up-list-card {
@@ -672,7 +794,7 @@ body.embed .up-list-card, body.embed .up-foot, body.embed .up-eyebrow, body.embe
 </div>
 <div class="up-foot">
 <p>I check every second for whoever needs you next — and I refresh my feelings from the API every minute. Lock onto one with <code>?timer=&lt;id&gt;</code> · just us with <code>?embed=1</code> · raw data with <code>?json=1</code> · <code>window.DisplauAPI</code> for your own scripts.</p>
-<p>7 Segment Display Timer System &copy; 2026 · build 2.0.0.20260904003507.stable · I&apos;ll always be watching the clock for you &#9825;</p>
+<p>7 Segment Display Timer System &copy; 2026 · build 2.0.0.20260904092644.stable · I&apos;ll always be watching the clock for you &#9825;</p>
 </div>
 </div>
 <script>
@@ -845,7 +967,7 @@ function applyColor(color) {
 
     document.querySelectorAll('.segment-part.on').forEach(seg => {
         seg.style.background = color;
-        seg.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+        seg.style.boxShadow = `0 0 0.2em ${color}, 0 0 0.4em ${color}`;
     });
 
     document.querySelectorAll('.segment-part:not(.on)').forEach(seg => {
@@ -855,7 +977,7 @@ function applyColor(color) {
 
     document.querySelectorAll('.colon-dot.on').forEach(dot => {
         dot.style.background = color;
-        dot.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+        dot.style.boxShadow = `0 0 0.2em ${color}, 0 0 0.4em ${color}`;
     });
 
     document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
@@ -875,7 +997,7 @@ function applyNegativeTimeColor() {
 
     document.querySelectorAll('.segment-part.on').forEach(seg => {
         seg.style.background = color;
-        seg.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+        seg.style.boxShadow = `0 0 0.2em ${color}, 0 0 0.4em ${color}`;
     });
 
     document.querySelectorAll('.segment-part:not(.on)').forEach(seg => {
@@ -885,7 +1007,7 @@ function applyNegativeTimeColor() {
 
     document.querySelectorAll('.colon-dot.on').forEach(dot => {
         dot.style.background = color;
-        dot.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+        dot.style.boxShadow = `0 0 0.2em ${color}, 0 0 0.4em ${color}`;
     });
 
     document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
@@ -896,7 +1018,7 @@ function applyNegativeTimeColor() {
     const minusBar = document.querySelector('.minus-bar');
     if (minusBar) {
         minusBar.style.background = color;
-        minusBar.style.boxShadow = `0 0 10px ${color}, 0 0 20px ${color}`;
+        minusBar.style.boxShadow = `0 0 0.12em ${color}, 0 0 0.25em ${color}`;
     }
 }
 
@@ -911,7 +1033,7 @@ function setDigit(element, value) {
             if (on) {
                 segments[i].classList.add('on');
                 segments[i].style.background = color;
-                segments[i].style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+                segments[i].style.boxShadow = `0 0 0.2em ${color}, 0 0 0.4em ${color}`;
             } else {
                 segments[i].classList.remove('on');
                 segments[i].style.background = complementary;
@@ -921,96 +1043,104 @@ function setDigit(element, value) {
     }
 }
 
-function updateDisplay(timeStr) {
-    const display = document.getElementById('display');
-    display.innerHTML = '';
-    const colonCount = (timeStr.match(/:/g) || []).length;
-    const isNegative = timeStr.startsWith('-');
-    
-    // Handle negative sign for negative time display
-    if (isNegative) {
-        const minusElement = createMinusSign();
-        display.appendChild(minusElement);
-        timeStr = timeStr.substring(1); // Remove the minus sign for parsing
+// Shape cache: the display rebuilds its DOM only when the token shape
+// changes. Otherwise digits update in place — no per-frame reflow, which
+// keeps the layout rock-solid under browser zoom.
+let lastDisplayShape = null;
+
+/**
+ * Split a time string into render tokens.
+ * @returns {Array<{t: string, v?: string}>} t: 'minus' | 'digit' | 'colon' | 'decimal'
+ */
+function tokenizeTime(timeStr) {
+    let s = timeStr;
+    const tokens = [];
+    if (s.startsWith('-')) {
+        tokens.push({ t: 'minus' });
+        s = s.substring(1); // Remove the minus sign for parsing
     }
+    const colonCount = (s.match(/:/g) || []).length;
+    const pushDigits = (str) => {
+        for (const ch of str) tokens.push({ t: 'digit', v: ch });
+    };
 
     if (colonCount === 3) {
-        const parts = timeStr.split(':');
+        const parts = s.split(':');
         const days = parts[0];
         const hours = parts[1] || '00';
         const minutes = parts[2] || '00';
         const seconds = parts[3] || '00';
 
-        for (let i = 0; i < days.length; i++) {
-            display.appendChild(createDigit());
-            setDigit(display.lastChild, days[i]);
-        }
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, hours[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, hours[1]);
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, minutes[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, minutes[1]);
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[1]);
+        pushDigits(days);
+        tokens.push({ t: 'colon' });
+        pushDigits(hours);
+        tokens.push({ t: 'colon' });
+        pushDigits(minutes);
+        tokens.push({ t: 'colon' });
+        pushDigits(seconds);
     } else if (colonCount === 2) {
-        const parts = timeStr.split(':');
+        const parts = s.split(':');
         const hours = parts[0];
         const minutes = parts[1] || '00';
         const secondsParts = (parts[2] || '00').split('.');
         const seconds = secondsParts[0] || '00';
         const decimals = secondsParts[1] || '';
 
-        for (let i = 0; i < hours.length; i++) {
-            display.appendChild(createDigit());
-            setDigit(display.lastChild, hours[i]);
-        }
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, minutes[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, minutes[1]);
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[1]);
+        pushDigits(hours);
+        tokens.push({ t: 'colon' });
+        pushDigits(minutes);
+        tokens.push({ t: 'colon' });
+        pushDigits(seconds);
 
         if (decimals.length > 0) {
-            display.appendChild(createDecimal());
-            for (let i = 0; i < decimals.length; i++) {
-                display.appendChild(createDigit());
-                setDigit(display.lastChild, decimals[i]);
-            }
+            tokens.push({ t: 'decimal' });
+            pushDigits(decimals);
         }
     } else {
-        const parts = timeStr.split(':');
+        const parts = s.split(':');
         const minutes = parts[0];
         const secondsParts = (parts[1] || '00').split('.');
         const seconds = secondsParts[0] || '00';
         const decimals = secondsParts[1] || '';
 
-        for (let i = 0; i < minutes.length; i++) {
-            display.appendChild(createDigit());
-            setDigit(display.lastChild, minutes[i]);
+        pushDigits(minutes);
+        tokens.push({ t: 'colon' });
+        pushDigits(seconds);
+        tokens.push({ t: 'decimal' });
+        pushDigits(decimals);
+    }
+    return tokens;
+}
+
+function buildTokenEl(tok) {
+    if (tok.t === 'digit') {
+        const el = createDigit();
+        setDigit(el, tok.v);
+        return el;
+    }
+    if (tok.t === 'colon') return createColon();
+    if (tok.t === 'decimal') return createDecimal();
+    return createMinusSign();
+}
+
+function updateDisplay(timeStr) {
+    const display = document.getElementById('display');
+    const isNegative = timeStr.startsWith('-');
+    const tokens = tokenizeTime(timeStr);
+    const shape = (isNegative ? '-' : '+') + tokens.map(t => t.t === 'digit' ? `d${t.v.length}` : t.t[0]).join('');
+
+    if (shape === lastDisplayShape && display.children.length === tokens.length) {
+        // Same shape: update digit values in place, zero layout shift.
+        const digitEls = display.querySelectorAll('.segment');
+        let di = 0;
+        for (const tok of tokens) {
+            if (tok.t === 'digit') setDigit(digitEls[di++], tok.v);
         }
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[1]);
-        display.appendChild(createDecimal());
-        for (let i = 0; i < decimals.length; i++) {
-            display.appendChild(createDigit());
-            setDigit(display.lastChild, decimals[i]);
-        }
+    } else {
+        display.innerHTML = '';
+        for (const tok of tokens) display.appendChild(buildTokenEl(tok));
+        lastDisplayShape = shape;
+        fitDisplay();
     }
 
     // Apply color based on whether this is negative time
@@ -1021,6 +1151,25 @@ function updateDisplay(timeStr) {
         applyColor(color);
     }
 }
+
+/**
+ * Scale the display down (transform only — no reflow) when the digit
+ * string is wider than the viewport, e.g. multi-day counts on mobile.
+ */
+function fitDisplay() {
+    const display = document.getElementById('display');
+    if (!display) return;
+    display.style.transform = '';
+    const over = display.scrollWidth - document.documentElement.clientWidth;
+    if (over > 0 && display.scrollWidth > 0) {
+        const scale = Math.min(1, document.documentElement.clientWidth * 0.96 / display.scrollWidth);
+        display.style.transform = `scale(${scale})`;
+    }
+}
+
+window.addEventListener('resize', () => {
+    lastDisplayShape = null; // force re-measure on viewport change
+});
 
 /**
  * Create a minus sign element for negative time display
@@ -1042,6 +1191,8 @@ function showExpiredMessage() {
     
     // Clear the display
     display.innerHTML = '';
+    display.style.transform = '';
+    lastDisplayShape = '__expired__';
     
     // Create expired message container
     const expiredContainer = document.createElement('div');
@@ -1064,7 +1215,7 @@ function showExpiredMessage() {
 // ================= UP-NEXT AUTO CLOCK =================
 (function () {
   'use strict';
-  var MANIFEST = [{"id": "pe-1-pathfit", "name": "PATHFit 1", "description": "PE 1 \u00b7 Sat 8:00\u201311:00am \u00b7 GYM", "html_file": "pe-1-pathfit.html", "target_time": "2026-08-15T08:00:00", "start_time": "2026-08-08T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 6, "start": "08:00:00", "end": "11:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "pe", "fitness"], "category": "courses", "next_target": "2026-09-05T08:00:00", "next_in_s": 113092.081731, "next_phase": "waiting", "next_slot": {"weekday": 6, "start": "08:00:00", "end": "11:00:00", "label": ""}}, {"id": "nstp-101-lts", "name": "NSTP 1 LTS", "description": "NSTP 101 \u00b7 Sat 1:30\u20135:30pm \u00b7 Room 314", "html_file": "nstp-101-lts.html", "target_time": "2026-08-15T13:30:00", "start_time": "2026-08-08T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "nstp"], "category": "courses", "next_target": "2026-09-05T13:30:00", "next_in_s": 132892.081731, "next_phase": "waiting", "next_slot": {"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}}, {"id": "ed-101-child", "name": "Child and Adolescent Learners", "description": "ED 101 \u00b7 Mon 8:30am\u201312:30pm \u00b7 Room 304", "html_file": "ed-101-child.html", "target_time": "2026-08-10T08:30:00", "start_time": "2026-08-03T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 1, "start": "08:30:00", "end": "12:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "education"], "category": "courses", "next_target": "2026-09-07T08:30:00", "next_in_s": 287692.081731, "next_phase": "waiting", "next_slot": {"weekday": 1, "start": "08:30:00", "end": "12:30:00", "label": ""}}, {"id": "ge-005-comm", "name": "Purposive Communication", "description": "GE 005 \u00b7 Mon 2:00\u20136:00pm \u00b7 Room 304", "html_file": "ge-005-comm.html", "target_time": "2026-08-10T14:00:00", "start_time": "2026-08-03T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 1, "start": "14:00:00", "end": "18:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "communication", "ge"], "category": "courses", "next_target": "2026-09-07T14:00:00", "next_in_s": 307492.081731, "next_phase": "waiting", "next_slot": {"weekday": 1, "start": "14:00:00", "end": "18:00:00", "label": ""}}, {"id": "ge-004-math-world", "name": "Mathematics in the Modern World", "description": "GE 004 \u00b7 Tue 7:00\u201311:00am \u00b7 Room 310", "html_file": "ge-004-math-world.html", "target_time": "2026-08-11T07:00:00", "start_time": "2026-08-04T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 2, "start": "07:00:00", "end": "11:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics", "ge"], "category": "courses", "next_target": "2026-09-08T07:00:00", "next_in_s": 368692.081731, "next_phase": "waiting", "next_slot": {"weekday": 2, "start": "07:00:00", "end": "11:00:00", "label": ""}}, {"id": "ge-008-ethics", "name": "Ethics", "description": "GE 008 \u00b7 Tue 12:00nn\u20132:00pm \u00b7 Room 311", "html_file": "ge-008-ethics.html", "target_time": "2026-08-11T12:00:00", "start_time": "2026-08-04T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 2, "start": "12:00:00", "end": "14:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "ethics", "ge"], "category": "courses", "next_target": "2026-09-08T12:00:00", "next_in_s": 386692.081731, "next_phase": "waiting", "next_slot": {"weekday": 2, "start": "12:00:00", "end": "14:00:00", "label": ""}}, {"id": "ge-002-history", "name": "Readings in Philippine History", "description": "GE 002 \u00b7 Wed 7:30\u201311:30am \u00b7 Room 312", "html_file": "ge-002-history.html", "target_time": "2026-08-12T07:30:00", "start_time": "2026-08-05T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 3, "start": "07:30:00", "end": "11:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "history", "ge"], "category": "courses", "next_target": "2026-09-09T07:30:00", "next_in_s": 456892.081731, "next_phase": "waiting", "next_slot": {"weekday": 3, "start": "07:30:00", "end": "11:30:00", "label": ""}}, {"id": "mat-201-history", "name": "History of Mathematics", "description": "MAT 201 \u00b7 Wed 12:00nn\u20134:00pm \u00b7 Room 314", "html_file": "mat-201-history.html", "target_time": "2026-08-12T12:00:00", "start_time": "2026-08-05T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 3, "start": "12:00:00", "end": "16:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics"], "category": "courses", "next_target": "2026-09-09T12:00:00", "next_in_s": 473092.081731, "next_phase": "waiting", "next_slot": {"weekday": 3, "start": "12:00:00", "end": "16:00:00", "label": ""}}, {"id": "mat-202-algebra", "name": "College and Advanced Algebra", "description": "MAT 202 \u00b7 Thu 12:00nn\u20134:00pm \u00b7 Room 312", "html_file": "mat-202-algebra.html", "target_time": "2026-08-13T12:00:00", "start_time": "2026-08-06T00:00:00", "timezone": "UTC+8", "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 4, "start": "12:00:00", "end": "16:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics"], "category": "courses", "next_target": "2026-09-10T12:00:00", "next_in_s": 559492.081731, "next_phase": "waiting", "next_slot": {"weekday": 4, "start": "12:00:00", "end": "16:00:00", "label": ""}}, {"id": "test-static-timer", "name": "Static Timer Test", "description": "Test timer that displays a fixed time value in milliseconds", "html_file": "test-static-timer.html", "target_time": "2026-04-15T00:00:00", "start_time": "2026-04-05T00:00:00", "timezone": "UTC", "recur": false, "recur_rule": null, "recur_schedule": [], "recur_interval_minutes": null, "recur_anchor": null, "tags": [], "category": null, "next_target": "2026-04-15T00:00:00", "next_in_s": -12270907.918269, "next_phase": "expired"}];
+  var MANIFEST = [{"id": "pe-1-pathfit", "name": "PATHFit 1", "description": "PE 1 \u00b7 Sat 8:00\u201311:00am \u00b7 GYM", "html_file": "pe-1-pathfit.html", "target_time": "2026-08-15T08:00:00", "start_time": "2026-08-08T00:00:00", "timezone": "UTC+8", "display_mode": "countdown", "window_start": null, "window_end": null, "checkpoints": [], "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 6, "start": "08:00:00", "end": "11:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "pe", "fitness"], "category": "courses", "next_target": "2026-09-05T08:00:00", "next_in_s": 81195.961628, "next_phase": "waiting", "next_slot": {"weekday": 6, "start": "08:00:00", "end": "11:00:00", "label": ""}}, {"id": "nstp-101-lts", "name": "NSTP 1 LTS", "description": "NSTP 101 \u00b7 Sat 1:30\u20135:30pm \u00b7 Room 314", "html_file": "nstp-101-lts.html", "target_time": "2026-08-15T13:30:00", "start_time": "2026-08-08T00:00:00", "timezone": "UTC+8", "display_mode": "countdown", "window_start": null, "window_end": null, "checkpoints": [], "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "nstp"], "category": "courses", "next_target": "2026-09-05T13:30:00", "next_in_s": 100995.961628, "next_phase": "waiting", "next_slot": {"weekday": 6, "start": "13:30:00", "end": "17:30:00", "label": ""}}, {"id": "ed-101-child", "name": "Child and Adolescent Learners", "description": "ED 101 \u00b7 Mon 8:30am\u201312:30pm \u00b7 Room 304", "html_file": "ed-101-child.html", "target_time": "2026-08-10T08:30:00", "start_time": "2026-08-03T00:00:00", "timezone": "UTC+8", "display_mode": "countdown", "window_start": null, "window_end": null, "checkpoints": [], "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 1, "start": "08:30:00", "end": "12:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "education"], "category": "courses", "next_target": "2026-09-07T08:30:00", "next_in_s": 255795.961628, "next_phase": "waiting", "next_slot": {"weekday": 1, "start": "08:30:00", "end": "12:30:00", "label": ""}}, {"id": "ge-005-comm", "name": "Purposive Communication", "description": "GE 005 \u00b7 Mon 2:00\u20136:00pm \u00b7 Room 304", "html_file": "ge-005-comm.html", "target_time": "2026-08-10T14:00:00", "start_time": "2026-08-03T00:00:00", "timezone": "UTC+8", "display_mode": "countdown", "window_start": null, "window_end": null, "checkpoints": [], "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 1, "start": "14:00:00", "end": "18:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "communication", "ge"], "category": "courses", "next_target": "2026-09-07T14:00:00", "next_in_s": 275595.961628, "next_phase": "waiting", "next_slot": {"weekday": 1, "start": "14:00:00", "end": "18:00:00", "label": ""}}, {"id": "ge-004-math-world", "name": "Mathematics in the Modern World", "description": "GE 004 \u00b7 Tue 7:00\u201311:00am \u00b7 Room 310", "html_file": "ge-004-math-world.html", "target_time": "2026-08-11T07:00:00", "start_time": "2026-08-04T00:00:00", "timezone": "UTC+8", "display_mode": "countdown", "window_start": null, "window_end": null, "checkpoints": [], "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 2, "start": "07:00:00", "end": "11:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics", "ge"], "category": "courses", "next_target": "2026-09-08T07:00:00", "next_in_s": 336795.961628, "next_phase": "waiting", "next_slot": {"weekday": 2, "start": "07:00:00", "end": "11:00:00", "label": ""}}, {"id": "ge-008-ethics", "name": "Ethics", "description": "GE 008 \u00b7 Tue 12:00nn\u20132:00pm \u00b7 Room 311", "html_file": "ge-008-ethics.html", "target_time": "2026-08-11T12:00:00", "start_time": "2026-08-04T00:00:00", "timezone": "UTC+8", "display_mode": "countdown", "window_start": null, "window_end": null, "checkpoints": [], "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 2, "start": "12:00:00", "end": "14:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "ethics", "ge"], "category": "courses", "next_target": "2026-09-08T12:00:00", "next_in_s": 354795.961628, "next_phase": "waiting", "next_slot": {"weekday": 2, "start": "12:00:00", "end": "14:00:00", "label": ""}}, {"id": "ge-002-history", "name": "Readings in Philippine History", "description": "GE 002 \u00b7 Wed 7:30\u201311:30am \u00b7 Room 312", "html_file": "ge-002-history.html", "target_time": "2026-08-12T07:30:00", "start_time": "2026-08-05T00:00:00", "timezone": "UTC+8", "display_mode": "countdown", "window_start": null, "window_end": null, "checkpoints": [], "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 3, "start": "07:30:00", "end": "11:30:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "history", "ge"], "category": "courses", "next_target": "2026-09-09T07:30:00", "next_in_s": 424995.961628, "next_phase": "waiting", "next_slot": {"weekday": 3, "start": "07:30:00", "end": "11:30:00", "label": ""}}, {"id": "mat-201-history", "name": "History of Mathematics", "description": "MAT 201 \u00b7 Wed 12:00nn\u20134:00pm \u00b7 Room 314", "html_file": "mat-201-history.html", "target_time": "2026-08-12T12:00:00", "start_time": "2026-08-05T00:00:00", "timezone": "UTC+8", "display_mode": "countdown", "window_start": null, "window_end": null, "checkpoints": [], "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 3, "start": "12:00:00", "end": "16:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics"], "category": "courses", "next_target": "2026-09-09T12:00:00", "next_in_s": 441195.961628, "next_phase": "waiting", "next_slot": {"weekday": 3, "start": "12:00:00", "end": "16:00:00", "label": ""}}, {"id": "mat-202-algebra", "name": "College and Advanced Algebra", "description": "MAT 202 \u00b7 Thu 12:00nn\u20134:00pm \u00b7 Room 312", "html_file": "mat-202-algebra.html", "target_time": "2026-08-13T12:00:00", "start_time": "2026-08-06T00:00:00", "timezone": "UTC+8", "display_mode": "countdown", "window_start": null, "window_end": null, "checkpoints": [], "recur": true, "recur_rule": "weekly", "recur_schedule": [{"weekday": 4, "start": "12:00:00", "end": "16:00:00", "label": ""}], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["course", "mathematics"], "category": "courses", "next_target": "2026-09-10T12:00:00", "next_in_s": 527595.961628, "next_phase": "waiting", "next_slot": {"weekday": 4, "start": "12:00:00", "end": "16:00:00", "label": ""}}, {"id": "demo-gig-checkpoints", "name": "Demo: Gig Night (TRIGGERS)", "description": "Each trigger is its own mini-timer: doors, support, main set, end", "html_file": "demo-gig-checkpoints.html", "target_time": "2026-09-11T23:00:00", "start_time": "2026-09-11T20:30:00", "timezone": "UTC+8", "display_mode": "checkpoints", "window_start": null, "window_end": null, "checkpoints": [{"at": "2026-09-11T20:30:00", "label": "Doors open"}, {"at": "2026-09-11T21:00:00", "label": "Support act"}, {"at": "2026-09-11T21:45:00", "label": "Main set"}, {"at": "2026-09-11T23:00:00", "label": "End"}], "recur": false, "recur_rule": null, "recur_schedule": [], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["demo", "event", "checkpoints"], "category": "demos", "next_target": "2026-09-11T20:30:00", "next_in_s": 644595.961628, "next_phase": "checkpoint", "next_slot": {"label": "Doors open", "index": 0, "total": 4}}, {"id": "demo-gig-window", "name": "Demo: Gig Night (START-END)", "description": "Doors 8:30pm, over 11pm \u00b7 counts down to start, then to end", "html_file": "demo-gig-window.html", "target_time": "2026-09-11T23:00:00", "start_time": "2026-09-11T20:30:00", "timezone": "UTC+8", "display_mode": "window", "window_start": "2026-09-11T20:30:00", "window_end": "2026-09-11T23:00:00", "checkpoints": [], "recur": false, "recur_rule": null, "recur_schedule": [], "recur_interval_minutes": null, "recur_anchor": null, "tags": ["demo", "event", "window"], "category": "demos", "next_target": "2026-09-11T20:30:00", "next_in_s": 644595.961628, "next_phase": "starts", "next_slot": {"label": "START"}}, {"id": "test-static-timer", "name": "Static Timer Test", "description": "Test timer that displays a fixed time value in milliseconds", "html_file": "test-static-timer.html", "target_time": "2026-04-15T00:00:00", "start_time": "2026-04-05T00:00:00", "timezone": "UTC", "display_mode": "static", "window_start": null, "window_end": null, "checkpoints": [], "recur": false, "recur_rule": null, "recur_schedule": [], "recur_interval_minutes": null, "recur_anchor": null, "tags": [], "category": null, "next_target": "2026-04-15T00:00:00", "next_in_s": -12302804.038372, "next_phase": "expired"}];
   var params = new URLSearchParams(window.location.search || '');
 
   // ---- live data: fetch the JSON API at runtime, embedded manifest is instant fallback ----
@@ -1222,14 +1373,51 @@ function showExpiredMessage() {
       if (!best) return null;
       return { entry: entry, target: best.target, prev: prevB || new Date(best.target.getTime() - 7 * 86400000), phase: best.phase, slot: best.slot };
     }
+    var emode = entry.display_mode || 'countdown';
+    if (emode === 'window') return windowEntryState(entry, now);
+    if (emode === 'checkpoints') return checkpointEntryState(entry, now);
     if (!entry.target_time) return null;
     var t = new Date(entry.target_time);
     if (isNaN(t.getTime())) return null;
-    var d = t.getTime() - now.getTime();
-    if (d <= 0) return null; // one-shot past: not eligible for the auto clock
+    if (t.getTime() - now.getTime() <= 0) return null; // one-shot past: not eligible
     var prevOne = entry.start_time ? new Date(entry.start_time) : new Date(t.getTime() - 86400000);
     if (isNaN(prevOne.getTime()) || prevOne.getTime() >= t.getTime()) prevOne = new Date(t.getTime() - 86400000);
     return { entry: entry, target: t, prev: prevOne, phase: 'one-shot', slot: null };
+  }
+  // Window mode (START-END): countdown to open, then countdown to close.
+  function windowEntryState(entry, now) {
+    var st = entry.window_start || entry.start_time;
+    var en = entry.window_end || entry.target_time;
+    var open = st ? new Date(st) : null;
+    var close = en ? new Date(en) : null;
+    if (open && isNaN(open.getTime())) open = null;
+    if (!close || isNaN(close.getTime()) || (open && close.getTime() <= open.getTime())) return null;
+    if (!open || now.getTime() < open.getTime()) {
+      var anchor = open || new Date(close.getTime() - 3600000);
+      var prevW = new Date(anchor.getTime() - 3600000);
+      return { entry: entry, target: anchor, prev: prevW, phase: 'starts', slot: { label: 'START' } };
+    }
+    if (now.getTime() < close.getTime()) {
+      return { entry: entry, target: close, prev: open, phase: 'ends', slot: { label: 'END' } };
+    }
+    return null; // window over: not eligible for the auto clock
+  }
+  // Checkpoints mode (START-TRIGGER-...-TRIGGER-END): countdown leg by leg.
+  function checkpointEntryState(entry, now) {
+    var legs = (entry.checkpoints || []).map(function (c) {
+      return { at: new Date(c.at), label: (c.label !== undefined && c.label !== null) ? String(c.label) : '' };
+    }).filter(function (l) { return !isNaN(l.at.getTime()); });
+    legs.sort(function (a, b) { return a.at - b.at; });
+    for (var i = 0; i < legs.length; i++) {
+      if (legs[i].at.getTime() > now.getTime()) {
+        var prevC = (i > 0) ? legs[i - 1].at : new Date(legs[i].at.getTime() - 3600000);
+        return {
+          entry: entry, target: legs[i].at, prev: prevC, phase: 'checkpoint',
+          slot: { label: legs[i].label || ('Checkpoint ' + (i + 1)), index: i, total: legs.length }
+        };
+      }
+    }
+    return null; // every trigger passed
   }
   function computeUpcoming(now, pool) {
     var out = [];
@@ -1324,12 +1512,25 @@ function showExpiredMessage() {
       var lbl = up.slot && up.slot.label ? ' \u00b7 ' + up.slot.label : '';
       return 'Ends ' + when + lbl + " — don't go anywhere";
     }
+    if (up.phase === 'ends') return 'Ends ' + when + ' — hold on tight';
+    if (up.phase === 'starts') return 'Opens ' + when + ' — getting ready for you';
+    if (up.phase === 'checkpoint') {
+      var cl = up.slot && up.slot.label ? up.slot.label : 'next trigger';
+      return 'Next \u00b7 ' + cl + ' ' + when + " — I'm waiting";
+    }
     if (up.phase === 'waiting' && up.slot && up.slot.label) return 'Starts ' + when + ' \u00b7 ' + up.slot.label + " — I'm waiting";
     return ((up.phase === 'one-shot') ? 'Target ' : 'Starts ') + when + ' — once in a lifetime';
   }
   function setPhaseBadge(up) {
-    var txt = up.phase === 'in-class' ? '\u25cf WITH YOU RIGHT NOW'
-      : up.phase === 'one-shot' ? '\u25cb ONCE IN A LIFETIME' : '\u25cb COUNTING DOWN FOR YOU';
+    var txt = '\u25cb COUNTING DOWN FOR YOU';
+    if (up.phase === 'in-class') txt = '\u25cf WITH YOU RIGHT NOW';
+    else if (up.phase === 'one-shot') txt = '\u25cb ONCE IN A LIFETIME';
+    else if (up.phase === 'starts') txt = '\u25cb OPENING FOR YOU';
+    else if (up.phase === 'ends') txt = '\u25cf ENDING SOON \u2014 HOLD ON';
+    else if (up.phase === 'checkpoint') {
+      var cn = up.slot && up.slot.label ? up.slot.label.toUpperCase() : 'NEXT TRIGGER';
+      txt = '\u25cb NEXT \u00b7 ' + cn;
+    }
     elPhase.textContent = txt;
     elPhase.dataset.phase = up.phase;
   }

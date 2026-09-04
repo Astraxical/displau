@@ -1,0 +1,92 @@
+/* Phase label + checkpoint rail (window / checkpoints modes) */
+
+.phase-label {
+    text-align: center;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #00ff88;
+    text-shadow: 0 0 18px rgba(0, 255, 136, 0.45);
+    margin-bottom: 1rem;
+    min-height: 1.4em;
+}
+
+.phase-label[data-phase='live'],
+.phase-label[data-phase='over'] {
+    color: #ffaa00;
+    text-shadow: 0 0 18px rgba(255, 170, 0, 0.45);
+}
+
+.phase-label[data-phase='over'] {
+    color: #ff4444;
+    text-shadow: 0 0 18px rgba(255, 68, 68, 0.5);
+}
+
+.checkpoint-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 1.25rem;
+    max-width: 28rem;
+    margin-left: auto;
+    margin-right: auto;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.checkpoint {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.85rem;
+    color: #a0a0b0;
+}
+
+.checkpoint-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    background: #404050;
+    flex-shrink: 0;
+}
+
+.checkpoint.is-done {
+    opacity: 0.55;
+}
+
+.checkpoint.is-done .checkpoint-dot {
+    background: #00ff88;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.7);
+}
+
+.checkpoint.is-done .checkpoint-label {
+    text-decoration: line-through;
+}
+
+.checkpoint.is-next {
+    border-color: rgba(0, 255, 136, 0.35);
+    background: rgba(0, 255, 136, 0.06);
+    color: #ffffff;
+}
+
+.checkpoint.is-next .checkpoint-dot {
+    background: #00ff88;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.9);
+    animation: checkpointPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes checkpointPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .checkpoint.is-next .checkpoint-dot {
+        animation: none;
+    }
+}

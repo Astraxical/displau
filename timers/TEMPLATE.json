@@ -35,6 +35,12 @@
     "timezone": "UTC",
     "display_mode": "countdown",
     "static_time_ms": 0,
+    "window_start": null,
+    "window_end": null,
+    "checkpoints": [
+        {"at": "2026-12-31T20:30:00", "label": "Doors open"},
+        {"at": "2026-12-31T23:00:00", "label": "End"}
+    ],
     "recur": false,
     "recur_rule": "weekly",
     "recur_schedule": [

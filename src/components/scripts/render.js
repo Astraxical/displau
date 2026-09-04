@@ -28,7 +28,7 @@ function applyColor(color) {
 
     document.querySelectorAll('.segment-part.on').forEach(seg => {
         seg.style.background = color;
-        seg.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+        seg.style.boxShadow = `0 0 0.2em ${color}, 0 0 0.4em ${color}`;
     });
 
     document.querySelectorAll('.segment-part:not(.on)').forEach(seg => {
@@ -38,7 +38,7 @@ function applyColor(color) {
 
     document.querySelectorAll('.colon-dot.on').forEach(dot => {
         dot.style.background = color;
-        dot.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+        dot.style.boxShadow = `0 0 0.2em ${color}, 0 0 0.4em ${color}`;
     });
 
     document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
@@ -58,7 +58,7 @@ function applyNegativeTimeColor() {
 
     document.querySelectorAll('.segment-part.on').forEach(seg => {
         seg.style.background = color;
-        seg.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+        seg.style.boxShadow = `0 0 0.2em ${color}, 0 0 0.4em ${color}`;
     });
 
     document.querySelectorAll('.segment-part:not(.on)').forEach(seg => {
@@ -68,7 +68,7 @@ function applyNegativeTimeColor() {
 
     document.querySelectorAll('.colon-dot.on').forEach(dot => {
         dot.style.background = color;
-        dot.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+        dot.style.boxShadow = `0 0 0.2em ${color}, 0 0 0.4em ${color}`;
     });
 
     document.querySelectorAll('.colon-dot:not(.on)').forEach(dot => {
@@ -79,7 +79,7 @@ function applyNegativeTimeColor() {
     const minusBar = document.querySelector('.minus-bar');
     if (minusBar) {
         minusBar.style.background = color;
-        minusBar.style.boxShadow = `0 0 10px ${color}, 0 0 20px ${color}`;
+        minusBar.style.boxShadow = `0 0 0.12em ${color}, 0 0 0.25em ${color}`;
     }
 }
 
@@ -94,7 +94,7 @@ function setDigit(element, value) {
             if (on) {
                 segments[i].classList.add('on');
                 segments[i].style.background = color;
-                segments[i].style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+                segments[i].style.boxShadow = `0 0 0.2em ${color}, 0 0 0.4em ${color}`;
             } else {
                 segments[i].classList.remove('on');
                 segments[i].style.background = complementary;
@@ -104,96 +104,104 @@ function setDigit(element, value) {
     }
 }
 
-function updateDisplay(timeStr) {
-    const display = document.getElementById('display');
-    display.innerHTML = '';
-    const colonCount = (timeStr.match(/:/g) || []).length;
-    const isNegative = timeStr.startsWith('-');
-    
-    // Handle negative sign for negative time display
-    if (isNegative) {
-        const minusElement = createMinusSign();
-        display.appendChild(minusElement);
-        timeStr = timeStr.substring(1); // Remove the minus sign for parsing
+// Shape cache: the display rebuilds its DOM only when the token shape
+// changes. Otherwise digits update in place — no per-frame reflow, which
+// keeps the layout rock-solid under browser zoom.
+let lastDisplayShape = null;
+
+/**
+ * Split a time string into render tokens.
+ * @returns {Array<{t: string, v?: string}>} t: 'minus' | 'digit' | 'colon' | 'decimal'
+ */
+function tokenizeTime(timeStr) {
+    let s = timeStr;
+    const tokens = [];
+    if (s.startsWith('-')) {
+        tokens.push({ t: 'minus' });
+        s = s.substring(1); // Remove the minus sign for parsing
     }
+    const colonCount = (s.match(/:/g) || []).length;
+    const pushDigits = (str) => {
+        for (const ch of str) tokens.push({ t: 'digit', v: ch });
+    };
 
     if (colonCount === 3) {
-        const parts = timeStr.split(':');
+        const parts = s.split(':');
         const days = parts[0];
         const hours = parts[1] || '00';
         const minutes = parts[2] || '00';
         const seconds = parts[3] || '00';
 
-        for (let i = 0; i < days.length; i++) {
-            display.appendChild(createDigit());
-            setDigit(display.lastChild, days[i]);
-        }
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, hours[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, hours[1]);
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, minutes[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, minutes[1]);
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[1]);
+        pushDigits(days);
+        tokens.push({ t: 'colon' });
+        pushDigits(hours);
+        tokens.push({ t: 'colon' });
+        pushDigits(minutes);
+        tokens.push({ t: 'colon' });
+        pushDigits(seconds);
     } else if (colonCount === 2) {
-        const parts = timeStr.split(':');
+        const parts = s.split(':');
         const hours = parts[0];
         const minutes = parts[1] || '00';
         const secondsParts = (parts[2] || '00').split('.');
         const seconds = secondsParts[0] || '00';
         const decimals = secondsParts[1] || '';
 
-        for (let i = 0; i < hours.length; i++) {
-            display.appendChild(createDigit());
-            setDigit(display.lastChild, hours[i]);
-        }
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, minutes[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, minutes[1]);
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[1]);
+        pushDigits(hours);
+        tokens.push({ t: 'colon' });
+        pushDigits(minutes);
+        tokens.push({ t: 'colon' });
+        pushDigits(seconds);
 
         if (decimals.length > 0) {
-            display.appendChild(createDecimal());
-            for (let i = 0; i < decimals.length; i++) {
-                display.appendChild(createDigit());
-                setDigit(display.lastChild, decimals[i]);
-            }
+            tokens.push({ t: 'decimal' });
+            pushDigits(decimals);
         }
     } else {
-        const parts = timeStr.split(':');
+        const parts = s.split(':');
         const minutes = parts[0];
         const secondsParts = (parts[1] || '00').split('.');
         const seconds = secondsParts[0] || '00';
         const decimals = secondsParts[1] || '';
 
-        for (let i = 0; i < minutes.length; i++) {
-            display.appendChild(createDigit());
-            setDigit(display.lastChild, minutes[i]);
+        pushDigits(minutes);
+        tokens.push({ t: 'colon' });
+        pushDigits(seconds);
+        tokens.push({ t: 'decimal' });
+        pushDigits(decimals);
+    }
+    return tokens;
+}
+
+function buildTokenEl(tok) {
+    if (tok.t === 'digit') {
+        const el = createDigit();
+        setDigit(el, tok.v);
+        return el;
+    }
+    if (tok.t === 'colon') return createColon();
+    if (tok.t === 'decimal') return createDecimal();
+    return createMinusSign();
+}
+
+function updateDisplay(timeStr) {
+    const display = document.getElementById('display');
+    const isNegative = timeStr.startsWith('-');
+    const tokens = tokenizeTime(timeStr);
+    const shape = (isNegative ? '-' : '+') + tokens.map(t => t.t === 'digit' ? `d${t.v.length}` : t.t[0]).join('');
+
+    if (shape === lastDisplayShape && display.children.length === tokens.length) {
+        // Same shape: update digit values in place, zero layout shift.
+        const digitEls = display.querySelectorAll('.segment');
+        let di = 0;
+        for (const tok of tokens) {
+            if (tok.t === 'digit') setDigit(digitEls[di++], tok.v);
         }
-        display.appendChild(createColon());
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[0]);
-        display.appendChild(createDigit());
-        setDigit(display.lastChild, seconds[1]);
-        display.appendChild(createDecimal());
-        for (let i = 0; i < decimals.length; i++) {
-            display.appendChild(createDigit());
-            setDigit(display.lastChild, decimals[i]);
-        }
+    } else {
+        display.innerHTML = '';
+        for (const tok of tokens) display.appendChild(buildTokenEl(tok));
+        lastDisplayShape = shape;
+        fitDisplay();
     }
 
     // Apply color based on whether this is negative time
@@ -204,6 +212,25 @@ function updateDisplay(timeStr) {
         applyColor(color);
     }
 }
+
+/**
+ * Scale the display down (transform only — no reflow) when the digit
+ * string is wider than the viewport, e.g. multi-day counts on mobile.
+ */
+function fitDisplay() {
+    const display = document.getElementById('display');
+    if (!display) return;
+    display.style.transform = '';
+    const over = display.scrollWidth - document.documentElement.clientWidth;
+    if (over > 0 && display.scrollWidth > 0) {
+        const scale = Math.min(1, document.documentElement.clientWidth * 0.96 / display.scrollWidth);
+        display.style.transform = `scale(${scale})`;
+    }
+}
+
+window.addEventListener('resize', () => {
+    lastDisplayShape = null; // force re-measure on viewport change
+});
 
 /**
  * Create a minus sign element for negative time display
@@ -225,6 +252,8 @@ function showExpiredMessage() {
     
     // Clear the display
     display.innerHTML = '';
+    display.style.transform = '';
+    lastDisplayShape = '__expired__';
     
     // Create expired message container
     const expiredContainer = document.createElement('div');

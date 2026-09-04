@@ -9,8 +9,11 @@ const DEFAULTS = {
     direction: '{{DIRECTION}}',  // Options: 'down', 'up'
     min_value: {{MIN_VALUE}},       // Minimum value in milliseconds (null for no limit)
     max_value: {{MAX_VALUE}},     // Maximum value in milliseconds (null for no limit)
-    display_mode: '{{DISPLAY_MODE}}',  // Options: 'countdown', 'static'
+    display_mode: '{{DISPLAY_MODE}}',  // 'countdown' | 'static' | 'window' | 'checkpoints'
     static_time_ms: {{STATIC_TIME_MS}},  // Fixed time value in ms for static display mode
+    window_start: '{{WINDOW_START}}',    // Window mode: event opens (ISO datetime, '' = use start_time)
+    window_end: '{{WINDOW_END}}',        // Window mode: event closes (ISO datetime, '' = use target_time)
+    checkpoints: {{CHECKPOINTS_JSON}},   // Checkpoints mode: [{at: ISO, label}] legs, each its own mini-timer
     // Recurring mode: weekly multi-slot, daily, or fixed-interval countdowns.
     // Single-slot legacy fields (recur_weekday/time/end) still work and are
     // auto-converted into a one-entry recur_schedule.
@@ -69,6 +72,9 @@ let MAX_VALUE = DEFAULTS.max_value;
 let COLOR_TRANSITION_TABLE = DEFAULTS.color_transition_table;
 let DISPLAY_MODE = DEFAULTS.display_mode || 'countdown';
 let STATIC_TIME_MS = DEFAULTS.static_time_ms || 0;
+let WINDOW_START = DEFAULTS.window_start || '';
+let WINDOW_END = DEFAULTS.window_end || '';
+let CHECKPOINTS = DEFAULTS.checkpoints || [];
 let RECUR = DEFAULTS.recur || false;
 let RECUR_RULE = DEFAULTS.recur_rule || 'weekly';
 let RECUR_WEEKDAY = DEFAULTS.recur_weekday;
@@ -171,6 +177,16 @@ function applyConfig(config) {
     // Use static_time_ms from config if available
     if (config.static_time_ms !== undefined) {
         STATIC_TIME_MS = config.static_time_ms;
+    }
+    // Window (START-END) + checkpoints (TRIGGER) modes
+    if (config.window_start !== undefined) {
+        WINDOW_START = config.window_start || '';
+    }
+    if (config.window_end !== undefined) {
+        WINDOW_END = config.window_end || '';
+    }
+    if (config.checkpoints !== undefined) {
+        CHECKPOINTS = config.checkpoints;
     }
     // Use recurring settings from config if available (legacy + v2 schedule rules)
     if (config.recur !== undefined) {

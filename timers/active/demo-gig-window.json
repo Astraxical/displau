@@ -1,0 +1,21 @@
+{
+    "id": "demo-gig-window",
+    "display_name": "Demo: Gig Night (START-END)",
+    "description": "Doors 8:30pm, over 11pm · counts down to start, then to end",
+    "target_time": "2026-09-11T23:00:00",
+    "start_time": "2026-09-11T20:30:00",
+    "direction": "down",
+    "min_value": 0,
+    "max_value": null,
+    "on_expire": "stop",
+    "display_on_expire": true,
+    "enabled": true,
+    "tags": ["demo", "event", "window"],
+    "category": "demos",
+    "color_theme": "progress",
+    "show_milliseconds": true,
+    "timezone": "UTC+8",
+    "display_mode": "window",
+    "window_start": "2026-09-11T20:30:00",
+    "window_end": "2026-09-11T23:00:00"
+}

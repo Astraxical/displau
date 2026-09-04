@@ -205,6 +205,44 @@ def _parse_hms_to_time(value: str) -> tuple[int, int, int]:
     return int(parts[0]), int(parts[1]), int(parts[2])
 
 
+def normalize_checkpoints(timer: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return sorted, validated checkpoints [{at: iso, label}] for checkpoints mode."""
+    raw = timer.get('checkpoints')
+    if not isinstance(raw, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        at = item.get('at')
+        if not at:
+            continue
+        try:
+            datetime.fromisoformat(str(at))
+        except (ValueError, TypeError):
+            continue
+        out.append({'at': str(at), 'label': str(item.get('label', '') or '')})
+    out.sort(key=lambda c: c['at'])
+    return out
+
+
+def window_bounds(timer: dict[str, Any]) -> tuple[datetime, datetime]:
+    """Normalized (open, close) datetimes for window mode with start/target fallback."""
+    ws = timer.get('window_start') or timer.get('start_time')
+    we = timer.get('window_end') or timer.get('target_time')
+    try:
+        start = datetime.fromisoformat(str(ws)) if ws else datetime.now()
+    except (ValueError, TypeError):
+        start = datetime.now()
+    try:
+        end = datetime.fromisoformat(str(we)) if we else start + timedelta(hours=1)
+    except (ValueError, TypeError):
+        end = start + timedelta(hours=1)
+    if end <= start:
+        end = start + timedelta(hours=1)
+    return start, end
+
+
 def compute_recur_state(timer: dict[str, Any], now: datetime) -> Optional[dict[str, Any]]:
     """Compute the next boundary for a recurring timer (mirrors time_utils.js).
 
@@ -335,6 +373,31 @@ def next_event_for_timer(timer: dict[str, Any], now: datetime) -> Optional[dict[
             'slot': st['slot'],
             'time_until_s': (st['target'] - now).total_seconds(),
         }
+    mode = str(timer.get('display_mode', 'countdown') or 'countdown')
+    if mode == 'window':
+        start, end = window_bounds(timer)
+        if now < start:
+            return {'target': start, 'phase': 'starts',
+                    'slot': {'label': 'START'}, 'time_until_s': (start - now).total_seconds()}
+        if now < end:
+            return {'target': end, 'phase': 'ends',
+                    'slot': {'label': 'END'}, 'time_until_s': (end - now).total_seconds()}
+        return {'target': end, 'phase': 'expired', 'slot': None,
+                'time_until_s': (end - now).total_seconds()}
+    if mode == 'checkpoints':
+        legs = normalize_checkpoints(timer)
+        for i, leg in enumerate(legs):
+            at = datetime.fromisoformat(leg['at'])
+            if at > now:
+                return {'target': at, 'phase': 'checkpoint',
+                        'slot': {'label': leg['label'] or f'Checkpoint {i + 1}',
+                                 'index': i, 'total': len(legs)},
+                        'time_until_s': (at - now).total_seconds()}
+        if legs:
+            last = datetime.fromisoformat(legs[-1]['at'])
+            return {'target': last, 'phase': 'expired', 'slot': None,
+                    'time_until_s': (last - now).total_seconds()}
+        return None
     try:
         target = datetime.fromisoformat(str(timer.get('target_time', '')))
     except (ValueError, TypeError):
@@ -377,6 +440,7 @@ def load_style_components() -> str:
         'segments.css',
         'colon.css',
         'decimal.css',
+        'phase.css',
     ]
 
     combined_styles = []
@@ -434,7 +498,10 @@ def replace_placeholders(
     recur_rule: str = 'weekly',
     recur_schedule_json: str = '[]',
     recur_interval: Optional[Any] = None,
-    recur_anchor: str = ''
+    recur_anchor: str = '',
+    window_start: str = '',
+    window_end: str = '',
+    checkpoints_json: str = '[]'
 ) -> str:
     """Replace configuration placeholders in content."""
     if build_date is None:
@@ -468,6 +535,9 @@ def replace_placeholders(
         '{{RECUR_SCHEDULE_JSON}}': recur_schedule_json or '[]',
         '{{RECUR_INTERVAL}}': 'null' if recur_interval is None else str(recur_interval),
         '{{RECUR_ANCHOR}}': recur_anchor or '',
+        '{{WINDOW_START}}': window_start or '',
+        '{{WINDOW_END}}': window_end or '',
+        '{{CHECKPOINTS_JSON}}': checkpoints_json or '[]',
     }
 
     for placeholder, value in replacements.items():
@@ -567,12 +637,16 @@ def build_html(
     recur_schedule: list[dict[str, Any]] = []
     recur_interval = None
     recur_anchor = ''
+    window_start = ''
+    window_end = ''
+    checkpoints: list[dict[str, Any]] = []
 
     def apply_timer_config(config: dict[str, Any]) -> None:
         """Extract runtime settings from a timer config."""
         nonlocal direction, min_value, max_value, display_name, display_mode, static_time_ms
         nonlocal recur, recur_weekday, recur_time, recur_end
         nonlocal recur_rule, recur_schedule, recur_interval, recur_anchor
+        nonlocal window_start, window_end, checkpoints
         direction = config.get('direction', direction)
         min_value = config.get('min_value', min_value)
         max_val = config.get('max_value', None)
@@ -603,6 +677,10 @@ def build_html(
             })
         recur_interval = config.get('recur_interval_minutes', recur_interval)
         recur_anchor = config.get('recur_anchor', recur_anchor) or ''
+        window_start = config.get('window_start', window_start) or ''
+        window_end = config.get('window_end', window_end) or ''
+        if isinstance(config.get('checkpoints'), list):
+            checkpoints = normalize_checkpoints(config)
 
     # Try fetching from URL first
     if config_url and not use_local_config:
@@ -620,7 +698,9 @@ def build_html(
         display_name=display_name, display_mode=display_mode, static_time_ms=static_time_ms,
         recur=recur, recur_weekday=recur_weekday, recur_time=recur_time, recur_end=recur_end,
         recur_rule=recur_rule, recur_schedule_json=json.dumps(recur_schedule),
-        recur_interval=recur_interval, recur_anchor=recur_anchor
+        recur_interval=recur_interval, recur_anchor=recur_anchor,
+        window_start=window_start, window_end=window_end,
+        checkpoints_json=json.dumps(checkpoints)
     )
     html['body'] = replace_placeholders(
         html['body'], target_time_str, milliseconds_at_full_brightness,
@@ -628,7 +708,9 @@ def build_html(
         display_name=display_name, display_mode=display_mode, static_time_ms=static_time_ms,
         recur=recur, recur_weekday=recur_weekday, recur_time=recur_time, recur_end=recur_end,
         recur_rule=recur_rule, recur_schedule_json=json.dumps(recur_schedule),
-        recur_interval=recur_interval, recur_anchor=recur_anchor
+        recur_interval=recur_interval, recur_anchor=recur_anchor,
+        window_start=window_start, window_end=window_end,
+        checkpoints_json=json.dumps(checkpoints)
     )
     html['html_open'] = html['html_open'].replace('{{CONFIG_URL}}', config_url)
 
@@ -1024,6 +1106,70 @@ def recurring_timer_stats(timer: dict[str, Any], now: datetime) -> dict[str, Any
     }
 
 
+def window_checkpoint_stats(timer: dict[str, Any], now: datetime) -> dict[str, Any]:
+    """Selector stats for window (START-END) and checkpoints (TRIGGER) modes."""
+    mode = str(timer.get('display_mode', 'countdown') or 'countdown')
+
+    if mode == 'window':
+        start, end = window_bounds(timer)
+        total = (end - start).total_seconds()
+        if now < start:
+            progress, progress_text = 0.0, '???.??%'
+            status, status_label = 'upcoming', 'Starts in'
+            target_display = f"Starts · {start.isoformat(timespec='minutes')}"
+        elif now < end:
+            elapsed = (now - start).total_seconds()
+            progress = min(100, max(0, (elapsed / total) * 100)) if total > 0 else 0
+            progress_text = f'{progress:06.2f}%'
+            status, status_label = 'running', 'Live'
+            target_display = f"Ends · {end.isoformat(timespec='minutes')}"
+        else:
+            progress, progress_text = 100.0, '100.00%'
+            status, status_label = 'ended', 'Over'
+            target_display = f"Ended · {end.isoformat(timespec='minutes')}"
+        return {
+            'status': status,
+            'status_label': status_label,
+            'progress': progress,
+            'progress_text': progress_text,
+            'start_display': f"Window · {start.strftime('%a %H:%M')} → {end.strftime('%H:%M')}",
+            'target_display': target_display,
+        }
+
+    # checkpoints mode
+    legs = normalize_checkpoints(timer)
+    if not legs:
+        return {
+            'status': 'upcoming', 'status_label': 'No checkpoints',
+            'progress': 0.0, 'progress_text': '???.??%',
+            'start_display': 'Checkpoints · none configured',
+            'target_display': 'Next · unknown',
+        }
+    ats = [datetime.fromisoformat(leg['at']) for leg in legs]
+    nxt = next((i for i, at in enumerate(ats) if at > now), None)
+    if nxt is None:
+        return {
+            'status': 'ended', 'status_label': 'Complete',
+            'progress': 100.0, 'progress_text': '100.00%',
+            'start_display': f"Checkpoints · {len(legs)} legs done",
+            'target_display': f"Finished · {ats[-1].isoformat(timespec='minutes')}",
+        }
+    prev = ats[nxt - 1] if nxt > 0 else ats[nxt] - timedelta(hours=1)
+    total = (ats[nxt] - prev).total_seconds()
+    elapsed = (now - prev).total_seconds()
+    progress = min(100, max(0, (elapsed / total) * 100)) if total > 0 else 0
+    label = legs[nxt]['label'] or f'Checkpoint {nxt + 1}'
+    status = 'running' if now >= ats[0] else 'upcoming'
+    return {
+        'status': status,
+        'status_label': f'Leg {nxt + 1}/{len(legs)}' if status == 'running' else 'Starts in',
+        'progress': progress,
+        'progress_text': f'{progress:06.2f}%',
+        'start_display': f"Leg {nxt + 1}/{len(legs)} · {label}",
+        'target_display': f"Next · {label} @ {ats[nxt].isoformat(timespec='minutes')}",
+    }
+
+
 def generate_selector(timers_list: list[dict[str, Any]]) -> None:
     """Generate an index.html selector page with links to all timers."""
     # Place index.html at project root for GitHub Pages
@@ -1043,6 +1189,7 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
         display_name = timer.get('display_name', config_id.replace('-', ' ').title())
 
         is_recurring = timer.get('recur', False)
+        mode = str(timer.get('display_mode', 'countdown') or 'countdown')
 
         if is_recurring:
             recur_stats = recurring_timer_stats(timer, now)
@@ -1052,6 +1199,14 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
             progress_text = recur_stats['progress_text']
             start_time = recur_stats['start_display']
             target_time = recur_stats['target_display']
+        elif mode in ('window', 'checkpoints'):
+            wc_stats = window_checkpoint_stats(timer, now)
+            status = wc_stats['status']
+            status_label = wc_stats['status_label']
+            progress = wc_stats['progress']
+            progress_text = wc_stats['progress_text']
+            start_time = wc_stats['start_display']
+            target_time = wc_stats['target_display']
         else:
             try:
                 start_dt = datetime.fromisoformat(start_time)
@@ -1602,6 +1757,10 @@ def build_timer_manifest(timers_list: list[dict[str, Any]], now: datetime) -> li
             'target_time': timer.get('target_time'),
             'start_time': timer.get('start_time'),
             'timezone': timer.get('timezone', 'UTC'),
+            'display_mode': str(timer.get('display_mode', 'countdown') or 'countdown'),
+            'window_start': timer.get('window_start'),
+            'window_end': timer.get('window_end'),
+            'checkpoints': normalize_checkpoints(timer),
             'recur': is_recur,
             'recur_rule': rule if is_recur else None,
             'recur_schedule': normalize_recur_schedule(timer) if is_recur else [],
@@ -1854,14 +2013,51 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
       if (!best) return null;
       return { entry: entry, target: best.target, prev: prevB || new Date(best.target.getTime() - 7 * 86400000), phase: best.phase, slot: best.slot };
     }
+    var emode = entry.display_mode || 'countdown';
+    if (emode === 'window') return windowEntryState(entry, now);
+    if (emode === 'checkpoints') return checkpointEntryState(entry, now);
     if (!entry.target_time) return null;
     var t = new Date(entry.target_time);
     if (isNaN(t.getTime())) return null;
-    var d = t.getTime() - now.getTime();
-    if (d <= 0) return null; // one-shot past: not eligible for the auto clock
+    if (t.getTime() - now.getTime() <= 0) return null; // one-shot past: not eligible
     var prevOne = entry.start_time ? new Date(entry.start_time) : new Date(t.getTime() - 86400000);
     if (isNaN(prevOne.getTime()) || prevOne.getTime() >= t.getTime()) prevOne = new Date(t.getTime() - 86400000);
     return { entry: entry, target: t, prev: prevOne, phase: 'one-shot', slot: null };
+  }
+  // Window mode (START-END): countdown to open, then countdown to close.
+  function windowEntryState(entry, now) {
+    var st = entry.window_start || entry.start_time;
+    var en = entry.window_end || entry.target_time;
+    var open = st ? new Date(st) : null;
+    var close = en ? new Date(en) : null;
+    if (open && isNaN(open.getTime())) open = null;
+    if (!close || isNaN(close.getTime()) || (open && close.getTime() <= open.getTime())) return null;
+    if (!open || now.getTime() < open.getTime()) {
+      var anchor = open || new Date(close.getTime() - 3600000);
+      var prevW = new Date(anchor.getTime() - 3600000);
+      return { entry: entry, target: anchor, prev: prevW, phase: 'starts', slot: { label: 'START' } };
+    }
+    if (now.getTime() < close.getTime()) {
+      return { entry: entry, target: close, prev: open, phase: 'ends', slot: { label: 'END' } };
+    }
+    return null; // window over: not eligible for the auto clock
+  }
+  // Checkpoints mode (START-TRIGGER-...-TRIGGER-END): countdown leg by leg.
+  function checkpointEntryState(entry, now) {
+    var legs = (entry.checkpoints || []).map(function (c) {
+      return { at: new Date(c.at), label: (c.label !== undefined && c.label !== null) ? String(c.label) : '' };
+    }).filter(function (l) { return !isNaN(l.at.getTime()); });
+    legs.sort(function (a, b) { return a.at - b.at; });
+    for (var i = 0; i < legs.length; i++) {
+      if (legs[i].at.getTime() > now.getTime()) {
+        var prevC = (i > 0) ? legs[i - 1].at : new Date(legs[i].at.getTime() - 3600000);
+        return {
+          entry: entry, target: legs[i].at, prev: prevC, phase: 'checkpoint',
+          slot: { label: legs[i].label || ('Checkpoint ' + (i + 1)), index: i, total: legs.length }
+        };
+      }
+    }
+    return null; // every trigger passed
   }
   function computeUpcoming(now, pool) {
     var out = [];
@@ -1956,12 +2152,25 @@ def build_up_next_page(manifest: list[dict[str, Any]], now: datetime) -> None:
       var lbl = up.slot && up.slot.label ? ' \u00b7 ' + up.slot.label : '';
       return 'Ends ' + when + lbl + " — don't go anywhere";
     }
+    if (up.phase === 'ends') return 'Ends ' + when + ' — hold on tight';
+    if (up.phase === 'starts') return 'Opens ' + when + ' — getting ready for you';
+    if (up.phase === 'checkpoint') {
+      var cl = up.slot && up.slot.label ? up.slot.label : 'next trigger';
+      return 'Next \u00b7 ' + cl + ' ' + when + " — I'm waiting";
+    }
     if (up.phase === 'waiting' && up.slot && up.slot.label) return 'Starts ' + when + ' \u00b7 ' + up.slot.label + " — I'm waiting";
     return ((up.phase === 'one-shot') ? 'Target ' : 'Starts ') + when + ' — once in a lifetime';
   }
   function setPhaseBadge(up) {
-    var txt = up.phase === 'in-class' ? '\u25cf WITH YOU RIGHT NOW'
-      : up.phase === 'one-shot' ? '\u25cb ONCE IN A LIFETIME' : '\u25cb COUNTING DOWN FOR YOU';
+    var txt = '\u25cb COUNTING DOWN FOR YOU';
+    if (up.phase === 'in-class') txt = '\u25cf WITH YOU RIGHT NOW';
+    else if (up.phase === 'one-shot') txt = '\u25cb ONCE IN A LIFETIME';
+    else if (up.phase === 'starts') txt = '\u25cb OPENING FOR YOU';
+    else if (up.phase === 'ends') txt = '\u25cf ENDING SOON \u2014 HOLD ON';
+    else if (up.phase === 'checkpoint') {
+      var cn = up.slot && up.slot.label ? up.slot.label.toUpperCase() : 'NEXT TRIGGER';
+      txt = '\u25cb NEXT \u00b7 ' + cn;
+    }
     elPhase.textContent = txt;
     elPhase.dataset.phase = up.phase;
   }
@@ -2228,6 +2437,22 @@ body::after {{
     background: rgba(185, 103, 255, 0.12);
     color: #d3a6ff;
     border-color: rgba(185, 103, 255, 0.4);
+}}
+#upPhase[data-phase="starts"] {{
+    background: rgba(255, 45, 120, 0.12);
+    color: #ff7dae;
+    border-color: rgba(255, 45, 120, 0.4);
+}}
+#upPhase[data-phase="ends"] {{
+    background: rgba(255, 15, 63, 0.18);
+    color: #ff8fa8;
+    border-color: rgba(255, 15, 63, 0.55);
+    animation: heartbeat 1.2s ease-in-out infinite;
+}}
+#upPhase[data-phase="checkpoint"] {{
+    background: rgba(255, 45, 120, 0.12);
+    color: #ff9ec2;
+    border-color: rgba(255, 45, 120, 0.45);
 }}
 #upMeta {{ margin-top: 1rem; color: #f3c6d8; font-size: 0.92rem; }}
 .up-sync {{ margin-top: 0.35rem; font-size: 0.72rem; color: #a06a85; letter-spacing: 0.04em; }}

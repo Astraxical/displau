@@ -1,25 +1,25 @@
-/* 7-Segment Display Segments */
+/* 7-Segment Display Segments (em-anchored: scales with .display font-size) */
 
 /* Horizontal segments (a, d, g) */
 .seg-a, .seg-d, .seg-g {
-    width: 5.5vw;
-    height: 1vw;
-    left: 1.25vw;
-    clip-path: polygon(0.6vw 0, 100% 0, 100% 100%, 0.6vw 100%, 0 50%);
+    width: 0.6875em;
+    height: 0.125em;
+    left: 0.15625em;
+    clip-path: polygon(0.075em 0, 100% 0, 100% 100%, 0.075em 100%, 0 50%);
 }
 
 .seg-a { top: 0; }
 .seg-d { bottom: 0; }
-.seg-g { top: 6.5vw; }
+.seg-g { top: 0.8125em; }
 
 /* Vertical segments (b, c, e, f) */
 .seg-b, .seg-c, .seg-e, .seg-f {
-    width: 1vw;
-    height: 5.5vw;
-    clip-path: polygon(0 0.6vw, 50% 0, 100% 0.6vw, 100% 100%, 50% 95%, 0 100%);
+    width: 0.125em;
+    height: 0.6875em;
+    clip-path: polygon(0 0.075em, 50% 0, 100% 0.075em, 100% 100%, 50% 95%, 0 100%);
 }
 
-.seg-b { top: 0.6vw; right: 0; }
-.seg-c { bottom: 0.6vw; right: 0; }
-.seg-e { bottom: 0.6vw; left: 0; }
-.seg-f { top: 0.6vw; left: 0; }
+.seg-b { top: 0.075em; right: 0; }
+.seg-c { bottom: 0.075em; right: 0; }
+.seg-e { bottom: 0.075em; left: 0; }
+.seg-f { top: 0.075em; left: 0; }

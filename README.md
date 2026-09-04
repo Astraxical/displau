@@ -115,6 +115,9 @@ Each timer is defined by a JSON file in `timers/`:
 | `recur_schedule` | array | Multi-slot schedule: `[{"weekday": "Monday", "start": "08:30", "end": "12:30", "label": "Lecture"}]`. `"time"` works as an alias of `"start"`. Legacy `recur_weekday`/`recur_time`/`recur_end` still work as a single slot |
 | `recur_interval_minutes` | number | Interval in minutes (required when `recur_rule` is `"interval"`) |
 | `recur_anchor` | string | ISO 8601 anchor datetime for interval recurrence (defaults to `start_time`) |
+| `display_mode` | string | `"countdown"` (default), `"static"`, `"window"` (START-END event: counts down to start, then to end), `"checkpoints"` (START-TRIGGER-…-TRIGGER-END: each checkpoint is its own mini-timer) |
+| `window_start` / `window_end` | string | ISO 8601 open/close datetimes (required for `"window"`; default to `start_time`/`target_time`) |
+| `checkpoints` | array | `[{"at": "2026-09-11T20:30:00", "label": "Doors open"}, …]` sorted legs (required for `"checkpoints"`) |
 | `tags` | array | Tags for categorization |
 | `category` | string | Category name |
 | `color_theme` | string | Color theme identifier (default: `progress`) |
@@ -147,6 +150,26 @@ Daily and interval examples:
 
 {"id": "water-break", "recur": true, "recur_rule": "interval",
  "recur_interval_minutes": 90, "recur_anchor": "2026-01-01T08:00:00"}
+```
+
+### Event windows & checkpoints
+
+START-END — one countdown to the start (8:30pm), then one to the end (11pm):
+
+```json
+{"id": "gig", "display_mode": "window",
+ "window_start": "2026-09-11T20:30:00", "window_end": "2026-09-11T23:00:00"}
+```
+
+START-TRIGGER-…-TRIGGER-END — every checkpoint is its own timer; the display
+rolls from one to the next, with a done/next rail under the digits:
+
+```json
+{"id": "gig-legs", "display_mode": "checkpoints", "checkpoints": [
+  {"at": "2026-09-11T20:30:00", "label": "Doors open"},
+  {"at": "2026-09-11T21:45:00", "label": "Main set"},
+  {"at": "2026-09-11T23:00:00", "label": "End"}
+]}
 ```
 
 ### Auto clock + API

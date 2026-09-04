@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/test-static-timer.json">
+<html lang="en" data-config-url="https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/demo-gig-checkpoints.json">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -621,8 +621,8 @@ body {
 </head>
 <body>
     <!-- Display Name Overlay (hidden by default) -->
-    <div class="timer-display-name" id="displayName" title="Static Timer Test" style="opacity: 0;">
-        Static Timer Test
+    <div class="timer-display-name" id="displayName" title="Demo: Gig Night (TRIGGERS)" style="opacity: 0;">
+        Demo: Gig Night (TRIGGERS)
     </div>
 
     <!-- 7-Segment Display -->
@@ -631,9 +631,9 @@ body {
     </div>
 
     <!-- Version Watermark -->
-    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260904092644.stable">
+    <div class="version-watermark" data-version="STABLE" data-build="2.0.0.20260904092637.stable">
         <span class="version-label">STABLE</span>
-        <span class="version-date">2.0.0.20260904092644.stable</span>
+        <span class="version-date">2.0.0.20260904092637.stable</span>
     </div>
 
     <script>
@@ -641,19 +641,19 @@ body {
         // ============ CONFIGURATION ============
 // Hardcoded defaults (fallback if fetch/cache fail)
 const DEFAULTS = {
-    target_time: '2026-04-15T00:00:00',
-    start_time: '2026-04-05T00:00:00',
+    target_time: '2026-09-11T23:00:00',
+    start_time: '2026-09-04T09:26:37',
     display_name: '',
     config_id: 'default',
     on_expire: 'stop',  // Options: 'stop', 'continue', 'hide'
     direction: 'down',  // Options: 'down', 'up'
     min_value: 0,       // Minimum value in milliseconds (null for no limit)
     max_value: null,     // Maximum value in milliseconds (null for no limit)
-    display_mode: 'static',  // 'countdown' | 'static' | 'window' | 'checkpoints'
-    static_time_ms: 9000000,  // Fixed time value in ms for static display mode
+    display_mode: 'checkpoints',  // 'countdown' | 'static' | 'window' | 'checkpoints'
+    static_time_ms: 0,  // Fixed time value in ms for static display mode
     window_start: '',    // Window mode: event opens (ISO datetime, '' = use start_time)
     window_end: '',        // Window mode: event closes (ISO datetime, '' = use target_time)
-    checkpoints: [],   // Checkpoints mode: [{at: ISO, label}] legs, each its own mini-timer
+    checkpoints: [{"at": "2026-09-11T20:30:00", "label": "Doors open"}, {"at": "2026-09-11T21:00:00", "label": "Support act"}, {"at": "2026-09-11T21:45:00", "label": "Main set"}, {"at": "2026-09-11T23:00:00", "label": "End"}],   // Checkpoints mode: [{at: ISO, label}] legs, each its own mini-timer
     // Recurring mode: weekly multi-slot, daily, or fixed-interval countdowns.
     // Single-slot legacy fields (recur_weekday/time/end) still work and are
     // auto-converted into a one-entry recur_schedule.
@@ -685,8 +685,8 @@ const DEFAULTS = {
         { ratio: -1.0, color: '#8b00ff' }   // Deep Violet: -100%
     ]
 };
-const MILLISECONDS_AT_FULL_BRIGHTNESS = 0;
-const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/test-static-timer.json'; // Injected by build script
+const MILLISECONDS_AT_FULL_BRIGHTNESS = 653602247;
+const CONFIG_URL = 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/demo-gig-checkpoints.json'; // Injected by build script
 // =======================================
 
 // Cache configuration
@@ -747,7 +747,7 @@ async function loadConfig() {
     }
     
     // Try fetch from GitHub
-    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/test-static-timer.json') {
+    if (CONFIG_URL && CONFIG_URL !== 'https://raw.githubusercontent.com/Astraxical/displau/refs/heads/master/timers/active/demo-gig-checkpoints.json') {
         try {
             console.log('[Config] Fetching config from:', CONFIG_URL);
             const response = await fetch(CONFIG_URL, {

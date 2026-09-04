@@ -1,14 +1,15 @@
-/* Decimal point */
+/* Decimal point (em-anchored: scales with .display font-size) */
 .decimal {
-    width: 2vw;
-    height: 14vw;
+    width: 0.25em;
+    height: 1.75em;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
     align-items: center;
-    padding-bottom: 1vw;
+    padding-bottom: 0.125em;
+    flex-shrink: 0;
 }
 
 .decimal .colon-dot {
-    margin-bottom: 0.5vw;
+    margin-bottom: 0.0625em;
 }

@@ -309,6 +309,97 @@ function getClassEnd() {
 }
 
 /**
+ * Window mode (START-END): normalized open/close timestamps.
+ * Falls back to START_TIME / TARGET_TIME when not set.
+ * @returns {{start: number, end: number}}
+ */
+function getWindowBounds() {
+    var ws = (typeof WINDOW_START !== 'undefined' && WINDOW_START) ? WINDOW_START : null;
+    var we = (typeof WINDOW_END !== 'undefined' && WINDOW_END) ? WINDOW_END : null;
+    var start = ws ? new Date(ws).getTime() : new Date(START_TIME).getTime();
+    var end = we ? new Date(we).getTime() : new Date(TARGET_TIME).getTime();
+    if (!isFinite(start)) start = Date.now();
+    if (!isFinite(end) || end <= start) end = start + 3600000;
+    return { start: start, end: end };
+}
+
+/**
+ * Window mode state.
+ * @param {number} [nowMs]
+ * @returns {{phase: string, boundary: number}} phase: 'pre' | 'live' | 'over'
+ */
+function getWindowState(nowMs) {
+    var now = (nowMs === undefined) ? Date.now() : nowMs;
+    var b = getWindowBounds();
+    if (now < b.start) return { phase: 'pre', boundary: b.start };
+    if (now < b.end) return { phase: 'live', boundary: b.end };
+    return { phase: 'over', boundary: b.end };
+}
+
+/**
+ * Checkpoints mode (START-TRIGGER-...-TRIGGER-END): sorted legs.
+ * @returns {Array<{at: number, label: string, iso: string}>}
+ */
+function getCheckpoints() {
+    var raw = (typeof CHECKPOINTS !== 'undefined' && Array.isArray(CHECKPOINTS)) ? CHECKPOINTS : [];
+    var out = [];
+    for (var i = 0; i < raw.length; i++) {
+        var c = raw[i] || {};
+        if (!c.at) continue;
+        var t = new Date(c.at).getTime();
+        if (!isFinite(t)) continue;
+        out.push({ at: t, label: (c.label !== undefined && c.label !== null) ? String(c.label) : '', iso: c.at });
+    }
+    out.sort(function (a, b) { return a.at - b.at; });
+    return out;
+}
+
+/**
+ * Checkpoints mode state: the next leg counting down, or null when all passed.
+ * @param {number} [nowMs]
+ * @returns {{next: object, prevAt: number, done: number, total: number}|null}
+ */
+function getCheckpointState(nowMs) {
+    var now = (nowMs === undefined) ? Date.now() : nowMs;
+    var legs = getCheckpoints();
+    if (!legs.length) return null;
+    var prevAt = null;
+    for (var i = 0; i < legs.length; i++) {
+        if (legs[i].at > now) {
+            return {
+                next: legs[i],
+                nextIndex: i,
+                prevAt: (prevAt === null) ? legs[i].at - 3600000 : prevAt,
+                done: i,
+                total: legs.length
+            };
+        }
+        prevAt = legs[i].at;
+    }
+    return null; // every trigger passed
+}
+
+/**
+ * Human phase label for window / checkpoints modes.
+ * @returns {{phase: string, text: string}}
+ */
+function getPhaseLabel() {
+    if (DISPLAY_MODE === 'window') {
+        var w = getWindowState();
+        if (w.phase === 'pre') return { phase: 'pre', text: 'STARTS IN' };
+        if (w.phase === 'live') return { phase: 'live', text: 'ENDS IN' };
+        return { phase: 'over', text: 'OVER' };
+    }
+    if (DISPLAY_MODE === 'checkpoints') {
+        var c = getCheckpointState();
+        if (!c) return { phase: 'over', text: 'ALL CHECKPOINTS PASSED' };
+        var name = c.next.label ? ' · ' + c.next.label.toUpperCase() : '';
+        return { phase: 'leg-' + c.nextIndex, text: 'NEXT' + name + ' (' + (c.nextIndex + 1) + '/' + c.total + ')' };
+    }
+    return { phase: '', text: '' };
+}
+
+/**
  * Get the current time value based on direction (up or down)
  * @returns {number} Current time value in milliseconds
  */
@@ -318,6 +409,19 @@ function getCurrentTimeValue() {
         var st = computeRecurState(new Date());
         if (st) return st.target.getTime() - Date.now();
         return 0;
+    }
+
+    // Window mode: countdown to open, then countdown to close.
+    if (typeof DISPLAY_MODE !== 'undefined' && DISPLAY_MODE === 'window') {
+        var ws = getWindowState();
+        return Math.max(0, ws.boundary - Date.now());
+    }
+
+    // Checkpoints mode: countdown to the next trigger.
+    if (typeof DISPLAY_MODE !== 'undefined' && DISPLAY_MODE === 'checkpoints') {
+        var cs = getCheckpointState();
+        if (!cs) return 0;
+        return Math.max(0, cs.next.at - Date.now());
     }
 
     var start = new Date(START_TIME).getTime();
@@ -366,6 +470,14 @@ function isExpired() {
     if (typeof RECUR !== 'undefined' && RECUR) {
         return false;
     }
+    // Window mode expires when the window closes.
+    if (typeof DISPLAY_MODE !== 'undefined' && DISPLAY_MODE === 'window') {
+        return getWindowState().phase === 'over';
+    }
+    // Checkpoints mode expires once every trigger has passed.
+    if (typeof DISPLAY_MODE !== 'undefined' && DISPLAY_MODE === 'checkpoints') {
+        return getCheckpointState() === null && getCheckpoints().length > 0;
+    }
     if (DIRECTION === 'up') {
         return false; // Up direction never expires
     }
@@ -388,6 +500,25 @@ function calculateRemainingRatio() {
         var total = st.target.getTime() - st.prevBoundary.getTime();
         var elapsed = now - st.prevBoundary.getTime();
         return Math.max(0, Math.min(1, 1 - (total > 0 ? elapsed / total : 1)));
+    }
+
+    // Window mode: full bar while waiting to open, then sweep 1 -> 0 across the event.
+    if (typeof DISPLAY_MODE !== 'undefined' && DISPLAY_MODE === 'window') {
+        var b = getWindowBounds();
+        var nowW = Date.now();
+        if (nowW < b.start) return 1;
+        var totalW = b.end - b.start;
+        if (!(totalW > 0)) return 0;
+        return Math.max(0, Math.min(1, 1 - (nowW - b.start) / totalW));
+    }
+
+    // Checkpoints mode: remaining fraction of the current leg.
+    if (typeof DISPLAY_MODE !== 'undefined' && DISPLAY_MODE === 'checkpoints') {
+        var c = getCheckpointState();
+        if (!c) return 0;
+        var totalC = c.next.at - c.prevAt;
+        if (!(totalC > 0)) return 0;
+        return Math.max(0, Math.min(1, (c.next.at - Date.now()) / totalC));
     }
 
     var start = new Date(START_TIME).getTime();

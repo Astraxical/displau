@@ -119,9 +119,17 @@ function updateCountdown() {
         document.body.classList.toggle('in-class', inClass);
     }
 
+    // Window / checkpoints modes: phase label line + checkpoint rail + title
+    let phaseText = '';
+    if (DISPLAY_MODE === 'window' || DISPLAY_MODE === 'checkpoints') {
+        phaseText = updatePhaseLabel();
+    }
+
     // Update document title
     const displayName = DISPLAY_NAME || '7 Segment Timer';
-    document.title = `${timeStr.split('.')[0]} - ${displayName}`;
+    document.title = phaseText
+        ? `${timeStr.split('.')[0]} · ${phaseText} - ${displayName}`
+        : `${timeStr.split('.')[0]} - ${displayName}`;
 
     // Handle expiry (down direction only)
     if (DIRECTION === 'down' && isExpired() && !hasExpired) {
@@ -289,6 +297,91 @@ function addDisplayName() {
     if (nameEl) {
         nameEl.style.opacity = displayNameVisible ? '1' : '0';
     }
+}
+
+/**
+ * Ensure the phase label line exists (window / checkpoints modes).
+ * @returns {HTMLElement} The label element
+ */
+function ensurePhaseLabel() {
+    let el = document.getElementById('phaseLabel');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'phaseLabel';
+        el.className = 'phase-label';
+        const display = document.getElementById('display');
+        if (display && display.parentNode) {
+            display.parentNode.insertBefore(el, display);
+        } else {
+            document.body.prepend(el);
+        }
+    }
+    return el;
+}
+
+/**
+ * Update the phase label + checkpoint rail. Returns the label text.
+ * @returns {string} Current phase label text
+ */
+function updatePhaseLabel() {
+    const el = ensurePhaseLabel();
+    const info = getPhaseLabel();
+    if (el.textContent !== info.text) el.textContent = info.text;
+    el.dataset.phase = info.phase;
+    document.body.dataset.modePhase = info.phase;
+    if (DISPLAY_MODE === 'checkpoints') updateCheckpointRail();
+    return info.text;
+}
+
+/**
+ * Render/update the checkpoint rail (one row per trigger: done/next/todo).
+ */
+function updateCheckpointRail() {
+    let rail = document.getElementById('checkpointRail');
+    if (!rail) {
+        rail = document.createElement('div');
+        rail.id = 'checkpointRail';
+        rail.className = 'checkpoint-rail';
+        const display = document.getElementById('display');
+        if (display && display.parentNode) {
+            display.parentNode.insertBefore(rail, display.nextSibling);
+        } else {
+            document.body.appendChild(rail);
+        }
+    }
+    const legs = getCheckpoints();
+    const now = Date.now();
+    const nextIdx = legs.findIndex(l => l.at > now);
+
+    if (rail.children.length !== legs.length) {
+        rail.innerHTML = '';
+        legs.forEach((leg) => {
+            const row = document.createElement('div');
+            row.className = 'checkpoint';
+            const dot = document.createElement('span');
+            dot.className = 'checkpoint-dot';
+            const lbl = document.createElement('span');
+            lbl.className = 'checkpoint-label';
+            row.appendChild(dot);
+            row.appendChild(lbl);
+            rail.appendChild(row);
+        });
+    }
+
+    legs.forEach((leg, i) => {
+        const row = rail.children[i];
+        const state = leg.at <= now ? 'done' : (i === nextIdx ? 'next' : 'todo');
+        if (row.dataset.state !== state) {
+            row.dataset.state = state;
+            row.className = `checkpoint is-${state}`;
+        }
+        const d = new Date(leg.at);
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        const text = `${hh}:${mm}${leg.label ? ' · ' + leg.label : ''}`;
+        const lbl = row.querySelector('.checkpoint-label');
+        if (lbl && lbl.textContent !== text) lbl.textContent = text;
+    });
 }
 
 /**

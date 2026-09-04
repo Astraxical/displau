@@ -996,6 +996,7 @@ def build_timers_folder(generate_selector_page: bool = False, organize: bool = T
     manifest_now = datetime.now()
     manifest = build_timer_manifest(timers_list, manifest_now)
     write_json_api(manifest, manifest_now)
+    build_api_explorer(manifest, manifest_now)
     build_up_next_page(manifest, manifest_now)
 
     # Organize timers into status folders
@@ -2585,7 +2586,7 @@ body.embed .up-list-card, body.embed .up-foot, body.embed .up-eyebrow, body.embe
 <body>
 <div class="hearts" id="hearts" aria-hidden="true"></div>
 <div class="up-wrap">
-<div class="up-eyebrow">&#9825; your darling clock &#9825; &middot; <a href="api/up-next.json">api/up-next.json</a><span class="up-actions"><button id="kioskBtn" class="up-btn" title="Kiosk fullscreen (K)">&#9974;</button><button id="lockBtn" class="up-btn" title="Lock screen (L)">&#128272;</button></span></div>
+<div class="up-eyebrow">&#9825; your darling clock &#9825; &middot; <a href="api/">api playground</a><span class="up-actions"><button id="kioskBtn" class="up-btn" title="Kiosk fullscreen (K)">&#9974;</button><button id="lockBtn" class="up-btn" title="Lock screen (L)">&#128272;</button></span></div>
 <div class="up-card">
 <div id="upPhase" data-phase="waiting">&#9675; COUNTING DOWN FOR YOU</div>
 <h1 id="upName">Loading&hellip;</h1>
@@ -2636,6 +2637,352 @@ var COLOR_TRANSITION_TABLE = null;
     with open(output_path, 'w', encoding='utf-8') as f:
         f.write(page)
     logger.info(f"Generated auto clock page: {output_path} ({len(manifest)} timers)")
+
+
+def build_api_explorer(manifest: list[dict[str, Any]], now: datetime) -> None:
+    """Generate output/api/index.html — an interactive API playground.
+
+    Endpoint tabs fetch the live JSON files (embedded snapshot = offline
+    fallback), a query console filters/sorts upcoming events with ticking
+    countdowns, and snippets show fetch/curl usage with copy buttons.
+    """
+    api_dir = OUTPUT_DIR / 'api'
+    api_dir.mkdir(parents=True, exist_ok=True)
+    output_path = api_dir / 'index.html'
+    gen_at = now.isoformat(timespec='seconds')
+    manifest_json = json.dumps(manifest)
+
+    tpl = r'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Playground &#9825; Displau</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root { --pink: #ff2d78; --red: #ff0f3f; --soft: #ffd6e7; --mut: #a06a85; --card: rgba(30,6,18,.72); --line: rgba(255,45,120,.28); }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', system-ui, sans-serif; color: #fff; min-height: 100vh;
+  background: radial-gradient(1000px 500px at 50% -8%, rgba(255,45,120,.14), transparent 60%), #0d0208; }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 2rem 1.25rem 3rem; display: flex; flex-direction: column; gap: 1.1rem; }
+.eyebrow { text-align: center; color: #e89bb8; font-size: .75rem; letter-spacing: .22em; text-transform: uppercase; font-weight: 700; }
+h1 { text-align: center; font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 800;
+  background: linear-gradient(120deg, #fff 20%, var(--pink) 60%, var(--red) 90%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.sub { text-align: center; color: var(--mut); font-size: .82rem; }
+.sub code { background: rgba(255,45,120,.1); border: 1px solid rgba(255,45,120,.2); padding: .05rem .4rem; border-radius: 6px; color: #ff9ec2; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.25rem; backdrop-filter: blur(14px); }
+.tabs { display: flex; gap: .5rem; flex-wrap: wrap; }
+.tab { background: rgba(255,45,120,.07); border: 1px solid var(--line); color: var(--soft);
+  border-radius: 10px; padding: .5rem .9rem; cursor: pointer; font-weight: 700; font-size: .82rem; font-family: 'JetBrains Mono', monospace; }
+.tab.active, .tab:hover { background: rgba(255,45,120,.22); }
+.statusline { font-family: 'JetBrains Mono', monospace; font-size: .75rem; color: var(--mut); margin: .7rem 0 .5rem; }
+.statusline b.ok { color: #00ff88; } .statusline b.off { color: #ffc107; }
+pre.view { background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.08); border-radius: 12px;
+  padding: 1rem; overflow: auto; max-height: 46vh; font-family: 'JetBrains Mono', monospace; font-size: .75rem; line-height: 1.55; }
+.j-k { color: #ff9ec2; } .j-s { color: #7fe3ff; } .j-n { color: #ffd166; } .j-b { color: #c084fc; }
+.qgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; margin-bottom: .8rem; }
+.qgrid label { font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--mut); display: flex; flex-direction: column; gap: .3rem; }
+.qgrid input, .qgrid select { background: rgba(0,0,0,.45); border: 1px solid var(--line); color: #fff;
+  border-radius: 8px; padding: .5rem .6rem; font-size: .85rem; font-family: inherit; }
+.qrow { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem .7rem; border-radius: 10px;
+  background: rgba(255,45,120,.05); border: 1px solid transparent; font-size: .85rem; margin-bottom: .4rem; }
+.qrow.is-cur { border-color: rgba(255,45,120,.45); background: rgba(255,45,120,.09); }
+.qname small { display: block; color: var(--mut); font-size: .72rem; }
+.qin { font-family: 'JetBrains Mono', monospace; color: var(--pink); white-space: nowrap; text-align: right; }
+.qin small { display: block; color: var(--mut); font-size: .68rem; }
+.snip { position: relative; margin-bottom: .7rem; }
+.snip pre { margin: 0; max-height: none; }
+.copy { position: absolute; top: .5rem; right: .5rem; background: rgba(255,45,120,.15);
+  border: 1px solid var(--line); color: #ff9ec2; border-radius: 8px; padding: .25rem .6rem; cursor: pointer; font-size: .72rem; font-weight: 700; }
+.copy:hover { background: rgba(255,45,120,.3); }
+.foot { text-align: center; color: var(--mut); font-size: .72rem; line-height: 1.8; }
+.foot a { color: var(--pink); }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">&#9825; displau api playground &#9825;</div>
+  <h1>Ask me anything, I dare you</h1>
+  <p class="sub">snapshot <code>__GEN_AT__</code> &middot; <span id="srcBadge">connecting&hellip;</span> &middot; <a href="../up-next.html" style="color:var(--pink)">open the clock</a></p>
+  <div class="card">
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-ep="timers">timers.json</button>
+      <button class="tab" data-ep="upnext">up-next.json</button>
+      <button class="tab" data-ep="status">status.json</button>
+      <button class="tab" data-ep="query">query &#9825;</button>
+      <button class="tab" data-ep="snippets">&lt;/&gt; snippets</button>
+    </div>
+    <div class="statusline" id="statusline"></div>
+    <div id="pane-view"><pre class="view" id="view">loading&hellip;</pre></div>
+    <div id="pane-query" style="display:none">
+      <div class="qgrid">
+        <label>show top <input id="qN" type="number" value="6" min="1" max="50"></label>
+        <label>search <input id="qText" type="text" placeholder="name, id, label&hellip;"></label>
+        <label>phase <select id="qPhase">
+          <option value="">any phase</option><option>waiting</option><option>in-class</option>
+          <option>starts</option><option>ends</option><option>checkpoint</option><option>one-shot</option>
+        </select></label>
+        <label>tag <input id="qTag" type="text" placeholder="e.g. courses" list="tagList"><datalist id="tagList"></datalist></label>
+      </div>
+      <div id="qList"></div>
+    </div>
+    <div id="pane-snippets" style="display:none">
+      <div class="snip"><button class="copy" data-copy="snipJs">copy</button><pre class="view" id="snipJs"></pre></div>
+      <div class="snip"><button class="copy" data-copy="snipCurl">copy</button><pre class="view" id="snipCurl"></pre></div>
+      <div class="snip"><button class="copy" data-copy="snipDom">copy</button><pre class="view" id="snipDom"></pre></div>
+    </div>
+  </div>
+  <div class="foot">built __BUILD__ &middot; raw files: <a href="timers.json">timers</a> &middot; <a href="up-next.json">up-next</a> &middot; <a href="status.json">status</a></div>
+</div>
+<script>
+(function () {
+'use strict';
+var EMBED = __MANIFEST__;
+var GEN_AT = '__GEN_AT__';
+var live = null; // timers array from timers.json when fetch works
+function entries() { return live || EMBED; }
+function setSrc(t) { document.getElementById('srcBadge').textContent = t; }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function hl2(obj) {
+  var j = esc(JSON.stringify(obj, null, 2));
+  j = j.replace(/"([^"]*)"(\s*:)?/g, function (m, inner, colon) {
+    return colon ? '<span class="j-k">"' + inner + '"</span>:' : '<span class="j-s">"' + inner + '"</span>';
+  });
+  j = j.replace(/\b(true|false|null)\b/g, '<span class="j-b">$1</span>');
+  j = j.replace(/(: )(-?\d[\d.]*)/g, '$1<span class="j-n">$2</span>');
+  return j;
+}
+/* ---- mini next-event engine (mirrors the auto clock) ---- */
+var WD = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+function nwd(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number' && isFinite(v)) { v = Math.trunc(v); return (v >= 0 && v <= 6) ? v : null; }
+  var s = String(v).trim().toLowerCase(), i = WD.indexOf(s);
+  if (i !== -1) return i;
+  var n = Number(s);
+  if (isFinite(n)) { n = Math.trunc(n); if (n >= 0 && n <= 6) return n; }
+  return null;
+}
+function pHMS(t) { var p = String(t || '00:00:00').split(':').map(Number); return { h: p[0] || 0, m: p[1] || 0, s: p[2] || 0 }; }
+function atT(day, t) { var p = pHMS(t); return new Date(day.getFullYear(), day.getMonth(), day.getDate(), p.h, p.m, p.s, 0); }
+function nxW(from, wd, t) { var p = pHMS(t), d = (wd - from.getDay() + 7) % 7;
+  var n = new Date(from.getFullYear(), from.getMonth(), from.getDate() + d, p.h, p.m, p.s, 0);
+  if (n.getTime() <= from.getTime()) n.setDate(n.getDate() + 7); return n; }
+function nextOf(e, now) {
+  if (e.recur) {
+    var rule = e.recur_rule || 'weekly';
+    if (rule === 'interval') {
+      var mins = Number(e.recur_interval_minutes);
+      if (!isFinite(mins) || mins <= 0) return null;
+      var iv = mins * 60000, a = e.recur_anchor ? new Date(e.recur_anchor) : (e.start_time ? new Date(e.start_time) : now);
+      if (isNaN(a.getTime())) a = now;
+      var t = now < a ? new Date(a.getTime()) : new Date(a.getTime() + Math.ceil((now - a) / iv) * iv);
+      if (t <= now) t = new Date(t.getTime() + iv);
+      return { target: t, phase: 'waiting', label: '' };
+    }
+    var slots = (e.recur_schedule || []).filter(function (s) { return rule === 'weekly' ? nwd(s.weekday) !== null : !!s.start; });
+    if (!slots.length) return null;
+    var best = null;
+    slots.forEach(function (s) {
+      var cands = [];
+      if (rule === 'daily') {
+        var st = atT(now, s.start), en = s.end ? atT(now, s.end) : null;
+        if (en && en <= st) en = new Date(en.getTime() + 864e5);
+        cands.push(en && now >= st && now < en ? { t: en, p: 'in-class', s: s } : { t: now < st ? st : new Date(st.getTime() + 864e5), p: 'waiting', s: s });
+      } else {
+        var wd = nwd(s.weekday);
+        var nx = nxW(now, wd, s.start);
+        var pr = new Date(nx.getTime() - 7 * 864e5);
+        var ed = s.end ? atT(pr, s.end) : null;
+        if (ed && ed <= pr) ed = new Date(ed.getTime() + 864e5);
+        cands.push(ed && now >= pr && now < ed ? { t: ed, p: 'in-class', s: s } : { t: nx, p: 'waiting', s: s });
+      }
+      cands.forEach(function (c) { if (!best || c.t < best.t) best = c; });
+    });
+    return best ? { target: best.t, phase: best.p, label: (best.s && best.s.label) || '' } : null;
+  }
+  var mode = e.display_mode || 'countdown';
+  if (mode === 'window') {
+    var o = e.window_start || e.start_time, c = e.window_end || e.target_time;
+    var op = o ? new Date(o) : null, cl = c ? new Date(c) : null;
+    if (!cl || isNaN(cl) || (op && cl <= op)) return null;
+    if (!op || now < op) return { target: op || cl, phase: 'starts', label: 'START' };
+    if (now < cl) return { target: cl, phase: 'ends', label: 'END' };
+    return null;
+  }
+  if (mode === 'checkpoints') {
+    var legs = (e.checkpoints || []).map(function (x) { return { at: new Date(x.at), label: x.label || '' }; })
+      .filter(function (x) { return !isNaN(x.at); }).sort(function (a, b) { return a.at - b.at; });
+    for (var i = 0; i < legs.length; i++) {
+      if (legs[i].at > now) return { target: legs[i].at, phase: 'checkpoint', label: legs[i].label || ('Checkpoint ' + (i + 1)) };
+    }
+    return null;
+  }
+  if (!e.target_time) return null;
+  var t = new Date(e.target_time);
+  return (isNaN(t) || t <= now) ? null : { target: t, phase: 'one-shot', label: '' };
+}
+function upcoming(n) {
+  var now = new Date(), out = [];
+  entries().forEach(function (e) {
+    var s = nextOf(e, now);
+    if (s) out.push({ e: e, target: s.target, phase: s.phase, label: s.label });
+  });
+  out.sort(function (a, b) { return a.target - b.target; });
+  return out.slice(0, n || 10);
+}
+function fmt(ms) {
+  if (ms < 0) ms = 0;
+  var s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
+      m = Math.floor((s % 3600) / 60), ss = s % 60;
+  if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
+  if (h > 0) return h + 'h ' + m + 'm ' + ss + 's';
+  if (m > 0) return m + 'm ' + String(ss).padStart(2, '0') + 's';
+  return (ms / 1000).toFixed(1) + 's';
+}
+/* ---- panes ---- */
+var view = document.getElementById('view'), statusline = document.getElementById('statusline');
+function show(obj, meta, offline) {
+  view.innerHTML = hl2(obj);
+  statusline.innerHTML = meta + (offline ? ' &middot; <b class="off">offline snapshot</b>' : ' &middot; <b class="ok">live</b>');
+}
+function ep(name) {
+  var map = { timers: 'timers.json', upnext: 'up-next.json', status: 'status.json' };
+  var t0 = performance.now();
+  return fetch(map[name], { cache: 'no-store' }).then(function (r) {
+    if (!r.ok) throw new Error('http ' + r.status);
+    return r.json().then(function (j) {
+      show(j, name + '.json &middot; ' + Math.round(performance.now() - t0) + 'ms', false);
+    });
+  }).catch(function () {
+    if (name === 'timers') { show({ generated_at: GEN_AT, count: EMBED.length, timers: EMBED }, 'timers.json (embedded)', true); }
+    else if (name === 'upnext') {
+      var up = upcoming(10);
+      show({ generated_at: new Date().toISOString(), current: up[0] || null, upcoming: up,
+        note: 'recomputed live in your browser from the embedded snapshot' }, 'up-next.json (embedded, live recompute)', true);
+    }
+    else {
+      var all = upcoming(500);
+      show({ generated_at: new Date().toISOString(), total: EMBED.length, upcoming: all.length,
+        recurring: EMBED.filter(function (e) { return e.recur; }).length }, 'status.json (embedded)', true);
+    }
+  });
+}
+/* ---- query ---- */
+function runQuery() {
+  var n = Math.max(1, Math.min(50, parseInt(document.getElementById('qN').value, 10) || 6));
+  var txt = (document.getElementById('qText').value || '').toLowerCase();
+  var ph = document.getElementById('qPhase').value;
+  var tag = (document.getElementById('qTag').value || '').toLowerCase();
+  var now = new Date(), list = document.getElementById('qList');
+  list.innerHTML = '';
+  var shown = 0;
+  upcoming(500).forEach(function (u, i) {
+    if (shown >= n) return;
+    var hay = (u.e.name + ' ' + u.e.id + ' ' + (u.e.description || '') + ' ' + u.label).toLowerCase();
+    if (txt && hay.indexOf(txt) === -1) return;
+    if (ph && u.phase !== ph) return;
+    if (tag && !(u.e.tags || []).map(function (t) { return String(t).toLowerCase(); }).includes(tag)) return;
+    var row = document.createElement('div');
+    row.className = 'qrow' + (i === 0 ? ' is-cur' : '');
+    row.innerHTML = '<span class="qname">' + esc(i === 0 ? '\u2665 ' + u.e.name : u.e.name) +
+      '<small>' + esc(u.e.id) + (u.label ? ' \u00b7 ' + esc(u.label) : '') + ' \u00b7 ' + esc(u.phase) + '</small></span>' +
+      '<span class="qin" data-t="' + u.target.getTime() + '"></span>';
+    list.appendChild(row);
+    shown++;
+  });
+  if (!shown) list.innerHTML = '<div class="qrow"><span class="qname">nothing matches\u2026 yet<small>loosen up those filters</small></span><span></span></div>';
+  paintCountdowns();
+}
+function paintCountdowns() {
+  var now = Date.now();
+  document.querySelectorAll('.qin[data-t]').forEach(function (el) {
+    var t = new Date(parseInt(el.getAttribute('data-t'), 10));
+    el.innerHTML = fmt(t - now) + '<small>' + t.toLocaleString() + '</small>';
+  });
+}
+setInterval(paintCountdowns, 1000);
+['qN', 'qText', 'qPhase', 'qTag'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', runQuery);
+});
+/* ---- tabs ---- */
+var panes = { view: 'pane-view', query: 'pane-query', snippets: 'pane-snippets' };
+document.querySelectorAll('#tabs .tab').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.querySelectorAll('#tabs .tab').forEach(function (x) { x.classList.remove('active'); });
+    b.classList.add('active');
+    var k = b.getAttribute('data-ep');
+    Object.keys(panes).forEach(function (p) { document.getElementById(panes[p]).style.display = 'none'; });
+    if (k === 'query') { document.getElementById('pane-query').style.display = ''; runQuery(); statusline.textContent = 'live query over ' + entries().length + ' timers'; }
+    else if (k === 'snippets') { document.getElementById('pane-snippets').style.display = ''; statusline.textContent = 'steal these, I insist \u2665'; }
+    else { document.getElementById('pane-view').style.display = ''; view.textContent = 'fetching\u2026'; ep(k); }
+  });
+});
+/* ---- snippets ---- */
+var base = location.href.replace(/\/[^/]*$/, '');
+document.getElementById('snipJs').textContent =
+  "// closest countdown, live in your own page \u2665\n" +
+  "const up = await fetch('" + base + "/up-next.json').then(r => r.json());\n" +
+  "console.log(up.current.name, 'in', up.current.next_in_s, 's');\n\n" +
+  "// or query the full manifest yourself\n" +
+  "const all = await fetch('" + base + "/timers.json').then(r => r.json());\n" +
+  "const soon = all.timers.filter(t => (t.next_in_s || 1e18) > 0)\n" +
+  "  .sort((a, b) => a.next_in_s - b.next_in_s).slice(0, 3);";
+document.getElementById('snipCurl').textContent =
+  "curl -s " + base + "/up-next.json | head -c 600\n" +
+  "curl -s " + base + "/status.json";
+document.getElementById('snipDom').textContent =
+  "<!-- drop the auto clock straight into any page -->\n" +
+  '<iframe src="' + base.replace(/\/api$/, '') + '/up-next.html?embed=1"\n' +
+  '  style="width:100%;height:420px;border:0;border-radius:16px"></iframe>';
+document.querySelectorAll('.copy').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var t = document.getElementById(b.getAttribute('data-copy')).textContent;
+    function done() { b.textContent = 'mine \u2665'; setTimeout(function () { b.textContent = 'copy'; }, 1200); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, done);
+    else { var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove(); done(); }
+  });
+});
+/* ---- boot ---- */
+(function boot() {
+  try {
+    var q = new URLSearchParams(location.search || '');
+    var tags = {};
+    EMBED.forEach(function (e) { (e.tags || []).forEach(function (t) { tags[t] = 1; }); });
+    document.getElementById('tagList').innerHTML = Object.keys(tags).map(function (t) { return '<option value="' + esc(t) + '">'; }).join('');
+  } catch (e) {}
+  fetch('timers.json', { cache: 'no-store' }).then(function (r) {
+    if (!r.ok) throw new Error('http');
+    return r.json();
+  }).then(function (j) {
+    if (j && Array.isArray(j.timers) && j.timers.length) { live = j.timers; setSrc('live \u2665 ' + live.length + ' timers'); }
+    else setSrc('snapshot ' + GEN_AT);
+  }).catch(function () { setSrc('snapshot ' + GEN_AT + ' (offline)'); });
+  var q2 = null;
+  try { q2 = new URLSearchParams(location.search || ''); } catch (e) {}
+  var want = q2 && q2.get('endpoint');
+  if (want === 'query' || want === 'snippets') {
+    var tab = document.querySelector('.tab[data-ep="' + want + '"]');
+    if (tab) tab.click(); else ep('timers');
+  } else {
+    ep(want === 'upnext' || want === 'status' ? want : 'timers');
+  }
+})();
+})();
+</script>
+</body>
+</html>'''
+
+    page = (tpl
+            .replace('__MANIFEST__', manifest_json)
+            .replace('__GEN_AT__', gen_at)
+            .replace('__BUILD__', f"{VERSION}"))
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(page)
+    logger.info(f"Generated API playground: {output_path}")
 
 
 def main() -> None:

@@ -187,6 +187,10 @@ Every `--timers-dir` build also generates:
   `next_target` / `next_in_s` / `next_phase` per timer.
 - `output/api/up-next.json` — current pick + next 10 upcoming.
 - `output/api/status.json` — counts + build info.
+- `output/api/index.html` — API playground: endpoint tabs that fetch the live
+  JSON (embedded snapshot = offline fallback), a query console with ticking
+  countdowns (filter by text/phase/tag), and copy-paste `fetch`/`curl`/iframe
+  snippets. Deep-link with `?endpoint=query`.
 
 ### Privacy lock (PIN screen)
 

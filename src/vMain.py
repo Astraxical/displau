@@ -199,8 +199,10 @@ def minify_js_safe(js: str) -> str:
                         continue
                     if d == '[':
                         in_class = True
+                        i += 1
                     elif d == ']':
                         in_class = False
+                        i += 1
                     elif d == '/' and not in_class:
                         i += 1
                         while i < n and _IDENT.match(js[i]):
@@ -234,11 +236,28 @@ _STYLE_RE = re.compile(r'(<style[^>]*>)(.*?)(</style>)', re.S | re.I)
 
 
 def obfuscate_html(html: str, page_id: str = 'page') -> str:
-    """One-way obfuscation pass over a finished HTML document."""
-    # 1. Inline scripts -> one mangled block (classic scripts share scope).
-    scripts = _INLINE_SCRIPT_RE.findall(html)
-    if scripts:
-        joined = '\n;\n'.join(scripts).replace('</script', '<\\/script')
+    """One-way obfuscation pass over a finished HTML document.
+
+    Scripts and markup are processed separately so minification can never
+    eat across a </script> boundary or touch JS string contents.
+    """
+    # Split into alternating [markup, script, markup, script, ...] tokens.
+    # External <script src=> blocks are left alone (only inline ones match).
+    tokens = _INLINE_SCRIPT_RE.split(html)
+    js_parts = tokens[1::2]
+
+    # 1. Markup parts: minify <style> contents, strip comments, collapse whitespace.
+    def _min_style(m: re.Match) -> str:
+        return m.group(1) + minify_css(m.group(2)) + m.group(3)
+
+    for i in range(0, len(tokens), 2):
+        tokens[i] = _STYLE_RE.sub(_min_style, tokens[i])
+        tokens[i] = re.sub(r'<!--.*?-->', '', tokens[i], flags=re.S)
+        tokens[i] = re.sub(r'>\s+<', '><', tokens[i])
+
+    # 2. Inline scripts -> one mangled block (classic scripts share scope).
+    if js_parts:
+        joined = '\n;\n'.join(js_parts)
         mangled: Optional[str] = None
         if terser_works():
             mangled = terser_minify_js(joined)
@@ -246,16 +265,20 @@ def obfuscate_html(html: str, page_id: str = 'page') -> str:
                 logger.warning(f"terser failed for {page_id}, using built-in minifier")
         if mangled is None:
             mangled = minify_js_safe(joined)
-        html, n = _INLINE_SCRIPT_RE.subn(f'<script>{mangled}</script>', html, count=1)
-        html = _INLINE_SCRIPT_RE.sub('', html)
-    # 2. Inline styles.
-    def _min_style(m: re.Match) -> str:
-        return m.group(1) + minify_css(m.group(2)) + m.group(3)
-    html = _STYLE_RE.sub(_min_style, html)
-    # 3. Comments + inter-tag whitespace.
-    html = re.sub(r'<!--.*?-->', '', html, flags=re.S)
-    html = re.sub(r'>\s+<', '><', html)
-    return html.strip()
+        # NOTE: a literal </script> inside the payload would prematurely close
+        # our own block (terser re-emits <\/script> unescaped) — escape it.
+        mangled = mangled.replace('</script', '<\\/script')
+        tokens[1] = mangled
+        for i in range(3, len(tokens), 2):
+            tokens[i] = ''
+
+    # 3. Reassemble.
+    out = tokens[0]
+    for k in range(len(js_parts)):
+        if tokens[1 + 2 * k]:
+            out += '<script>' + tokens[1 + 2 * k] + '</script>'
+        out += tokens[2 + 2 * k]
+    return out.strip()
 
 
 def write_html_file(path: Path, content: str) -> int:

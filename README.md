@@ -193,7 +193,6 @@ Every `--timers-dir` build also generates:
   snippets. Deep-link with `?endpoint=query`.
 
 ### Privacy lock (PIN screen)
-
 Keep annoying people out of your timers with a PIN gate over every page
 (selector, timer pages, auto clock). Unlock lasts for the tab session; press
 `L` or the 🔒 button to re-lock.
@@ -224,6 +223,14 @@ Per-timer color journey + page background via `"theme"`:
 `toxic` (default), `yandere`, `amber`, `ice`, `blood`, `violet`, `midnight`.
 An explicit `color_transition_table` always wins over the theme. The auto
 clock follows each timer's theme as it switches.
+
+### HTML obfuscation (one-way)
+
+Every build mangles all generated HTML through `terser` (full variable
+mangling + compression, inline scripts merged into one block) with a built-in
+minifier as offline fallback — view-source snoops bounce off. Toggle in
+`config/build.json` (`build.obfuscate`) or per-run with `--no-obfuscate`
+for readable output.
 
 ## Build Script Usage
 

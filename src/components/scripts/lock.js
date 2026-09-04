@@ -83,17 +83,19 @@ function buildLockScreen() {
         '<div class="lock-icon">\uD83D\uDD12</div>' +
         '<div class="lock-title">Private timers</div>' +
         '<div class="lock-sub">Enter PIN to peek \u2665</div>' +
-        '<div class="lock-dots" id="lockDots"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>' +
+        '<div class="lock-dots" id="lockDots">' + '<span></span>'.repeat(12) + '</div>' +
         '<div class="lock-pad" id="lockPad">' +
         ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '\u232B'].map(function (k) {
             return '<button type="button" data-key="' + k + '">' + k + '</button>';
         }).join('') +
         '</div>' +
+        '<button type="button" class="lock-go" id="lockGo">UNLOCK \u2665</button>' +
         (LOCK_HINT ? '<div class="lock-hint">' + LOCK_HINT.replace(/</g, '&lt;') + '</div>' : '') +
         '</div>';
     document.body.appendChild(scr);
 
     var pin = '';
+    var MAX_PIN = 12;
     var dots = scr.querySelectorAll('#lockDots span');
     function paint() {
         dots.forEach(function (d, i) { d.classList.toggle('on', i < pin.length); });
@@ -117,26 +119,28 @@ function buildLockScreen() {
             var k = b.getAttribute('data-key');
             if (k === 'C') { pin = ''; }
             else if (k === '\u232B') { pin = pin.slice(0, -1); }
-            else if (pin.length < 8) { pin += k; }
+            else if (pin.length < MAX_PIN) { pin += k; }
             paint();
-            if (pin.length >= 4) submit();
         });
     });
+    var go = scr.querySelector('#lockGo');
+    if (go) go.addEventListener('click', submit);
     document.addEventListener('keydown', function lockKeys(e) {
         if (!document.getElementById('lockScreen')) {
             document.removeEventListener('keydown', lockKeys);
             return;
         }
-        if (/^[0-9]$/.test(e.key) && pin.length < 8) {
+        if (/^[0-9]$/.test(e.key) && pin.length < MAX_PIN) {
             pin += e.key;
             paint();
-            if (pin.length >= 4) submit();
         } else if (e.key === 'Backspace') {
             pin = pin.slice(0, -1);
             paint();
         } else if (e.key === 'Escape') {
             pin = '';
             paint();
+        } else if (e.key === 'Enter') {
+            submit();
         }
     });
     paint();

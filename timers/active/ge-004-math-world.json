@@ -1,7 +1,7 @@
 {
     "id": "ge-004-math-world",
     "display_name": "Mathematics in the Modern World",
-    "description": "GE 004 · Tue 7:00–11:00am · Room 310",
+    "description": "GE 004 \u00b7 Tue 7:00\u201311:00am \u00b7 Room 310",
     "target_time": "2026-08-11T07:00:00",
     "start_time": "2026-08-04T00:00:00",
     "direction": "down",
@@ -10,13 +10,22 @@
     "on_expire": "stop",
     "display_on_expire": true,
     "enabled": true,
-    "tags": ["course", "mathematics", "ge"],
+    "tags": [
+        "course",
+        "mathematics",
+        "ge"
+    ],
     "category": "courses",
     "color_theme": "progress",
     "show_milliseconds": true,
     "timezone": "UTC+8",
     "recur": true,
-    "recur_weekday": "Tuesday",
-    "recur_time": "07:00",
-    "recur_end": "11:00"
+    "recur_rule": "weekly",
+    "recur_schedule": [
+        {
+            "weekday": "Tuesday",
+            "start": "07:00",
+            "end": "11:00"
+        }
+    ]
 }

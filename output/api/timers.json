@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-04T12:02:20",
+  "generated_at": "2026-09-04T12:17:50",
   "count": 12,
   "timers": [
     {
@@ -34,7 +34,7 @@
       ],
       "category": "courses",
       "next_target": "2026-09-05T08:00:00",
-      "next_in_s": 71859.443725,
+      "next_in_s": 70929.303138,
       "next_phase": "waiting",
       "next_slot": {
         "weekday": 6,
@@ -74,7 +74,7 @@
       ],
       "category": "courses",
       "next_target": "2026-09-05T13:30:00",
-      "next_in_s": 91659.443725,
+      "next_in_s": 90729.303138,
       "next_phase": "waiting",
       "next_slot": {
         "weekday": 6,
@@ -114,7 +114,7 @@
       ],
       "category": "courses",
       "next_target": "2026-09-07T08:30:00",
-      "next_in_s": 246459.443725,
+      "next_in_s": 245529.303138,
       "next_phase": "waiting",
       "next_slot": {
         "weekday": 1,
@@ -155,7 +155,7 @@
       ],
       "category": "courses",
       "next_target": "2026-09-07T14:00:00",
-      "next_in_s": 266259.443725,
+      "next_in_s": 265329.303138,
       "next_phase": "waiting",
       "next_slot": {
         "weekday": 1,
@@ -196,7 +196,7 @@
       ],
       "category": "courses",
       "next_target": "2026-09-08T07:00:00",
-      "next_in_s": 327459.443725,
+      "next_in_s": 326529.303138,
       "next_phase": "waiting",
       "next_slot": {
         "weekday": 2,
@@ -208,7 +208,7 @@
     {
       "id": "ge-008-ethics",
       "name": "Ethics",
-      "description": "GE 008 \u00b7 Tue 12:00nn\u20132:00pm \u00b7 Room 311",
+      "description": "GE 008 \u00b7 Tue 12:00nn\u20134:00pm \u00b7 Room 311",
       "html_file": "ge-008-ethics.html",
       "target_time": "2026-08-11T12:00:00",
       "start_time": "2026-08-04T00:00:00",
@@ -224,7 +224,7 @@
         {
           "weekday": 2,
           "start": "12:00:00",
-          "end": "14:00:00",
+          "end": "16:00:00",
           "label": ""
         }
       ],
@@ -237,12 +237,12 @@
       ],
       "category": "courses",
       "next_target": "2026-09-08T12:00:00",
-      "next_in_s": 345459.443725,
+      "next_in_s": 344529.303138,
       "next_phase": "waiting",
       "next_slot": {
         "weekday": 2,
         "start": "12:00:00",
-        "end": "14:00:00",
+        "end": "16:00:00",
         "label": ""
       }
     },
@@ -278,7 +278,7 @@
       ],
       "category": "courses",
       "next_target": "2026-09-09T07:30:00",
-      "next_in_s": 415659.443725,
+      "next_in_s": 414729.303138,
       "next_phase": "waiting",
       "next_slot": {
         "weekday": 3,
@@ -318,7 +318,7 @@
       ],
       "category": "courses",
       "next_target": "2026-09-09T12:00:00",
-      "next_in_s": 431859.443725,
+      "next_in_s": 430929.303138,
       "next_phase": "waiting",
       "next_slot": {
         "weekday": 3,
@@ -358,7 +358,7 @@
       ],
       "category": "courses",
       "next_target": "2026-09-10T12:00:00",
-      "next_in_s": 518259.443725,
+      "next_in_s": 517329.303138,
       "next_phase": "waiting",
       "next_slot": {
         "weekday": 4,
@@ -409,7 +409,7 @@
       ],
       "category": "demos",
       "next_target": "2026-09-11T20:30:00",
-      "next_in_s": 635259.443725,
+      "next_in_s": 634329.303138,
       "next_phase": "checkpoint",
       "next_slot": {
         "label": "Doors open",
@@ -442,7 +442,7 @@
       ],
       "category": "demos",
       "next_target": "2026-09-11T20:30:00",
-      "next_in_s": 635259.443725,
+      "next_in_s": 634329.303138,
       "next_phase": "starts",
       "next_slot": {
         "label": "START"
@@ -469,7 +469,7 @@
       "tags": [],
       "category": null,
       "next_target": "2026-04-15T00:00:00",
-      "next_in_s": -12312140.556275,
+      "next_in_s": -12313070.696862,
       "next_phase": "expired"
     }
   ]

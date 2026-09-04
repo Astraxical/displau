@@ -1,7 +1,7 @@
 {
     "id": "mat-202-algebra",
     "display_name": "College and Advanced Algebra",
-    "description": "MAT 202 · Thu 12:00nn–4:00pm · Room 312",
+    "description": "MAT 202 \u00b7 Thu 12:00nn\u20134:00pm \u00b7 Room 312",
     "target_time": "2026-08-13T12:00:00",
     "start_time": "2026-08-06T00:00:00",
     "direction": "down",
@@ -10,13 +10,21 @@
     "on_expire": "stop",
     "display_on_expire": true,
     "enabled": true,
-    "tags": ["course", "mathematics"],
+    "tags": [
+        "course",
+        "mathematics"
+    ],
     "category": "courses",
     "color_theme": "progress",
     "show_milliseconds": true,
     "timezone": "UTC+8",
     "recur": true,
-    "recur_weekday": "Thursday",
-    "recur_time": "12:00",
-    "recur_end": "16:00"
+    "recur_rule": "weekly",
+    "recur_schedule": [
+        {
+            "weekday": "Thursday",
+            "start": "12:00",
+            "end": "16:00"
+        }
+    ]
 }

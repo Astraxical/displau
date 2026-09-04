@@ -1,4 +1,106 @@
 // ============================================
+// RECURRING SCHEDULE ENGINE (weekly multi-slot / daily / interval)
+// ============================================
+
+function recurTimeToParts(t) {
+    const p = String(t || '00:00:00').split(':').map(Number);
+    return { h: p[0] || 0, m: p[1] || 0, s: p[2] || 0 };
+}
+
+function recurAtTime(day, t) {
+    const p = recurTimeToParts(t);
+    return new Date(day.getFullYear(), day.getMonth(), day.getDate(), p.h, p.m, p.s, 0);
+}
+
+function recurNextWeekday(from, wd, t) {
+    const p = recurTimeToParts(t);
+    const diff = (wd - from.getDay() + 7) % 7;
+    const n = new Date(from.getFullYear(), from.getMonth(), from.getDate() + diff, p.h, p.m, p.s, 0);
+    if (n <= from) n.setDate(n.getDate() + 7);
+    return n;
+}
+
+function recurPrevWeekday(from, wd, t) {
+    const p = recurTimeToParts(t);
+    const diff = (from.getDay() - wd + 7) % 7;
+    const pr = new Date(from.getFullYear(), from.getMonth(), from.getDate() - diff, p.h, p.m, p.s, 0);
+    if (pr > from) pr.setDate(pr.getDate() - 7);
+    return pr;
+}
+
+/**
+ * Progress across the current recurrence cycle.
+ * @param {{rule: string, slots: Array, interval: number|null, anchor: string|null}|null} src
+ * @returns {{progress: number, text: string}}
+ */
+function recurProgress(src, now) {
+    const fmt = (p) => `${p.toFixed(2).toString().padStart(6, '0')}%`;
+    if (!src) return { progress: 0, text: fmt(0) };
+    const rule = src.rule || 'weekly';
+
+    if (rule === 'interval') {
+        const mins = Number(src.interval);
+        if (!isFinite(mins) || mins <= 0) return { progress: 0, text: fmt(0) };
+        const iv = mins * 60000;
+        const anchor = src.anchor ? new Date(src.anchor) : now;
+        const a = isNaN(anchor) ? now : anchor;
+        let target;
+        if (now < a) target = new Date(a.getTime());
+        else {
+            const k = Math.ceil((now - a) / iv);
+            target = new Date(a.getTime() + k * iv);
+            if (target <= now) target = new Date(target.getTime() + iv);
+        }
+        const prev = new Date(target.getTime() - iv);
+        const p = ((now - prev) / iv) * 100;
+        return { progress: p, text: fmt(p) };
+    }
+
+    const slots = (src.slots || []).filter(s => rule === 'weekly' ? (s.weekday !== null && s.weekday !== undefined) : !!s.start);
+    if (!slots.length) return { progress: 0, text: fmt(0) };
+
+    let best = null; // {target, prev}
+    const consider = (target, prev) => {
+        if (target > now && (!best || target < best.target)) best = { target, prev };
+    };
+
+    if (rule === 'daily') {
+        slots.forEach(s => {
+            const st = recurAtTime(now, s.start);
+            let en = s.end ? recurAtTime(now, s.end) : null;
+            if (en && en <= st) en = new Date(en.getTime() + 86400000);
+            if (en && now >= st && now < en) {
+                const p = ((now - st) / (en - st)) * 100;
+                if (!best || en < best.target) best = { target: en, prev: st, forced: p };
+            } else if (now < st) {
+                consider(st, new Date(st.getTime() - 86400000));
+            } else {
+                consider(new Date(st.getTime() + 86400000), st);
+            }
+        });
+    } else {
+        slots.forEach(s => {
+            const nx = recurNextWeekday(now, s.weekday, s.start);
+            const pr = recurPrevWeekday(now, s.weekday, s.start);
+            let en = s.end ? recurAtTime(pr, s.end) : null;
+            if (en && en <= pr) en = new Date(en.getTime() + 86400000);
+            if (en && now >= pr && now < en) {
+                const p = ((now - pr) / (en - pr)) * 100;
+                if (!best || en < best.target) best = { target: en, prev: pr, forced: p };
+            } else {
+                consider(nx, pr);
+            }
+        });
+    }
+
+    if (!best) return { progress: 0, text: fmt(0) };
+    const p = best.forced !== undefined
+        ? best.forced
+        : ((now - best.prev) / (best.target - best.prev)) * 100;
+    return { progress: p, text: fmt(p) };
+}
+
+// ============================================
 // REAL-TIME PROGRESS BAR UPDATES
 // ============================================
 
@@ -9,41 +111,12 @@ function updateProgressBars() {
     const now = new Date();
 
     document.querySelectorAll('.timer-card').forEach(card => {
-        // Recurring weekly timers: compute progress from the weekly schedule
+        // Recurring timers: progress from the embedded schedule blob
+        // {rule, slots:[{weekday,start,end}], interval, anchor}.
         if (card.dataset.recur) {
-            const weekday = parseInt(card.dataset.recurWeekday || '0', 10);
-            const [sh, sm] = (card.dataset.recurTime || '00:00').split(':').map(Number);
-            const endParts = (card.dataset.recurEnd || '').split(':');
-            const endSet = endParts.length >= 2;
-
-            const now = new Date();
-            // Build next occurrence in local time (day 0 = Sunday, matching JS getDay)
-            let diff = (weekday - now.getDay() + 7) % 7;
-            const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff, sh, sm, 0, 0);
-            if (next <= now) next.setDate(next.getDate() + 7);
-            const prev = new Date(next.getTime() - 7 * 86400000);
-
-            // Check if currently in class
-            let inClass = false;
-            let classEnd = null;
-            if (endSet) {
-                const [eh, em] = endParts.map(Number);
-                classEnd = new Date(prev.getFullYear(), prev.getMonth(), prev.getDate(), eh, em, 0, 0);
-                inClass = now >= prev && now < classEnd;
-            }
-
-            let progress, progressText;
-            if (inClass && classEnd) {
-                const total = classEnd - prev;
-                const elapsed = now - prev;
-                progress = (elapsed / total) * 100;
-                progressText = `${progress.toFixed(2).toString().padStart(6, '0')}%`;
-            } else {
-                const total = 7 * 86400000;
-                const elapsed = now - prev;
-                progress = (elapsed / total) * 100;
-                progressText = `${progress.toFixed(2).toString().padStart(6, '0')}%`;
-            }
+            let src = null;
+            try { src = JSON.parse(card.dataset.recurSrc || 'null'); } catch (e) { src = null; }
+            const res = recurProgress(src, new Date());
 
             if (card.dataset.status !== 'running') {
                 card.dataset.status = 'running';
@@ -56,8 +129,8 @@ function updateProgressBars() {
 
             const progressFill = card.querySelector('.progress-fill');
             const progressTextEl = card.querySelector('.progress-text');
-            if (progressFill) progressFill.style.width = `${progress}%`;
-            if (progressTextEl) progressTextEl.textContent = progressText;
+            if (progressFill) progressFill.style.width = `${res.progress}%`;
+            if (progressTextEl) progressTextEl.textContent = res.text;
             return;
         }
 

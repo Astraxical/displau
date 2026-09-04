@@ -17,6 +17,13 @@ from vMain import (
     replace_placeholders,
     get_config_url,
     validate_timer_config,
+    normalize_recur_schedule,
+    normalize_checkpoints,
+    window_bounds,
+    next_event_for_timer,
+    minify_js_safe,
+    minify_css,
+    obfuscate_html,
     HAS_SCHEMA,
     GITHUB_REPO,
     GITHUB_BRANCH,
@@ -211,7 +218,6 @@ class TestTimerConfigValidation:
 
 class TestBuildConfig:
     """Tests for build configuration loading."""
-
     def test_version_loaded(self):
         """Test that version is loaded from config."""
         assert VERSION is not None
@@ -246,3 +252,73 @@ class TestIntegration:
                 data = json.load(f)
                 assert 'id' in data
                 assert 'target_time' in data
+
+
+class TestRecurNormalize:
+    """Tests for recurrence normalization helpers."""
+
+    def test_legacy_single_slot(self):
+        timer = {'recur_weekday': 'Thursday', 'recur_time': '12:00', 'recur_end': '16:00'}
+        slots = normalize_recur_schedule(timer)
+        assert slots == [{'weekday': 4, 'start': '12:00:00', 'end': '16:00:00', 'label': ''}]
+
+    def test_schedule_passthrough(self):
+        timer = {'recur_schedule': [
+            {'weekday': 'Monday', 'start': '08:30', 'end': '12:30', 'label': 'Lecture'},
+            {'weekday': 4, 'time': '12:00'},
+        ]}
+        slots = normalize_recur_schedule(timer)
+        assert slots[0] == {'weekday': 1, 'start': '08:30:00', 'end': '12:30:00', 'label': 'Lecture'}
+        assert slots[1]['start'] == '12:00:00'
+        assert slots[1]['end'] is None
+
+    def test_checkpoints_sorted(self):
+        timer = {'checkpoints': [
+            {'at': '2026-09-11T23:00:00', 'label': 'End'},
+            {'at': '2026-09-11T20:30:00', 'label': 'Doors'},
+            {'at': 'not-a-date'},
+        ]}
+        legs = normalize_checkpoints(timer)
+        assert [l['label'] for l in legs] == ['Doors', 'End']
+
+    def test_window_phases(self):
+        timer = {'display_mode': 'window',
+                 'window_start': '2026-09-11T20:30:00',
+                 'window_end': '2026-09-11T23:00:00'}
+        assert next_event_for_timer(timer, datetime(2026, 9, 4))['phase'] == 'starts'
+        assert next_event_for_timer(timer, datetime(2026, 9, 11, 21, 0))['phase'] == 'ends'
+        assert next_event_for_timer(timer, datetime(2026, 9, 12))['phase'] == 'expired'
+
+    def test_window_bounds_fallback(self):
+        start, end = window_bounds({'start_time': '2026-01-01T00:00:00',
+                                    'target_time': '2026-01-01T02:00:00'})
+        assert (end - start).total_seconds() == 7200
+
+
+class TestObfuscation:
+    """Tests for the one-way HTML obfuscation pass."""
+
+    def test_minify_js_safe_keeps_strings_and_regex(self):
+        js = ('// comment\n'
+              'var url = "https://x.test/a"; /* block */\n'
+              "var re = /^#?([a-f\\d]{2})+$/i;\n"
+              'var t = `a${1 + 2}b`;\n'
+              'function f(a, b) { return a + b; }\n')
+        out = minify_js_safe(js)
+        assert '//' not in out.replace('https://', '').replace('http://', '')
+        assert 'https://x.test/a' in out
+        assert '/^#?([a-f\\d]{2})+$/' in out
+        assert '`a${1 + 2}b`' in out
+        assert 'function f(a,b){return a+b;}' in out
+
+    def test_minify_css(self):
+        css = '/* c */ .a { color: red; margin: 0 auto; }'
+        assert minify_css(css) == '.a{color:red;margin:0 auto;}'
+
+    def test_obfuscate_html_preserves_src_scripts(self):
+        html = ('<html><head><style>/* c */ .a { color: red; }</style></head>'
+                '<body><script src="x.js"></script><script>var a = 1; // c\n</script></body></html>')
+        out = obfuscate_html(html, 'test')
+        assert '<script src="x.js"></script>' in out
+        assert '/* c */' not in out
+        assert len(out) < len(html)

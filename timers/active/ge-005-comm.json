@@ -1,7 +1,7 @@
 {
     "id": "ge-005-comm",
     "display_name": "Purposive Communication",
-    "description": "GE 005 · Mon 2:00–6:00pm · Room 304",
+    "description": "GE 005 \u00b7 Mon 2:00\u20136:00pm \u00b7 Room 304",
     "target_time": "2026-08-10T14:00:00",
     "start_time": "2026-08-03T00:00:00",
     "direction": "down",
@@ -10,13 +10,22 @@
     "on_expire": "stop",
     "display_on_expire": true,
     "enabled": true,
-    "tags": ["course", "communication", "ge"],
+    "tags": [
+        "course",
+        "communication",
+        "ge"
+    ],
     "category": "courses",
     "color_theme": "progress",
     "show_milliseconds": true,
     "timezone": "UTC+8",
     "recur": true,
-    "recur_weekday": "Monday",
-    "recur_time": "14:00",
-    "recur_end": "18:00"
+    "recur_rule": "weekly",
+    "recur_schedule": [
+        {
+            "weekday": "Monday",
+            "start": "14:00",
+            "end": "18:00"
+        }
+    ]
 }

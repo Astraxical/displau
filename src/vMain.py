@@ -11,9 +11,11 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
@@ -43,6 +45,227 @@ THEME_CHOICES = ('toxic', 'yandere', 'amber', 'ice', 'blood', 'violet', 'midnigh
 def js_str(value: str) -> str:
     """Escape a string for safe embedding inside a single-quoted JS literal."""
     return str(value or '').replace('\\', '\\\\').replace("'", "\\'").replace('\n', ' ')
+
+
+# ---------------------------------------------------------------------------
+# HTML obfuscation (one-way): minify + mangle so view-source snoops bounce off.
+# ---------------------------------------------------------------------------
+OBFUSCATE = bool(BUILD_CONFIG.get('build', {}).get('obfuscate', True))
+_TERSER_STATE: Optional[bool] = None  # None = unprobed, True/False = works/broken
+
+
+def terser_works() -> bool:
+    """Probe once whether `npx terser` is usable (downloads on first use)."""
+    global _TERSER_STATE
+    if _TERSER_STATE is None:
+        if shutil.which('npx') is None:
+            _TERSER_STATE = False
+        else:
+            try:
+                r = subprocess.run(['npx', '-y', 'terser', '--version'],
+                                   capture_output=True, text=True, timeout=120)
+                _TERSER_STATE = r.returncode == 0
+            except Exception:
+                _TERSER_STATE = False
+        logger.info(f"Obfuscation engine: {'terser' if _TERSER_STATE else 'built-in minifier'}")
+    return _TERSER_STATE
+
+
+def terser_minify_js(js: str) -> Optional[str]:
+    """Full mangle+compress via terser. Returns None on any failure."""
+    try:
+        with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False, encoding='utf-8') as f:
+            f.write(js)
+            tmp = f.name
+        try:
+            r = subprocess.run(['npx', '-y', 'terser', tmp,
+                                '--compress', '--mangle', '--toplevel'],
+                               capture_output=True, text=True, timeout=180)
+        finally:
+            try:
+                Path(tmp).unlink()
+            except OSError:
+                pass
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout
+        return None
+    except Exception:
+        return None
+
+
+_IDENT = re.compile(r'[A-Za-z0-9_$]')
+_REGEX_KEYWORDS = ('return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete',
+                   'void', 'yield', 'await', 'else', 'do', 'case', 'throw')
+
+
+def minify_js_safe(js: str) -> str:
+    """Conservative comment/whitespace stripper (fallback when terser is missing).
+
+    Tokenizer-aware: never touches string, template-literal, or regex contents.
+    """
+    out: list[str] = []
+    i, n = 0, len(js)
+    prev_sig = ''
+    pending_space = False
+
+    def need_space(c: str) -> bool:
+        if _IDENT.match(prev_sig or '') and _IDENT.match(c or ''):
+            return True
+        if prev_sig in ('+', '-') and c in ('+-'):
+            return True
+        return False
+
+    def emit(c: str) -> None:
+        nonlocal prev_sig, pending_space
+        if pending_space:
+            if need_space(c):
+                out.append(' ')
+            pending_space = False
+        out.append(c)
+        if not c.isspace():
+            prev_sig = c
+
+    def last_word() -> str:
+        m = re.search(r'[A-Za-z_$][A-Za-z0-9_$]*$', ''.join(out))
+        return m.group(0) if m else ''
+
+    while i < n:
+        c = js[i]
+        nxt = js[i + 1] if i + 1 < n else ''
+        # whitespace
+        if c in ' \t\r\n\f\v':
+            pending_space = True
+            i += 1
+            continue
+        # strings
+        if c in ('"', "'"):
+            emit(c)
+            i += 1
+            while i < n:
+                d = js[i]
+                emit(d)
+                i += 1
+                if d == '\\' and i < n:
+                    emit(js[i])
+                    i += 1
+                elif d == c:
+                    break
+            continue
+        # template literals (with ${} nesting)
+        if c == '`':
+            emit(c)
+            i += 1
+            depth = 0
+            while i < n:
+                d = js[i]
+                emit(d)
+                i += 1
+                if d == '\\' and i < n:
+                    emit(js[i])
+                    i += 1
+                elif d == '`' and depth == 0:
+                    break
+                elif d == '$' and i < n and js[i] == '{':
+                    emit(js[i])
+                    i += 1
+                    depth += 1
+                elif d == '}' and depth > 0:
+                    depth -= 1
+            continue
+        # // line comment (a // pair can never start a regex)
+        if c == '/' and nxt == '/':
+            while i < n and js[i] != '\n':
+                i += 1
+            continue
+        # /* block comment (a /* pair can never start a regex)
+        if c == '/' and nxt == '*':
+            i += 2
+            while i + 1 < n and not (js[i] == '*' and js[i + 1] == '/'):
+                i += 1
+            i += 2
+            continue
+        # lone / : regex literal vs division
+        if c == '/':
+            if prev_sig == '' or prev_sig in ',=:[!&|?{}();+-*%^~<>' or last_word() in _REGEX_KEYWORDS:
+                emit(c)  # opening slash
+                i += 1
+                in_class = False
+                while i < n:
+                    d = js[i]
+                    emit(d)
+                    if d == '\\' and i + 1 < n:
+                        emit(js[i + 1])
+                        i += 2
+                        continue
+                    if d == '[':
+                        in_class = True
+                    elif d == ']':
+                        in_class = False
+                    elif d == '/' and not in_class:
+                        i += 1
+                        while i < n and _IDENT.match(js[i]):
+                            emit(js[i])
+                            i += 1
+                        break
+                    elif d == '\n':
+                        i += 1
+                        break
+                    else:
+                        i += 1
+                continue
+            emit(c)
+            i += 1
+            continue
+        emit(c)
+        i += 1
+    return ''.join(out)
+
+
+def minify_css(css: str) -> str:
+    """Whitespace/comment collapse. Safe: our stylesheets use no significant spaces."""
+    css = re.sub(r'/\*.*?\*/', '', css, flags=re.S)
+    css = re.sub(r'\s+', ' ', css)
+    css = re.sub(r'\s*([{}:;,>~+])\s*', r'\1', css)
+    return css.strip()
+
+
+_INLINE_SCRIPT_RE = re.compile(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', re.S | re.I)
+_STYLE_RE = re.compile(r'(<style[^>]*>)(.*?)(</style>)', re.S | re.I)
+
+
+def obfuscate_html(html: str, page_id: str = 'page') -> str:
+    """One-way obfuscation pass over a finished HTML document."""
+    # 1. Inline scripts -> one mangled block (classic scripts share scope).
+    scripts = _INLINE_SCRIPT_RE.findall(html)
+    if scripts:
+        joined = '\n;\n'.join(scripts).replace('</script', '<\\/script')
+        mangled: Optional[str] = None
+        if terser_works():
+            mangled = terser_minify_js(joined)
+            if mangled is None:
+                logger.warning(f"terser failed for {page_id}, using built-in minifier")
+        if mangled is None:
+            mangled = minify_js_safe(joined)
+        html, n = _INLINE_SCRIPT_RE.subn(f'<script>{mangled}</script>', html, count=1)
+        html = _INLINE_SCRIPT_RE.sub('', html)
+    # 2. Inline styles.
+    def _min_style(m: re.Match) -> str:
+        return m.group(1) + minify_css(m.group(2)) + m.group(3)
+    html = _STYLE_RE.sub(_min_style, html)
+    # 3. Comments + inter-tag whitespace.
+    html = re.sub(r'<!--.*?-->', '', html, flags=re.S)
+    html = re.sub(r'>\s+<', '><', html)
+    return html.strip()
+
+
+def write_html_file(path: Path, content: str) -> int:
+    """Write an HTML file, obfuscating first unless disabled. Returns byte size."""
+    if OBFUSCATE:
+        content = obfuscate_html(content, path.name)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    return path.stat().st_size
 
 # Extract config values
 VERSION = BUILD_CONFIG['version']
@@ -764,10 +987,7 @@ def build_html(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(final_html)
-        
-        file_size = output_path.stat().st_size
+        file_size = write_html_file(output_path, final_html)
         stats.add_success(file_size)
         
         logger.info(f"Generated {output_path} ({file_size:,} bytes)")
@@ -1295,9 +1515,15 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
                 'recur': is_recurring,
             }
             if is_recurring:
-                timer_entry['recur_weekday'] = weekday_to_number(timer.get('recur_weekday'))
-                timer_entry['recur_time'] = timer.get('recur_time', '00:00')
-                timer_entry['recur_end'] = timer.get('recur_end')
+                # Full schedule blob for the live selector engine (weekly
+                # multi-slot, daily, interval). Single-quotes escaped: the
+                # browser decodes &#39; back when reading dataset.
+                timer_entry['recur_src'] = json.dumps({
+                    'rule': str(timer.get('recur_rule', 'weekly') or 'weekly'),
+                    'slots': normalize_recur_schedule(timer),
+                    'interval': timer.get('recur_interval_minutes'),
+                    'anchor': timer.get('recur_anchor') or timer.get('start_time'),
+                }).replace("'", "&#39;")
             timers_data.append(timer_entry)
 
     status_order = {'running': 0, 'upcoming': 1, 'ended': 2}
@@ -1312,12 +1538,7 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
     for timer in timers_data:
         recur_attrs = ''
         if timer.get('recur'):
-            recur_attrs = (
-                f' data-recur="1"'
-                f' data-recur-weekday="{timer.get("recur_weekday", 0)}"'
-                f' data-recur-time="{timer.get("recur_time", "00:00")}"'
-                f' data-recur-end="{timer.get("recur_end") or ""}"'
-            )
+            recur_attrs = f" data-recur=\"1\" data-recur-src='{timer.get('recur_src', '{}')}'"
         timer_cards += f'''
         <div class="timer-card" data-status="{timer['status']}" data-name="{timer['id']}"{recur_attrs}>
             <div class="card-header">
@@ -1766,18 +1987,17 @@ def generate_selector(timers_list: list[dict[str, Any]]) -> None:
 </body>
 </html>'''
 
-    with open(output_path, 'w', encoding='utf-8') as f:
-        html_content = html_content.replace('__VERSION_TYPE__', version_type).replace('__BUILD_DATE__', build_date)
-        # Privacy lock screen (dormant unless a PIN hash is configured).
-        lock_css = load_component(COMPONENTS_DIR / 'styles' / 'lock.css')
-        lock_js = load_component(COMPONENTS_DIR / 'scripts' / 'lock.js')
-        if LOCK_ENABLED and LOCK_HASH:
-            lock_js = lock_js.replace('{{LOCK_HASH}}', LOCK_HASH).replace('{{LOCK_HINT}}', js_str(LOCK_HINT))
-        else:
-            lock_js = lock_js.replace('{{LOCK_HASH}}', '').replace('{{LOCK_HINT}}', '')
-        html_content = html_content.replace('</style>', lock_css + '\n    </style>', 1)
-        html_content = html_content.replace('</body>', '<script>\n' + lock_js + '\n</script>\n</body>', 1)
-        f.write(html_content)
+    html_content = html_content.replace('__VERSION_TYPE__', version_type).replace('__BUILD_DATE__', build_date)
+    # Privacy lock screen (dormant unless a PIN hash is configured).
+    lock_css = load_component(COMPONENTS_DIR / 'styles' / 'lock.css')
+    lock_js = load_component(COMPONENTS_DIR / 'scripts' / 'lock.js')
+    if LOCK_ENABLED and LOCK_HASH:
+        lock_js = lock_js.replace('{{LOCK_HASH}}', LOCK_HASH).replace('{{LOCK_HINT}}', js_str(LOCK_HINT))
+    else:
+        lock_js = lock_js.replace('{{LOCK_HASH}}', '').replace('{{LOCK_HINT}}', '')
+    html_content = html_content.replace('</style>', lock_css + '\n    </style>', 1)
+    html_content = html_content.replace('</body>', '<script>\n' + lock_js + '\n</script>\n</body>', 1)
+    write_html_file(output_path, html_content)
 
     logger.info(f"Generated selector page: {output_path}")
 
@@ -2634,8 +2854,7 @@ var COLOR_TRANSITION_TABLE = null;
 </body>
 </html>'''
 
-    with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(page)
+    write_html_file(output_path, page)
     logger.info(f"Generated auto clock page: {output_path} ({len(manifest)} timers)")
 
 
@@ -2980,8 +3199,7 @@ document.querySelectorAll('.copy').forEach(function (b) {
             .replace('__MANIFEST__', manifest_json)
             .replace('__GEN_AT__', gen_at)
             .replace('__BUILD__', f"{VERSION}"))
-    with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(page)
+    write_html_file(output_path, page)
     logger.info(f"Generated API playground: {output_path}")
 
 
@@ -3043,6 +3261,11 @@ def main() -> None:
         help='Don\'t auto-sort timers into status folders'
     )
     parser.add_argument(
+        '--no-obfuscate',
+        action='store_true',
+        help='Skip the one-way HTML obfuscation pass (readable output)'
+    )
+    parser.add_argument(
         '--hash-pin',
         metavar='PIN',
         help='Print the SHA-256 hash of a lock-screen PIN (put it in config/build.json -> lock.pin_sha256)'
@@ -3059,6 +3282,10 @@ def main() -> None:
         import hashlib
         print(hashlib.sha256(args.hash_pin.encode('utf-8')).hexdigest())
         return
+
+    global OBFUSCATE
+    if args.no_obfuscate:
+        OBFUSCATE = False
 
     if args.verbose:
         logger.setLevel(logging.DEBUG)

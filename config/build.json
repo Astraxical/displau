@@ -12,7 +12,8 @@
     "build": {
         "default_target_time": "2026-03-31T05:00:00",
         "output_pattern": "{config_id}.html",
-        "include_unused_scripts": false
+        "include_unused_scripts": false,
+        "obfuscate": true
     },
     "cache": {
         "duration_minutes": 5,

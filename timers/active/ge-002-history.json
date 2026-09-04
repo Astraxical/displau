@@ -1,7 +1,7 @@
 {
     "id": "ge-002-history",
     "display_name": "Readings in Philippine History",
-    "description": "GE 002 · Wed 7:30–11:30am · Room 312",
+    "description": "GE 002 \u00b7 Wed 7:30\u201311:30am \u00b7 Room 312",
     "target_time": "2026-08-12T07:30:00",
     "start_time": "2026-08-05T00:00:00",
     "direction": "down",
@@ -10,13 +10,22 @@
     "on_expire": "stop",
     "display_on_expire": true,
     "enabled": true,
-    "tags": ["course", "history", "ge"],
+    "tags": [
+        "course",
+        "history",
+        "ge"
+    ],
     "category": "courses",
     "color_theme": "progress",
     "show_milliseconds": true,
     "timezone": "UTC+8",
     "recur": true,
-    "recur_weekday": "Wednesday",
-    "recur_time": "07:30",
-    "recur_end": "11:30"
+    "recur_rule": "weekly",
+    "recur_schedule": [
+        {
+            "weekday": "Wednesday",
+            "start": "07:30",
+            "end": "11:30"
+        }
+    ]
 }

@@ -1,7 +1,7 @@
 {
     "id": "ed-101-child",
     "display_name": "Child and Adolescent Learners",
-    "description": "ED 101 · Mon 8:30am–12:30pm · Room 304",
+    "description": "ED 101 \u00b7 Mon 8:30am\u201312:30pm \u00b7 Room 304",
     "target_time": "2026-08-10T08:30:00",
     "start_time": "2026-08-03T00:00:00",
     "direction": "down",
@@ -10,13 +10,21 @@
     "on_expire": "stop",
     "display_on_expire": true,
     "enabled": true,
-    "tags": ["course", "education"],
+    "tags": [
+        "course",
+        "education"
+    ],
     "category": "courses",
     "color_theme": "progress",
     "show_milliseconds": true,
     "timezone": "UTC+8",
     "recur": true,
-    "recur_weekday": "Monday",
-    "recur_time": "08:30",
-    "recur_end": "12:30"
+    "recur_rule": "weekly",
+    "recur_schedule": [
+        {
+            "weekday": "Monday",
+            "start": "08:30",
+            "end": "12:30"
+        }
+    ]
 }
